@@ -1,5 +1,4 @@
 import os
-import urllib.request
 from datetime import datetime
 import pytz
 from fastapi import FastAPI, HTTPException
@@ -8,29 +7,15 @@ import swisseph as swe
 
 app = FastAPI(title="Astrology Engine API")
 
-# 1. กำหนดตำแหน่งเก็บไฟล์ Ephemeris ไปที่ /tmp/ephe
-EPHE_DIR = "/tmp/ephe"
-os.makedirs(EPHE_DIR, exist_ok=True)
-chiron_file = os.path.join(EPHE_DIR, "seas_18.se1")
-
-# 2. ตรวจสอบและดาวน์โหลดไฟล์ seas_18.se1 สำหรับ Chiron
-if not os.path.exists(chiron_file) or os.path.getsize(chiron_file) == 0:
-    try:
-        url = "https://www.astro.com/ftp/swisseph/ephe/seas_18.se1"
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req) as response, open(chiron_file, 'wb') as out_file:
-            out_file.write(response.read())
-    except Exception as e:
-        print(f"Ephemeris Download Error: {e}")
-
-# 3. กำหนดให้ Swiss Ephemeris อ่านไฟล์จาก /tmp/ephe
+# ชี้ Path ไปยังโฟลเดอร์ ephe ใน Repository
+EPHE_DIR = os.path.abspath("./ephe")
 swe.set_ephe_path(EPHE_DIR)
 
 PLANETS = {
     'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY,
     'Venus': swe.VENUS, 'Mars': swe.MARS, 'Jupiter': swe.JUPITER,
     'Saturn': swe.SATURN, 'Uranus': swe.URANUS, 'Neptune': swe.NEPTUNE,
-    'Pluto': swe.PLUTO, 'North_Node': swe.MEAN_NODE
+    'Pluto': swe.PLUTO, 'Chiron': swe.CHIRON, 'North_Node': swe.MEAN_NODE
 }
 
 ZODIAC_SIGNS = [
@@ -48,15 +33,11 @@ def _get_degree_info(degree: float) -> dict:
     }
 
 def _calc_planet_degree(julday: float, p_id: int) -> float:
-    res, _ = swe.calc_ut(julday, p_id, swe.FLG_MOSEPH)
+    if p_id == swe.CHIRON:
+        res, _ = swe.calc_ut(julday, p_id, swe.FLG_SWIEPH)
+    else:
+        res, _ = swe.calc_ut(julday, p_id, swe.FLG_MOSEPH)
     return res[0]
-
-def _calc_chiron_degree(julday: float) -> float:
-    try:
-        res, _ = swe.calc_ut(julday, swe.CHIRON, swe.FLG_SWIEPH)
-        return res[0]
-    except Exception:
-        return 0.0
 
 class NatalRequest(BaseModel):
     year: int
@@ -84,11 +65,6 @@ def get_realtime_transit():
             deg = _calc_planet_degree(julday, p_id)
             transits[name] = _get_degree_info(deg)
 
-        # คำนวณ Chiron
-        chiron_deg = _calc_chiron_degree(julday)
-        if chiron_deg > 0:
-            transits['Chiron'] = _get_degree_info(chiron_deg)
-
         transits['South_Node'] = _get_degree_info((transits['North_Node']['absolute_degree'] + 180) % 360)
         return {"timestamp_utc": now_utc.isoformat(), "transits": transits}
     except Exception as e:
@@ -108,10 +84,6 @@ def get_birth_chart(req: NatalRequest):
         for name, p_id in PLANETS.items():
             deg = _calc_planet_degree(julday, p_id)
             planets[name] = _get_degree_info(deg)
-
-        chiron_deg = _calc_chiron_degree(julday)
-        if chiron_deg > 0:
-            planets['Chiron'] = _get_degree_info(chiron_deg)
 
         planets['South_Node'] = _get_degree_info((planets['North_Node']['absolute_degree'] + 180) % 360)
 
