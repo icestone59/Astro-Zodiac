@@ -163,7 +163,7 @@
                 ticker.innerHTML = '';
                 const keys = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'North_Node'];
                 keys.forEach(p => {
-                    if (data.transits[p]) {
+                    if (data.transits && data.transits[p]) {
                         const item = data.transits[p];
                         ticker.innerHTML += `
                             <span class="bg-slate-800 px-2 py-0.5 rounded border border-slate-700 whitespace-nowrap">
@@ -204,7 +204,7 @@
             } catch (err) {
                 alert('เกิดข้อผิดพลาด: ' + err.message);
                 document.getElementById('placeholder-state').classList.remove('hidden');
-            } font-finally {
+            } finally {
                 document.getElementById('loading-state').classList.add('hidden');
             }
         }
