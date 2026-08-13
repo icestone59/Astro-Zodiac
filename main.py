@@ -9,33 +9,32 @@ import swisseph as swe
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
-# ------------------------------------------------------------------
-# 1. Ephemeris Setup (Fixes 'seas_18.se1' not found error)
-# ------------------------------------------------------------------
+# 1. กำหนด Absolute Path ไปที่ /tmp/ephe
 EPHE_DIR = "/tmp/ephe"
 os.makedirs(EPHE_DIR, exist_ok=True)
-chiron_file = os.path.join(EPHE_DIR, "seas_18.se1")
-
-# Mirror URL ของไฟล์ seas_18.se1 จาก Official Swiss Ephemeris Source
+CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 CHIRON_URL = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seas_18.se1"
 
-if not os.path.exists(chiron_file) or os.path.getsize(chiron_file) < 200000:
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        req = urllib.request.Request(CHIRON_URL, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, context=ctx) as response, open(chiron_file, 'wb') as out:
-            out.write(response.read())
-    except Exception as e:
-        print(f"[Warning] Failed to fetch Chiron file: {e}")
+def download_ephemeris():
+    """ดาวน์โหลดไฟล์ seas_18.se1 และตรวจสอบความสมบูรณ์"""
+    if not os.path.exists(CHIRON_FILE) or os.path.getsize(CHIRON_FILE) < 200000:
+        try:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            req = urllib.request.Request(CHIRON_URL, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, context=ctx) as response, open(CHIRON_FILE, 'wb') as out:
+                out.write(response.read())
+            return True
+        except Exception as e:
+            print(f"Download Error: {e}")
+            return False
+    return True
 
-# กำหนด Absolute Path ให้ C-Library ของ Swiss Ephemeris
+# เรียกใช้งานการเตรียมไฟล์
+download_ephemeris()
 swe.set_ephe_path(EPHE_DIR)
 
-# ------------------------------------------------------------------
-# 2. Planetary Specs & Helpers
-# ------------------------------------------------------------------
 PLANETS = {
     'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY,
     'Venus': swe.VENUS, 'Mars': swe.MARS, 'Jupiter': swe.JUPITER,
@@ -61,12 +60,12 @@ def _calc_planet(julday: float, p_id: int) -> float:
     res, _ = swe.calc_ut(julday, p_id, swe.FLG_MOSEPH)
     return res[0]
 
-def _calc_chiron_safe(julday: float) -> float:
+def _calc_chiron(julday: float) -> float:
     try:
         res, _ = swe.calc_ut(julday, swe.CHIRON, swe.FLG_SWIEPH)
         return res[0]
     except Exception:
-        # Fallback กรณีไฟล์มีปัญหา ป้องกัน Server Error 500
+        # Fallback กรณีไฟล์มีปัญหา ป้องกัน Server ล่ม
         res, _ = swe.calc_ut(julday, swe.CHIRON, swe.FLG_MOSEPH)
         return res[0]
 
@@ -81,15 +80,25 @@ class NatalRequest(BaseModel):
     timezone: str = "Asia/Bangkok"
 
 # ------------------------------------------------------------------
-# 3. API Endpoints
+# Endpoints
 # ------------------------------------------------------------------
-@app.get("/")
-def read_root():
-    return {"status": "Astrology Engine Online"}
+
+@app.get("/debug")
+def check_server_status():
+    """เปิด URL นี้เพื่อเช็คว่าไฟล์ seas_18.se1 อยู่ใน Server หรือยัง"""
+    file_exists = os.path.exists(CHIRON_FILE)
+    file_size = os.path.getsize(CHIRON_FILE) if file_exists else 0
+    return {
+        "ephe_directory": EPHE_DIR,
+        "chiron_file_path": CHIRON_FILE,
+        "file_exists": file_exists,
+        "file_size_bytes": file_size,
+        "status": "Ready" if file_exists and file_size > 200000 else "File Missing or Corrupted"
+    }
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. ดึง Transit ของดาวทุกดวงแบบ Real time (UTC)"""
+    """1. Transit ของดาวทุกดวงแบบ Real time (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         dec_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -99,7 +108,7 @@ def get_realtime_transit():
         for name, p_id in PLANETS.items():
             transits[name] = _get_degree_info(_calc_planet(julday, p_id))
 
-        transits['Chiron'] = _get_degree_info(_calc_chiron_safe(julday))
+        transits['Chiron'] = _get_degree_info(_calc_chiron(julday))
         transits['South_Node'] = _get_degree_info((transits['North_Node']['absolute_degree'] + 180) % 360)
 
         return {"timestamp_utc": now_utc.isoformat(), "transits": transits}
@@ -108,7 +117,7 @@ def get_realtime_transit():
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
-    """2. คำนวณองศาดาวพื้นดวง + จุดเจ้าการ + เรือนชะตา (Placidus)"""
+    """2. ข้อมูลองศาดาวพื้นดวง + เรือนชะตา Placidus"""
     try:
         local_tz = pytz.timezone(req.timezone)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
@@ -121,10 +130,9 @@ def get_birth_chart(req: NatalRequest):
         for name, p_id in PLANETS.items():
             planets[name] = _get_degree_info(_calc_planet(julday, p_id))
 
-        planets['Chiron'] = _get_degree_info(_calc_chiron_safe(julday))
+        planets['Chiron'] = _get_degree_info(_calc_chiron(julday))
         planets['South_Node'] = _get_degree_info((planets['North_Node']['absolute_degree'] + 180) % 360)
 
-        # คำนวณ Houses ระบบ Placidus
         houses, ascmc = swe.houses(julday, req.lat, req.lon, b'P')
         planets['ASC'] = _get_degree_info(ascmc[0])
         planets['MC'] = _get_degree_info(ascmc[1])
