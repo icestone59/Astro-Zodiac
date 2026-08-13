@@ -4,3 +4,6 @@ pyswisseph
 pytz
 geopy
 timezonefinder
+pydantic
+requests
+openai
