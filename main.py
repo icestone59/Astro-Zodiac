@@ -9,25 +9,23 @@ import swisseph as swe
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
-# 1. จัดเตรียม Directory และดาวน์โหลดไฟล์ Ephemeris สำหรับ Chiron
+# 1. ตั้งค่า Directory และ Mirror URL สำหรับไฟล์ดาวเคราะห์น้อย (seas_18.se1)
 EPHE_DIR = "/tmp/ephe"
 os.makedirs(EPHE_DIR, exist_ok=True)
 chiron_file = os.path.join(EPHE_DIR, "seas_18.se1")
+CHIRON_MIRROR_URL = "https://raw.githubusercontent.com/synastry/swiss_ephemeris_data/master/seas_18.se1"
 
-# ตรวจสอบขนาดไฟล์ ถ้าไม่มีหรือขนาด < 200KB ให้ดาวน์โหลดใหม่ทันที
 if not os.path.exists(chiron_file) or os.path.getsize(chiron_file) < 200000:
     try:
-        url = "https://www.astro.com/ftp/swisseph/ephe/seas_18.se1"
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        req = urllib.request.Request(CHIRON_MIRROR_URL, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, context=ctx) as response, open(chiron_file, 'wb') as out_file:
             out_file.write(response.read())
     except Exception as e:
-        print(f"Ephemeris Download Error: {e}")
+        print(f"Ephemeris Download Warning: {e}")
 
-# กำหนด Absolute Path ให้ C-Library
 swe.set_ephe_path(EPHE_DIR)
 
 PLANETS = {
@@ -52,7 +50,6 @@ def _get_degree_info(degree: float) -> dict:
     }
 
 def _calc_planet_degree(julday: float, p_id: int) -> float:
-    """คำนวณองศาดาว: Chiron ใช้ SWIEPH, ดาวอื่นใช้ MOSEPH"""
     if p_id == swe.CHIRON:
         res, _ = swe.calc_ut(julday, p_id, swe.FLG_SWIEPH)
     else:
@@ -71,11 +68,11 @@ class NatalRequest(BaseModel):
 
 @app.get("/")
 def read_root():
-    return {"status": "Astrology Engine Ready"}
+    return {"status": "Astro Engine Ready"}
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณ Real-time Transit ของดาวทุกดวง (รวม Chiron และ Nodes)"""
+    """1. คำนวณ Real-time Transit ดาวทุกดวง (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         decimal_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -93,7 +90,7 @@ def get_realtime_transit():
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
-    """2. คำนวณองศาดาวพื้นดวง + เรือนชะตา Placidus"""
+    """2. คำนวณองศาดาวพื้นดวง + จุดเจ้าการ + เรือนชะตา Placidus"""
     try:
         local_tz = pytz.timezone(req.timezone)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
@@ -109,7 +106,6 @@ def get_birth_chart(req: NatalRequest):
 
         planets['South_Node'] = _get_degree_info((planets['North_Node']['absolute_degree'] + 180) % 360)
 
-        # คำนวณ Houses (ระบบ Placidus 'P')
         houses, ascmc = swe.houses(julday, req.lat, req.lon, b'P')
         planets['ASC'] = _get_degree_info(ascmc[0])
         planets['MC'] = _get_degree_info(ascmc[1])
