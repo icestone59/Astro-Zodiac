@@ -1,19 +1,20 @@
 import os
 import ssl
 import urllib.request
-from contextlib import asynccontextmanager
 from datetime import datetime
 import pytz
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import swisseph as swe
 
+app = FastAPI(title="Evolutionary Astrology Engine API")
+
 EPHE_DIR = "/tmp/ephe"
 CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 CHIRON_URL = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seas_18.se1"
 
-def init_ephemeris():
-    """บังคับตรวจสอบและดาวน์โหลดไฟล์ Chiron ตอนบูต Server ทุกครั้ง"""
+def ensure_ephe():
+    """การันตีว่าไฟล์ Chiron และการตั้งค่า Path พร้อมใช้งานเสมอในทุก Thread"""
     os.makedirs(EPHE_DIR, exist_ok=True)
     if not os.path.exists(CHIRON_FILE) or os.path.getsize(CHIRON_FILE) < 200000:
         try:
@@ -24,16 +25,8 @@ def init_ephemeris():
             with urllib.request.urlopen(req, context=ctx) as response, open(CHIRON_FILE, 'wb') as out:
                 out.write(response.read())
         except Exception as e:
-            print(f"[Ephemeris Init Warning] {e}")
+            print(f"[Ephemeris Warning] {e}")
     swe.set_ephe_path(EPHE_DIR)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # ทำงานอัตโนมัติทันทีที่ Server เริ่มหมุน
-    init_ephemeris()
-    yield
-
-app = FastAPI(title="Evolutionary Astrology Engine API", lifespan=lifespan)
 
 PLANETS = {
     'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY,
@@ -57,6 +50,7 @@ def _get_degree_info(degree: float) -> dict:
     }
 
 def _calc_planet_degree(julday: float, p_id: int) -> float:
+    ensure_ephe()  # ผูก Path เข้ากับ C-Context ทุกครั้งก่อนคำนวณ
     try:
         if p_id == swe.CHIRON:
             res, _ = swe.calc_ut(julday, p_id, swe.FLG_SWIEPH)
@@ -87,6 +81,7 @@ def read_root():
 
 @app.get("/debug")
 def check_debug_status():
+    ensure_ephe()
     file_exists = os.path.exists(CHIRON_FILE)
     file_size = os.path.getsize(CHIRON_FILE) if file_exists else 0
     return {
@@ -117,7 +112,7 @@ def get_realtime_transit():
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
-    """2. คำนวณองศาดาวพื้นดวง + เรือนชะตา Placidus จาก วัน/เวลา/สถานที่เกิด"""
+    """2. คำนวณองศาดาวพื้นดวง + จุดเจ้าการ + เรือนชะตา (Placidus)"""
     try:
         local_tz = pytz.timezone(req.timezone)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
