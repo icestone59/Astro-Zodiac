@@ -3,19 +3,13 @@ from .base import BaseInterpreter
 class CareerInterpreter(BaseInterpreter):
     def analyze(self, planets: dict) -> dict:
         category = "career"
-        mc_sign = planets['MC']['sign']
-        sun_sign = planets['Sun']['sign']
-        sun_house = planets['Sun']['house']
-        saturn_house = planets['Saturn']['house']
-
-        keys = {
-            "mc_target": f"MC_{mc_sign}",
-            "sun_focus": f"Sun_{sun_sign}_H{sun_house}",
-            "saturn_discipline": f"Saturn_H{saturn_house}"
-        }
+        
+        mc_key = f"MC_{planets['MC']['sign']}"
+        sun_key = f"Sun_{planets['Sun']['sign']}_H{planets['Sun']['house']}"
+        saturn_key = f"Saturn_H{planets['Saturn']['house']}"
 
         return {
-            "target_career": self.fetch_text(category, keys["mc_target"]),
-            "core_identity_work": self.fetch_text(category, keys["sun_focus"]),
-            "discipline_and_structure": self.fetch_text(category, keys["saturn_discipline"])
+            "career_target_mc": self.get_content(category, mc_key),
+            "work_identity_sun": self.get_content(category, sun_key),
+            "discipline_structure_saturn": self.get_content(category, saturn_key)
         }
