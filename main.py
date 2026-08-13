@@ -427,3 +427,87 @@ def analyze_chart(req: AnalysisRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis Error: {str(e)}")
+
+@app.get("/db-view", response_class=HTMLResponse)
+def view_database_contents():
+    """Endpoint สำหรับดึงคำพยากรณ์ทั้งหมดใน DB มาแสดงเป็นตาราง HTML"""
+    db_path = "astro_rules.db"
+    if not os.path.exists(db_path):
+        return "<h1>ไม่พบไฟล์ astro_rules.db บน Server</h1>"
+
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # ดึงข้อมูลจากตาราง natal_interpretations
+        cursor.execute("SELECT category, lookup_key, content FROM natal_interpretations ORDER BY category, lookup_key")
+        natal_rows = cursor.fetchall()
+
+        # ดึงข้อมูลจากตาราง transit_interpretations
+        cursor.execute("SELECT question_type, aspect_key, timing_info, solution_text FROM transit_interpretations ORDER BY question_type")
+        transit_rows = cursor.fetchall()
+        
+        conn.close()
+
+        # สร้างหน้า HTML Table
+        html_content = f"""
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+            <meta charset="UTF-8">
+            <title>Database Content Inspector</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-slate-950 text-slate-100 p-6 font-sans">
+            <div class="max-w-6xl mx-auto space-y-8">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                    <h1 class="text-xl font-bold text-indigo-400">Astro Rules Database Inspector</h1>
+                    <span class="bg-indigo-900 text-indigo-200 text-xs px-3 py-1 rounded-full">Total Natal Rules: {len(natal_rows)}</span>
+                </div>
+
+                <!-- ตารางที่ 1: Natal Interpretations (7 หมวดหมู่) -->
+                <div class="space-y-3">
+                    <h2 class="text-md font-semibold text-slate-300">1. Natal Interpretations (พื้นดวง 7 หมวดหมู่)</h2>
+                    <div class="overflow-x-auto rounded-lg border border-slate-800">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900 text-indigo-300 uppercase text-[10px] border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Category</th>
+                                    <th class="p-3">Lookup Key</th>
+                                    <th class="p-3">Content (บทวิเคราะห์)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 bg-slate-900/50">
+                                {"".join([f'<tr class="hover:bg-slate-800/50"><td class="p-3 font-mono text-emerald-400">{r[0]}</td><td class="p-3 font-mono text-amber-300">{r[1]}</td><td class="p-3">{r[2]}</td></tr>' for r in natal_rows])}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ตารางที่ 2: Transit Interpretations (Q&A) -->
+                <div class="space-y-3">
+                    <h2 class="text-md font-semibold text-slate-300">2. Transit Interpretations (คำถามเฉพาะเจาะจง)</h2>
+                    <div class="overflow-x-auto rounded-lg border border-slate-800">
+                        <table class="w-full text-left text-xs text-slate-300">
+                            <thead class="bg-slate-900 text-indigo-300 uppercase text-[10px] border-b border-slate-800">
+                                <tr>
+                                    <th class="p-3">Question Type</th>
+                                    <th class="p-3">Aspect Key</th>
+                                    <th class="p-3">Timing</th>
+                                    <th class="p-3">Solution Text</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800 bg-slate-900/50">
+                                {"".join([f'<tr class="hover:bg-slate-800/50"><td class="p-3 font-mono text-cyan-400">{r[0]}</td><td class="p-3 font-mono text-amber-300">{r[1]}</td><td class="p-3">{r[2]}</td><td class="p-3">{r[3]}</td></tr>' for r in transit_rows])}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return HTMLResponse(content=html_content)
+
+    except Exception as e:
+        return HTMLResponse(content=f"<h1>Error reading database: {str(e)}</h1>")
