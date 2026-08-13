@@ -1,0 +1,84 @@
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from datetime import datetime
+import pytz
+import swisseph as swe
+
+app = FastAPI(title="Astrology Engine API")
+
+# กำหนดค่าดาวและราศี
+PLANETS = {
+    'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY,
+    'Venus': swe.VENUS, 'Mars': swe.MARS, 'Jupiter': swe.JUPITER,
+    'Saturn': swe.SATURN, 'Uranus': swe.URANUS, 'Neptune': swe.NEPTUNE,
+    'Pluto': swe.PLUTO, 'Chiron': swe.CHIRON, 'North_Node': swe.MEAN_NODE
+}
+ZODIAC_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+                "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+
+def _get_degree_info(degree: float) -> dict:
+    return {
+        "sign": ZODIAC_SIGNS[int(degree // 30)],
+        "degree_in_sign": round(degree % 30, 2),
+        "absolute_degree": round(degree, 4)
+    }
+
+class NatalRequest(BaseModel):
+    year: int
+    month: int
+    day: int
+    hour: int
+    minute: int
+    lat: float
+    lon: float
+    timezone: str = "Asia/Bangkok"
+
+@app.get("/")
+def read_root():
+    return {"status": "Astro Engine is running"}
+
+@app.get("/transit")
+def get_realtime_transit():
+    """1. คำนวณ Transit ของดาวทุกดวงแบบ Real time (อ้างอิง UTC)"""
+    now_utc = datetime.now(pytz.utc)
+    decimal_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
+    julday = swe.julday(now_utc.year, now_utc.month, now_utc.day, decimal_hour)
+
+    transits = {}
+    for name, p_id in PLANETS.items():
+        res, _ = swe.calc_ut(julday, p_id)
+        transits[name] = _get_degree_info(res[0])
+        
+    return {"timestamp_utc": now_utc.isoformat(), "transits": transits}
+
+@app.post("/natal")
+def get_birth_chart(req: NatalRequest):
+    """2. คำนวณข้อมูลองศาดาวพื้นดวง (Birth Chart) และเรือนชะตา"""
+    try:
+        local_tz = pytz.timezone(req.timezone)
+        local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
+        utc_dt = local_dt.astimezone(pytz.utc)
+        
+        decimal_hour = utc_dt.hour + (utc_dt.minute / 60.0) + (utc_dt.second / 3600.0)
+        julday = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day, decimal_hour)
+
+        # คำนวณดาว
+        planets = {}
+        for name, p_id in PLANETS.items():
+            res, _ = swe.calc_ut(julday, p_id)
+            planets[name] = _get_degree_info(res[0])
+            
+        # คำนวณ Houses (ระบบ Placidus 'P')
+        houses, ascmc = swe.houses(julday, req.lat, req.lon, b'P')
+        planets['ASC'] = _get_degree_info(ascmc[0])
+        planets['MC'] = _get_degree_info(ascmc[1])
+
+        house_cusps = {f"House_{i+1}": _get_degree_info(houses[i]) for i in range(12)}
+
+        return {
+            "utc_time": utc_dt.isoformat(),
+            "planets": planets,
+            "houses": house_cusps
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
