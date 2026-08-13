@@ -11,7 +11,7 @@ from timezonefinder import TimezoneFinder
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
-# Setup Ephemeris Directory
+# 1. Ephemeris Setup (Chiron Auto-Download & Dynamic Path Binding)
 EPHE_DIR = "/tmp/ephe"
 CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 CHIRON_URL = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seas_18.se1"
@@ -66,17 +66,34 @@ def _calc_planet_degree(julday: float, p_id: int) -> float:
         res, _ = swe.calc_ut(julday, p_id, swe.FLG_MOSEPH)
         return res[0]
 
-class NatalRequestWithLocation(BaseModel):
+class NatalRequest(BaseModel):
     year: int
     month: int
     day: int
     hour: int
     minute: int
-    location_name: str  # เช่น "Bangkok, Thailand" หรือ "Chiang Mai"
+    location_name: str  # เช่น "Bangkok, Thailand", "Chiang Mai"
+
+# ------------------------------------------------------------------
+# Endpoints
+# ------------------------------------------------------------------
+
+@app.get("/")
+def read_root():
+    """แก้ไขหน้าแรกให้แสดงสถานะระบบ"""
+    return {
+        "status": "Astro Engine Online",
+        "service": "Evolutionary Astrology API",
+        "endpoints": {
+            "realtime_transit": "/transit",
+            "birth_chart": "/natal",
+            "documentation": "/docs"
+        }
+    }
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณ Real-time Transit ดาวทุกดวง (UTC)"""
+    """1. คำนวณ Real-time Transit ของดาวทุกดวง (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         dec_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -93,10 +110,9 @@ def get_realtime_transit():
         raise HTTPException(status_code=500, detail=f"Transit Error: {str(e)}")
 
 @app.post("/natal")
-def get_birth_chart(req: NatalRequestWithLocation):
-    """2. แปลงสถานที่เกิดเป็น พิกัด + Timezone และคำนวณ Birth Chart"""
+def get_birth_chart(req: NatalRequest):
+    """2. คำนวณ Birth Chart + เรือนชะตา Placidus จาก วัน เวลา สถานที่เกิด"""
     try:
-        # Geocoding
         loc = geolocator.geocode(req.location_name, timeout=10)
         if not loc:
             raise HTTPException(status_code=400, detail="Location not found")
@@ -104,7 +120,6 @@ def get_birth_chart(req: NatalRequestWithLocation):
         lat, lon = loc.latitude, loc.longitude
         tz_str = tf.timezone_at(lng=lon, lat=lat) or "UTC"
 
-        # Time Conversion
         local_tz = pytz.timezone(tz_str)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
         utc_dt = local_dt.astimezone(pytz.utc)
@@ -112,7 +127,6 @@ def get_birth_chart(req: NatalRequestWithLocation):
         dec_hour = utc_dt.hour + (utc_dt.minute / 60.0) + (utc_dt.second / 3600.0)
         julday = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day, dec_hour)
 
-        # Calculate Planets
         planets = {}
         for name, p_id in PLANETS.items():
             deg = _calc_planet_degree(julday, p_id)
@@ -120,7 +134,7 @@ def get_birth_chart(req: NatalRequestWithLocation):
 
         planets['South_Node'] = _get_degree_info((planets['North_Node']['absolute_degree'] + 180) % 360)
 
-        # Calculate Houses (Placidus)
+        # คำนวณ Houses ระบบ Placidus
         houses, ascmc = swe.houses(julday, lat, lon, b'P')
         planets['ASC'] = _get_degree_info(ascmc[0])
         planets['MC'] = _get_degree_info(ascmc[1])
