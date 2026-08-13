@@ -6,7 +6,7 @@ import swisseph as swe
 
 app = FastAPI(title="Astrology Engine API")
 
-# กำหนดให้ใช้ Moshier Ephemeris (คำนวณในตัว ไม่ต้องใช้ไฟล์ .se1 บน Server)
+# กำหนดใช้ Moshier Ephemeris เพื่อคำนวณในตัว ไม่ต้องโหลดไฟล์ดาวเพิ่ม
 CALC_FLAG = swe.FLG_MOSEPH
 
 PLANETS = {
@@ -46,7 +46,7 @@ def read_root():
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณ Real-time Transit ของดาวทุกดวง (UTC)"""
+    """1. คำนวณ Transit ของดาวทุกดวงแบบ Real time (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         decimal_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -63,7 +63,7 @@ def get_realtime_transit():
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
-    """2. คำนวณ Birth Chart (ตำแหน่งดาว + เรือนชะตา)"""
+    """2. คำนวณข้อมูลองศาดาวพื้นดวง (Birth Chart) และเรือนชะตา"""
     try:
         local_tz = pytz.timezone(req.timezone)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
@@ -72,13 +72,11 @@ def get_birth_chart(req: NatalRequest):
         decimal_hour = utc_dt.hour + (utc_dt.minute / 60.0) + (utc_dt.second / 3600.0)
         julday = swe.julday(utc_dt.year, utc_dt.month, utc_dt.day, decimal_hour)
 
-        # คำนวณองศาดาว
         planets = {}
         for name, p_id in PLANETS.items():
             res, _ = swe.calc_ut(julday, p_id, CALC_FLAG)
             planets[name] = _get_degree_info(res[0])
 
-        # คำนวณ Houses ระบบ Placidus (b'P')
         houses, ascmc = swe.houses(julday, req.lat, req.lon, b'P')
         planets['ASC'] = _get_degree_info(ascmc[0])
         planets['MC'] = _get_degree_info(ascmc[1])
