@@ -6,14 +6,15 @@ import swisseph as swe
 
 app = FastAPI(title="Astrology Engine API")
 
-# กำหนดใช้ Moshier Ephemeris เพื่อคำนวณในตัว ไม่ต้องโหลดไฟล์ดาวเพิ่ม
+# ใช้ Moshier Ephemeris (ไม่ต้องใช้ไฟล์ .se1 นอก)
 CALC_FLAG = swe.FLG_MOSEPH
 
+# ปรับรายการดาวให้เหลือเฉพาะดาวที่ Moshier คำนวณได้โดยไม่ต้องพึ่งไฟล์ภายนอก
 PLANETS = {
     'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY,
     'Venus': swe.VENUS, 'Mars': swe.MARS, 'Jupiter': swe.JUPITER,
     'Saturn': swe.SATURN, 'Uranus': swe.URANUS, 'Neptune': swe.NEPTUNE,
-    'Pluto': swe.PLUTO, 'Chiron': swe.CHIRON, 'North_Node': swe.MEAN_NODE
+    'Pluto': swe.PLUTO, 'North_Node': swe.MEAN_NODE
 }
 
 ZODIAC_SIGNS = [
@@ -46,7 +47,7 @@ def read_root():
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณ Transit ของดาวทุกดวงแบบ Real time (UTC)"""
+    """1. คำนวณ Real-time Transit (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         decimal_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -56,6 +57,9 @@ def get_realtime_transit():
         for name, p_id in PLANETS.items():
             res, _ = swe.calc_ut(julday, p_id, CALC_FLAG)
             transits[name] = _get_degree_info(res[0])
+
+        # คำนวณ South Node (ตรงข้าม North Node 180 องศา)
+        transits['South_Node'] = _get_degree_info((transits['North_Node']['absolute_degree'] + 180) % 360)
 
         return {"timestamp_utc": now_utc.isoformat(), "transits": transits}
     except Exception as e:
@@ -77,6 +81,9 @@ def get_birth_chart(req: NatalRequest):
             res, _ = swe.calc_ut(julday, p_id, CALC_FLAG)
             planets[name] = _get_degree_info(res[0])
 
+        planets['South_Node'] = _get_degree_info((planets['North_Node']['absolute_degree'] + 180) % 360)
+
+        # คำนวณ Houses ระบบ Placidus (b'P')
         houses, ascmc = swe.houses(julday, req.lat, req.lon, b'P')
         planets['ASC'] = _get_degree_info(ascmc[0])
         planets['MC'] = _get_degree_info(ascmc[1])
