@@ -7,8 +7,11 @@ import swisseph as swe
 
 app = FastAPI(title="Astrology Engine API")
 
-# ชี้ Path ไปยังโฟลเดอร์ ephe ใน Repository
-EPHE_DIR = os.path.abspath("./ephe")
+# กำหนด Absolute Path โดยอ้างอิงจากไดเรกทอรีที่ตั้งของ main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EPHE_DIR = os.path.join(BASE_DIR, "ephe")
+
+# ตั้งค่า Path ให้ Swiss Ephemeris อ่านไฟล์ ephe
 swe.set_ephe_path(EPHE_DIR)
 
 PLANETS = {
