@@ -7,11 +7,9 @@ import swisseph as swe
 
 app = FastAPI(title="Astrology Engine API")
 
-# กำหนด Absolute Path โดยอ้างอิงจากไดเรกทอรีที่ตั้งของ main.py
+# กำหนด Path ไปยังโฟลเดอร์ ephe ใน Repository
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EPHE_DIR = os.path.join(BASE_DIR, "ephe")
-
-# ตั้งค่า Path ให้ Swiss Ephemeris อ่านไฟล์ ephe
 swe.set_ephe_path(EPHE_DIR)
 
 PLANETS = {
@@ -58,6 +56,7 @@ def read_root():
 
 @app.get("/transit")
 def get_realtime_transit():
+    """1. คำนวณ Real-time Transit ของดาวทุกดวง (รวม Chiron และ Nodes)"""
     try:
         now_utc = datetime.now(pytz.utc)
         decimal_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -75,6 +74,7 @@ def get_realtime_transit():
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
+    """2. คำนวณองศาดาวพื้นดวง จุดเจ้าการ และเรือนชะตา Placidus"""
     try:
         local_tz = pytz.timezone(req.timezone)
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
