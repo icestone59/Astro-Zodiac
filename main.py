@@ -230,10 +230,9 @@ class AnalysisRequest(BaseModel):
 # ------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def serve_frontend():
-    """ให้บริการหน้าเว็บ Frontend UI (index.html)"""
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return HTMLResponse("<h1>Evolutionary Astrology API Running</h1><p>index.html not found in root directory.</p>")
+    return HTMLResponse("<h1>API Active</h1><p>index.html not found</p>")
 
 @app.get("/transit")
 def get_realtime_transit():
