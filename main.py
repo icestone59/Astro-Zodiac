@@ -77,10 +77,10 @@ def calculate_julian_day(year: int, month: int, day: int, hour: int, minute: int
 
 def get_planet_deg(jd: float, planet_id: int):
     """
-    คำนวณองศาดาวด้วย Moshier Algorithm (FLG_MOOSHNE) 
-    ไม่ต้องพึ่งพาไฟล์ .se1 บน Server
+    คำนวณองศาดาวด้วย Moshier Ephemeris (FLG_MOSEPH) 
+    ไม่ต้องใช้ไฟล์ .se1 บน Server แม่นยำสูงย้อนหลัง/ล่วงหน้า 3,000 ปี
     """
-    res, _ = swe.calc_ut(jd, planet_id, swe.FLG_MOOSHNE)
+    res, _ = swe.calc_ut(jd, planet_id, swe.FLG_MOSEPH)
     deg = res[0]
     sign_idx = int(deg // 30)
     deg_in_sign = deg % 30
@@ -90,7 +90,6 @@ def get_planet_deg(jd: float, planet_id: int):
         "sign_deg": deg_in_sign,
         "formatted": f"{int(deg_in_sign)}°{int((deg_in_sign * 60) % 60):02d}'"
     }
-
 def get_natal_interpretation_fast(category: str, lookup_key: str) -> str:
     db_path = "astro_rules.db"
     if not os.path.exists(db_path):
