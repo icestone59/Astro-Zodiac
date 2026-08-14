@@ -7,6 +7,7 @@ import pytz
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
+from chart_drawer import generate_astroseek_svg
 from pydantic import BaseModel
 import swisseph as swe
 from geopy.geocoders import Nominatim
@@ -253,6 +254,45 @@ def get_realtime_transit():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transit Calculation Error: {str(e)}")
+
+@app.get("/test-chart", response_class=HTMLResponse)
+def view_test_chart():
+    """Endpoint สำหรับทดสอบดูรูป Birth Chart Wheel สไตล์ Astro-Seek"""
+    # ข้อมูลจำลอง (Mock data)
+    sample_planets = {
+        "Sun": 63.8, "Moon": 142.1, "Mercury": 39.3, 
+        "Venus": 20.1, "Mars": 21.2, "Jupiter": 71.2, "Saturn": 131.6
+    }
+    sample_houses = [
+        132.6, 155.2, 184.5, 218.7, 252.1, 285.4, 
+        312.6, 335.2, 4.5, 38.7, 72.1, 105.4
+    ]
+    asc_degree = sample_houses[0]
+    
+    # สั่งสร้าง SVG
+    svg_output = generate_astroseek_svg(sample_planets, sample_houses, asc_degree)
+    
+    # นำ SVG ไปใส่ใน HTML แบบจัดกึ่งกลาง
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Birth Chart Test</title>
+        <style>
+            body {{ display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #0f172a; margin: 0; }}
+            .chart-container {{ width: 100%; max-width: 800px; background: white; border-radius: 50%; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
+        </style>
+    </head>
+    <body>
+        <div class="chart-container">
+            {svg_output}
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @app.post("/natal")
 def get_birth_chart(req: NatalRequest):
