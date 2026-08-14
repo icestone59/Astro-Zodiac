@@ -76,7 +76,11 @@ def calculate_julian_day(year: int, month: int, day: int, hour: int, minute: int
     return swe.julday(year, month, day, utc_hour)
 
 def get_planet_deg(jd: float, planet_id: int):
-    res, _ = swe.calc_ut(jd, planet_id)
+    """
+    คำนวณองศาดาวด้วย Moshier Algorithm (FLG_MOOSHNE) 
+    ไม่ต้องพึ่งพาไฟล์ .se1 บน Server
+    """
+    res, _ = swe.calc_ut(jd, planet_id, swe.FLG_MOOSHNE)
     deg = res[0]
     sign_idx = int(deg // 30)
     deg_in_sign = deg % 30
@@ -84,7 +88,7 @@ def get_planet_deg(jd: float, planet_id: int):
         "deg": deg,
         "sign": ZODIAC_SIGNS[sign_idx],
         "sign_deg": deg_in_sign,
-        "formatted": f"{int(deg_in_sign)}°{int((deg_in_sign*60)%60):02d}'"
+        "formatted": f"{int(deg_in_sign)}°{int((deg_in_sign * 60) % 60):02d}'"
     }
 
 def get_natal_interpretation_fast(category: str, lookup_key: str) -> str:
