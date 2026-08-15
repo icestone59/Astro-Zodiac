@@ -136,6 +136,13 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Action Button for Deep Report -->
+                <div class="pt-4 border-t border-purple-800/60 mt-4 flex justify-end">
+                    <button onclick="generateDeepReport()" id="deepReportBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-amber-500/10 flex items-center gap-2">
+                        <span>🔍 กดดูปมลึกของคุณ</span>
+                    </button>
+                </div>
             </div>
 
             <div class="space-y-4">
@@ -236,6 +243,50 @@
                 submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
             }
         });
+
+        // Function สำหรับเปิด Deep Report ฉบับเจาะลึก 12 มิติชีวิตใน Tab ใหม่
+        async function generateDeepReport() {
+            const deepReportBtn = document.getElementById('deepReportBtn');
+            deepReportBtn.disabled = true;
+            deepReportBtn.innerHTML = `<span>กำลังสร้างรายงานเจาะลึก...</span>`;
+
+            const yearBE = parseInt(document.getElementById('year_be').value);
+            const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
+
+            const payload = {
+                user_name: document.getElementById('user_name').value.trim() || "คุณ",
+                day: parseInt(document.getElementById('day').value),
+                month: parseInt(document.getElementById('month').value),
+                year: yearAD,
+                hour: parseInt(document.getElementById('hour').value),
+                minute: parseInt(document.getElementById('minute').value),
+                location_name: document.getElementById('location_name').value.trim()
+            };
+
+            try {
+                const response = await fetch('/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'ไม่สามารถสร้างรายงานเจาะลึกได้');
+                }
+
+                const htmlContent = await response.text();
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(htmlContent);
+                newWindow.document.close();
+
+            } catch (err) {
+                alert('เกิดข้อผิดพลาด: ' + err.message);
+            } finally {
+                deepReportBtn.disabled = false;
+                deepReportBtn.innerHTML = `<span>🔍 กดดูปมลึกของคุณ</span>`;
+            }
+        }
 
         function renderBirthChartDegrees(degrees) {
             const container = document.getElementById('birthChartDegreeBox');
