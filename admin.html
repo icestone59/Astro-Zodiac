@@ -12,7 +12,6 @@
 
     <div class="max-w-6xl mx-auto bg-white border border-purple-100 rounded-2xl shadow-xl p-6">
         
-        <!-- Header -->
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-purple-100 pb-5 mb-6">
             <div>
                 <h1 class="text-xl font-bold text-purple-950 flex items-center gap-2">
@@ -27,10 +26,8 @@
             </button>
         </div>
 
-        <!-- Alert Notification -->
         <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-sm font-medium"></div>
 
-        <!-- 7 Tabs Navigation Header -->
         <div class="flex border-b border-purple-200 overflow-x-auto gap-1 mb-6" id="tabHeader">
             <button onclick="switchTab('tab_1')" id="btn_tab_1" class="tab-btn px-4 py-2.5 text-xs font-bold rounded-t-xl transition border-b-2 border-purple-700 text-purple-900 bg-purple-50">1. นิสัย บุคลิกภาพ</button>
             <button onclick="switchTab('tab_2')" id="btn_tab_2" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">2. การเงิน</button>
@@ -41,28 +38,22 @@
             <button onclick="switchTab('tab_7')" id="btn_tab_7" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">7. ปัญหาที่ต้องปรับปรุง</button>
         </div>
 
-        <!-- Tab Contents Container -->
         <div id="tabContents">
-            
-            <!-- Tab 1: นิสัย บุคลิกภาพ -->
             <div id="tab_1" class="tab-content">
                 <label class="block text-sm font-bold text-purple-900 mb-1">1. นิสัย บุคลิกภาพ (Personality)</label>
                 <textarea id="cat_1_personality" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการวิเคราะห์นิสัย/บุคลิกภาพที่นี่..."></textarea>
             </div>
 
-            <!-- Tab 2: การเงิน -->
             <div id="tab_2" class="tab-content hidden">
                 <label class="block text-sm font-bold text-purple-900 mb-1">2. การเงิน (Finance & Assets)</label>
                 <textarea id="cat_2_finance" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการวิเคราะห์การเงินที่นี่..."></textarea>
             </div>
 
-            <!-- Tab 3: การงาน อาชีพ -->
             <div id="tab_3" class="tab-content hidden">
                 <label class="block text-sm font-bold text-purple-900 mb-1">3. การงาน อาชีพ ที่ตรงกับดวง (Career & Vocation)</label>
                 <textarea id="cat_3_career" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการวิเคราะห์การงานอาชีพที่นี่..."></textarea>
             </div>
 
-            <!-- Tab 4: ความรัก (รวมหลักการทั่วไป + กฎความรักเจาะลึก) -->
             <div id="tab_4" class="tab-content hidden space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-purple-900 mb-1">4.1 ภาพรวมหลักการความรักทั่วไป</label>
@@ -99,24 +90,20 @@
                 </div>
             </div>
 
-            <!-- Tab 5: จุดเด่น จุดด้อย -->
             <div id="tab_5" class="tab-content hidden">
                 <label class="block text-sm font-bold text-purple-900 mb-1">5. จุดเด่น จุดด้อย และการแก้จุดด้อย (Strengths & Weaknesses)</label>
                 <textarea id="cat_5_strengths_weaknesses" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการจุดเด่นจุดด้อยที่นี่..."></textarea>
             </div>
 
-            <!-- Tab 6: ศักยภาพและการพัฒนา -->
             <div id="tab_6" class="tab-content hidden">
                 <label class="block text-sm font-bold text-purple-900 mb-1">6. ศักยภาพที่มี และวิธีการพัฒนา (Potentials & Development)</label>
                 <textarea id="cat_6_potentials" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการพัฒนาศักยภาพที่นี่..."></textarea>
             </div>
 
-            <!-- Tab 7: ปัญหาที่ต้องปรับปรุง -->
             <div id="tab_7" class="tab-content hidden">
                 <label class="block text-sm font-bold text-purple-900 mb-1">7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า (Growth & Challenges)</label>
                 <textarea id="cat_7_growth" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการปัญหาที่ต้องปรับปรุงที่นี่..."></textarea>
             </div>
-
         </div>
 
     </div>
@@ -140,14 +127,12 @@
             activeBtn.classList.add('border-b-2', 'border-purple-700', 'text-purple-900', 'bg-purple-50', 'font-bold');
         }
 
-        // ดึงข้อมูลเดิมจาก school_rules.json มาแสดงบนหน้าจอ
         async function loadRules() {
             try {
                 const res = await fetch('/api/rules');
                 if (!res.ok) return;
                 const data = await res.json();
                 
-                // ดึงข้อมูล 7 หมวดหลัก
                 const natal = data.natal_categories || {};
                 categories.forEach(cat => {
                     const el = document.getElementById(`cat_${cat}`);
@@ -156,7 +141,6 @@
                     }
                 });
 
-                // ดึงข้อมูลกฎความรักเจาะลึก
                 const loveAdv = data.love_advanced_rules || {};
                 if (document.getElementById('love_attraction')) document.getElementById('love_attraction').value = loveAdv.personal_attraction_indicators || '';
                 if (document.getElementById('love_complex')) document.getElementById('love_complex').value = loveAdv.complex_relationship_indicators || '';
@@ -171,7 +155,6 @@
             }
         }
 
-        // บันทึกข้อมูลลง school_rules.json
         async function saveRules() {
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
