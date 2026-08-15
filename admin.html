@@ -2,59 +2,201 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Setting - ระบบตั้งค่าหลักการโหราศาสตร์</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - ระบบตั้งค่าหลักการสำนัก</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Sarabun', sans-serif; }</style>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Sarabun', sans-serif; } </style>
 </head>
-<body class="bg-purple-50/40 text-slate-800 min-h-screen p-6">
-    <div class="max-w-5xl mx-auto bg-white border border-purple-100 rounded-2xl shadow-xl p-6">
-        <div class="flex justify-between items-center border-b border-purple-100 pb-4 mb-6">
-            <h1 class="text-xl font-bold text-purple-950 flex items-center gap-2">
-                ⚙️ ตั้งค่าแก่นวิชาของสำนัก (School Rules Management)
-            </h1>
-            <button id="saveBtn" onclick="saveRules()" class="bg-purple-700 hover:bg-purple-800 text-white font-bold px-5 py-2 rounded-xl text-sm transition">
-                💾 บันทึกข้อมูลทั้งหมด
+<body class="bg-purple-50/40 text-slate-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto bg-white border border-purple-100 rounded-2xl shadow-xl p-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-purple-100 pb-5 mb-6">
+            <div>
+                <h1 class="text-xl font-bold text-purple-950 flex items-center gap-2">
+                    ⚙️ ตั้งค่าแก่นวิชาประจำสำนัก (School Knowledge Base)
+                </h1>
+                <p class="text-xs text-purple-600 mt-1">
+                    * หมวดใดที่เว้นว่างไว้ ระบบจะใช้ AI วิเคราะห์ตามหลักโหราศาสตร์สากลเชิงพัฒนาศักยภาพให้อัตโนมัติ
+                </p>
+            </div>
+            <button onclick="saveRules()" id="saveBtn" class="bg-purple-700 hover:bg-purple-800 text-white font-bold px-6 py-2.5 rounded-xl text-sm transition shadow-md shadow-purple-900/10 flex items-center gap-2">
+                <span>💾 บันทึกข้อมูลทั้งหมด</span>
             </button>
         </div>
 
-        <!-- Setting Sections -->
-        <div class="space-y-6">
-            <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                <h2 class="text-md font-bold text-purple-900 mb-2">1. หลักการวิเคราะห์พื้นดวง 7 หมวดหมู่</h2>
-                <div id="natalForm" class="space-y-3">
-                    <!-- Dynamic Textareas for 7 Categories -->
+        <!-- System Alerts -->
+        <div id="alertBox" class="hidden mb-6 p-4 rounded-xl text-sm"></div>
+
+        <!-- Form Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- Left Column: 7 Natal Categories (7 Cols) -->
+            <div class="lg:col-span-7 space-y-4">
+                <h2 class="text-sm font-bold text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>📌</span> หลักการวิเคราะห์พื้นดวง 7 หมวดหมู่
+                </h2>
+
+                <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-purple-50">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">1. นิสัย บุคลิกภาพ (Personality)</label>
+                        <textarea id="cat_1_personality" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">2. การเงิน (Finance & Assets)</label>
+                        <textarea id="cat_2_finance" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">3. การงาน อาชีพ ที่ตรงกับดวง (Career & Vocation)</label>
+                        <textarea id="cat_3_career" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">4. ความรัก (Love & Relationship)</label>
+                        <textarea id="cat_4_love" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">5. จุดเด่น จุดด้อย และการแก้จุดด้อย (Strengths & Weaknesses)</label>
+                        <textarea id="cat_5_strengths_weaknesses" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">6. ศักยภาพที่มี และวิธีการพัฒนา (Potentials & Development)</label>
+                        <textarea id="cat_6_potentials" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า (Growth & Challenges)</label>
+                        <textarea id="cat_7_growth" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none" placeholder="ระบุหลักการเฉพาะ หรือเว้นว่างเพื่อให้ AI วิเคราะห์อัตโนมัติ"></textarea>
+                    </div>
                 </div>
             </div>
 
-            <div class="bg-purple-50/50 p-4 rounded-xl border border-purple-100">
-                <h2 class="text-md font-bold text-purple-900 mb-2">2. หลักการความรัก & ดาวเจ้าเรือน 7 / Midpoints</h2>
-                <textarea id="loveRulesInput" rows="6" class="w-full p-3 border border-purple-200 rounded-xl text-sm font-mono focus:outline-none" placeholder="ระบุกฎดาวเจ้าเรือน 7, Retrograde หรือ Sun/Moon Midpoint..."></textarea>
+            <!-- Right Column: Specialized Rules (5 Cols) -->
+            <div class="lg:col-span-5 space-y-4">
+                <h2 class="text-sm font-bold text-purple-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>❤️</span> ตรรกะความรักเจาะลึก & Transit Q&A
+                </h2>
+
+                <div class="space-y-3 bg-purple-50/50 p-4 rounded-xl border border-purple-100">
+                    <div>
+                        <label class="block text-xs font-bold text-purple-900 mb-1">ดัชนีชี้วัดแรงดึงดูด & LGBTQ+</label>
+                        <textarea id="love_attraction" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-purple-900 mb-1">ความรักซับซ้อน (Uranus / Hades / Neptune)</label>
+                        <textarea id="love_complex" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-purple-900 mb-1">ดาวที่ทำมุมกับ Sun/Moon Midpoint</label>
+                        <textarea id="love_midpoints" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-purple-900 mb-1">เรือนที่ 7, เจ้าเรือน Placidus & Retrograde</label>
+                        <textarea id="love_house7" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-purple-900 mb-1">ความหมายดาวสถิตในเรือนที่ 7</label>
+                        <textarea id="love_planets_h7" rows="3" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs focus:border-purple-600 focus:outline-none"></textarea>
+                    </div>
+                </div>
             </div>
+
         </div>
     </div>
 
     <script>
-        async function loadRules() {
-            const res = await fetch('/api/rules');
-            const data = await res.json();
-            const container = document.getElementById('natalForm');
-            container.innerHTML = '';
+        const categories = [
+            '1_personality', '2_finance', '3_career', 
+            '4_love', '5_strengths_weaknesses', '6_potentials', '7_growth'
+        ];
 
-            for (const [key, val] of Object.entries(data.natal_categories)) {
-                container.innerHTML += `
-                    <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-1">หมวด: ${key}</label>
-                        <textarea id="rule_${key}" rows="2" class="w-full p-2.5 border border-purple-200 rounded-xl text-sm focus:outline-none">${val}</textarea>
-                    </div>
-                `;
+        async function loadRules() {
+            try {
+                const res = await fetch('/api/rules');
+                const data = await res.json();
+                
+                // Load 7 Natal Categories
+                const natal = data.natal_categories || {};
+                categories.forEach(cat => {
+                    const el = document.getElementById(`cat_${cat}`);
+                    if (el) el.value = natal[cat] || '';
+                });
+
+                // Load Advanced Love Rules
+                const loveAdv = data.love_advanced_rules || {};
+                document.getElementById('love_attraction').value = loveAdv.personal_attraction_indicators || '';
+                document.getElementById('love_complex').value = loveAdv.complex_relationship_indicators || '';
+                document.getElementById('love_midpoints').value = loveAdv.sun_moon_midpoint_rules || '';
+                document.getElementById('love_house7').value = loveAdv.house_7_and_ruler_rules || '';
+                document.getElementById('love_planets_h7').value = loveAdv.planets_in_7th_house || '';
+
+            } catch (err) {
+                showAlert('ไม่สามารถดึงข้อมูลตั้งค่าได้', 'error');
             }
-            document.getElementById('loveRulesInput').value = JSON.stringify(data.love_rules, null, 2);
         }
 
         async function saveRules() {
-            // Collect Form Data & POST to /api/rules
-            alert("บันทึกหลักการเรียบร้อยแล้ว");
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerText = "กำลังบันทึก...";
+
+            const payload = {
+                school_name: "สำนักโหราศาสตร์วิวัฒนาการ",
+                natal_categories: {},
+                love_advanced_rules: {
+                    personal_attraction_indicators: document.getElementById('love_attraction').value,
+                    complex_relationship_indicators: document.getElementById('love_complex').value,
+                    sun_moon_midpoint_rules: document.getElementById('love_midpoints').value,
+                    house_7_and_ruler_rules: document.getElementById('love_house7').value,
+                    planets_in_7th_house: document.getElementById('love_planets_h7').value
+                }
+            };
+
+            categories.forEach(cat => {
+                payload.natal_categories[cat] = document.getElementById(`cat_${cat}`).value;
+            });
+
+            try {
+                const res = await fetch('/api/rules', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await res.json();
+                
+                if (res.ok) {
+                    showAlert(result.message || 'บันทึกข้อมูลสำเร็จ', 'success');
+                } else {
+                    throw new Error(result.detail || 'เกิดข้อผิดพลาดในการบันทึก');
+                }
+            } catch (err) {
+                showAlert(err.message, 'error');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "💾 บันทึกข้อมูลทั้งหมด";
+            }
+        }
+
+        function showAlert(msg, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'bg-rose-100', 'text-rose-800');
+            if (type === 'success') {
+                alertBox.classList.add('bg-emerald-100', 'text-emerald-800');
+            } else {
+                alertBox.classList.add('bg-rose-100', 'text-rose-800');
+            }
+            alertBox.innerText = msg;
+            setTimeout(() => alertBox.classList.add('hidden'), 4000);
         }
 
         loadRules();
