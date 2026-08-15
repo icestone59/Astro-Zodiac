@@ -7,16 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Sarabun', sans-serif; 
-            background-color: #f8f5ff;
-        }
-        .prose h1, .prose h2, .prose h3 { 
-            color: #c084fc; 
-            font-weight: 700; 
-            margin-top: 1.25rem; 
-            margin-bottom: 0.5rem; 
-        }
+        body { font-family: 'Sarabun', sans-serif; background-color: #f8f5ff; }
+        .prose h1, .prose h2, .prose h3 { color: #c084fc; font-weight: 700; margin-top: 1.25rem; margin-bottom: 0.5rem; }
         .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose ol, .prose ul { margin-left: 1.25rem; margin-bottom: 0.75rem; }
         .prose li { margin-bottom: 0.25rem; }
@@ -24,42 +16,35 @@
 </head>
 <body class="text-slate-800 min-h-screen">
 
-    <!-- Top Bar Navigation & Real-time Transit Ticker -->
     <header class="border-b border-purple-100 bg-white/90 backdrop-blur sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-purple-200">
-                    🔮
-                </div>
+                <div class="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-purple-200">🔮</div>
                 <div>
-                    <h1 class="text-base font-bold text-purple-950 tracking-tight">
-                        EVOLUTIONARY ASTROLOGY
-                    </h1>
+                    <h1 class="text-base font-bold text-purple-950 tracking-tight">EVOLUTIONARY ASTROLOGY ENGINE</h1>
                     <p class="text-[10px] text-purple-600 font-medium">โหราศาสตร์สากลเชิงพัฒนาศักยภาพ</p>
                 </div>
             </div>
-
-            <!-- Ticker สำหรับแสดง Real-time Transit -->
-            <div id="transitTicker" class="text-xs text-slate-500 flex flex-wrap items-center gap-2 overflow-x-auto max-w-full py-1">
-                <span class="text-purple-500 font-medium">กำลังโหลดตำแหน่งดาวจร Real-time...</span>
-            </div>
+            <a href="/admin" class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold px-3 py-1.5 rounded-lg transition">⚙️ ตั้งค่าคลังหลักการ</a>
         </div>
     </header>
 
-    <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        <!-- Column Left: Birth Inputs & Birth Chart Wheel (5 Cols) -->
+        <!-- Form & Chart Wheel -->
         <section class="lg:col-span-5 space-y-6">
-            
-            <!-- Input Form Card -->
             <div class="bg-white border border-purple-100 rounded-2xl p-6 shadow-xl shadow-purple-950/5">
                 <div class="flex items-center gap-2 mb-5 pb-3 border-b border-purple-50">
                     <span class="text-purple-600">✨</span>
-                    <h2 class="text-base font-bold text-purple-950">ผูกดวงชะตา (Birth Data)</h2>
+                    <h2 class="text-base font-bold text-purple-950">ข้อมูลวันเวลาและสถานที่เกิด</h2>
                 </div>
                 
                 <form id="astroForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ใช้</label>
+                        <input type="text" id="user_name" value="คุณไอซ์" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
+                    </div>
+
                     <div class="grid grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">วันเกิด</label>
@@ -70,8 +55,8 @@
                             <input type="number" id="month" value="8" min="1" max="12" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีเกิด (ค.ศ.)</label>
-                            <input type="number" id="year" value="1995" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีเกิด (พ.ศ.)</label>
+                            <input type="number" id="year_be" value="2538" min="2400" max="2600" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น 2538">
                         </div>
                     </div>
 
@@ -87,25 +72,48 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">สถานที่เกิด (เมือง, ประเทศ)</label>
-                        <input type="text" id="location_name" value="Bangkok, Thailand" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น Chiang Mai, Thailand">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">จังหวัดที่เกิด (ประเทศไทย)</label>
+                        <input type="text" id="location_name" list="thai_provinces" value="กรุงเทพมหานคร" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="พิมพ์ชื่อจังหวัด...">
+                        
+                        <!-- Auto-complete 77 Provinces -->
+                        <datalist id="thai_provinces">
+                            <option value="กรุงเทพมหานคร"><option value="กระบี่"><option value="กาญจนบุรี"><option value="กาฬสินธุ์">
+                            <option value="กำแพงเพชร"><option value="ขอนแก่น"><option value="จันทบุรี"><option value="ฉะเชิงเทรา">
+                            <option value="ชลบุรี"><option value="ชัยนาท"><option value="ชัยภูมิ"><option value="ชุมพร">
+                            <option value="เชียงราย"><option value="เชียงใหม่"><option value="ตรัง"><option value="ตราด">
+                            <option value="ตาก"><option value="นครนายก"><option value="นครปฐม"><option value="นครพนม">
+                            <option value="นครราชสีมา"><option value="นครศรีธรรมราช"><option value="นครสวรรค์"><option value="นนทบุรี">
+                            <option value="นราธิวาส"><option value="น่าน"><option value="บึงกาฬ"><option value="บุรีรัมย์">
+                            <option value="ปทุมธานี"><option value="ประจวบคีรีขันธ์"><option value="ปราจีนบุรี"><option value="ปัตตานี">
+                            <option value="พระนครศรีอยุธยา"><option value="พะเยา"><option value="พังงา"><option value="พัทลุง">
+                            <option value="พิจิตร"><option value="พิษณุโลก"><option value="เพชรบุรี"><option value="เพชรบูรณ์">
+                            <option value="แพร่"><option value="ภูเก็ต"><option value="มหาสารคาม"><option value="มุกดาหาร">
+                            <option value="แม่ฮ่องสอน"><option value="ยโสธร"><option value="ยะลา"><option value="ร้อยเอ็ด">
+                            <option value="ระนอง"><option value="ระยอง"><option value="ราชบุรี"><option value="ลพบุรี">
+                            <option value="ลำปาง"><option value="ลำพูน"><option value="เลย"><option value="ศรีสะเกษ">
+                            <option value="สกลนคร"><option value="สงขลา"><option value="สตูล"><option value="สมุทรปราการ">
+                            <option value="สมุทรสงคราม"><option value="สมุทรสาคร"><option value="สระแก้ว"><option value="สระบุรี">
+                            <option value="สิงห์บุรี"><option value="สุโขทัย"><option value="สุพรรณบุรี"><option value="สุราษฎร์ธานี">
+                            <option value="สุรินทร์"><option value="หนองคาย"><option value="หนองบัวลำภู"><option value="อ่างทอง">
+                            <option value="อำนาจเจริญ"><option value="อุดรธานี"><option value="อุตรดิตถ์"><option value="อุทัยธานี"><option value="อุบลราชธานี">
+                        </datalist>
                     </div>
 
                     <div class="pt-2">
                         <label class="block text-xs font-bold text-purple-800 mb-1">คำถามเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
-                        <input type="text" id="question" class="w-full bg-purple-50/50 border border-purple-300 rounded-xl px-3 py-2 text-sm text-purple-950 placeholder-purple-400 focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น ผมจะได้งานช่วงไหน / ปัญหาตอนนี้แก้อย่างไร">
+                        <input type="text" id="question" class="w-full bg-purple-50/50 border border-purple-300 rounded-xl px-3 py-2 text-sm text-purple-950 placeholder-purple-400 focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น ผมจะได้งานเมื่อไหร่">
                     </div>
 
                     <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md shadow-purple-900/20 text-sm flex justify-center items-center gap-2 mt-4">
-                        <span>คำนวณตำแหน่งดาวและทำนาย</span>
+                        <span>คำนวณตำแหน่งดาวและวิเคราะห์</span>
                     </button>
                 </form>
             </div>
 
-            <!-- SVG Birth Chart Wheel Container -->
+            <!-- SVG Chart Wheel -->
             <div class="bg-white border border-purple-100 rounded-2xl p-5 shadow-xl shadow-purple-950/5 flex flex-col items-center">
                 <h3 class="text-xs font-bold text-purple-900 mb-4 self-start flex items-center gap-2">
-                    <span>☸️</span> BIRTH CHART WHEEL (ASTRO-SEEK)
+                    <span>☸️</span> BIRTH CHART WHEEL
                 </h3>
                 <div id="chartContainer" class="w-full max-w-[380px] aspect-square flex items-center justify-center border border-purple-50 rounded-full p-2 bg-slate-50/50">
                     <div class="text-purple-400 text-xs text-center font-medium">ระบุวันเวลาเกิดและกดทำนายเพื่อสร้างรูปดวงชะตา</div>
@@ -113,29 +121,49 @@
             </div>
         </section>
 
-        <!-- Column Right: Horoscope & Analysis Report Card (7 Cols) -->
-        <section class="lg:col-span-7">
-            <!-- Theme Card สีม่วงเข้มมืด ตามตัวอย่างรูปที่ 3 -->
-            <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[650px] shadow-2xl flex flex-col">
-                
-                <!-- Card Header -->
-                <div class="border-b border-purple-800/60 pb-4 mb-5 flex justify-between items-center">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-7 h-7 rounded-lg bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-amber-300 text-xs">
-                            ✦
+        <!-- Report Output & Technical Data Dropdown -->
+        <section class="lg:col-span-7 space-y-6">
+            <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[550px] shadow-2xl flex flex-col justify-between">
+                <div>
+                    <div class="border-b border-purple-800/60 pb-4 mb-5 flex justify-between items-center">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-lg bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-amber-300 text-xs">✦</div>
+                            <h2 class="text-base font-bold text-white tracking-wide">INSIGHT ANALYTICS</h2>
                         </div>
-                        <h2 class="text-base font-bold text-white tracking-wide">INSIGHT ANALYTICS</h2>
+                        <span id="statusBadge" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-medium">Ready</span>
                     </div>
-                    <span id="statusBadge" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-medium">Ready</span>
-                </div>
 
-                <!-- Content Output Area -->
-                <div id="reportOutput" class="prose prose-invert max-w-none text-slate-200 text-sm flex-1 overflow-y-auto">
-                    <div class="flex flex-col items-center justify-center h-80 text-purple-300/60 text-center space-y-4">
-                        <div class="w-16 h-16 rounded-full bg-purple-900/40 border border-purple-700/40 flex items-center justify-center text-2xl text-amber-400 animate-pulse">
-                            🌟
+                    <div id="reportOutput" class="prose prose-invert max-w-none text-slate-200 text-sm">
+                        <div class="flex flex-col items-center justify-center h-64 text-purple-300/60 text-center space-y-4">
+                            <div class="w-14 h-14 rounded-full bg-purple-900/40 border border-purple-700/40 flex items-center justify-center text-xl text-amber-400 animate-pulse">🌟</div>
+                            <p class="text-xs font-medium max-w-xs">ระบบพร้อมประมวลผลคำทำนาย 7 หมวดหมู่ โดยแสดงสัญลักษณ์ (i) เฉพาะส่วนที่แปลจาก AI</p>
                         </div>
-                        <p class="text-xs font-medium max-w-xs">ระบบพร้อมประมวลผลตำแหน่งดาว และออกคำพยากรณ์เชิงพัฒนาศักยภาพ 7 หมวดหมู่</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Dropdown: Birth Chart Degrees -->
+                <details class="bg-white border border-purple-100 rounded-2xl shadow-md overflow-hidden group">
+                    <summary class="flex justify-between items-center p-4 font-bold text-xs text-purple-950 cursor-pointer bg-purple-50/50 hover:bg-purple-100/50 transition">
+                        <span class="flex items-center gap-2">
+                            <span>📊</span> องศาดาวกำเนิดทั้งหมด (Birth Chart Degrees)
+                        </span>
+                        <span class="text-purple-600 transition group-open:rotate-180">▼</span>
+                    </summary>
+                    <div id="birthChartDegreeBox" class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs text-slate-700 border-t border-purple-100 bg-white">
+                        <span class="text-slate-400 col-span-full text-center py-2">คำนวณดวงชะตาก่อนเพื่อดูองศาดาวกำเนิด</span>
+                    </div>
+                </details>
+
+                <!-- Bottom Box: Real-time Transit Degrees -->
+                <div class="bg-white border border-purple-100 rounded-2xl p-4 shadow-md">
+                    <h3 class="text-xs font-bold text-purple-950 mb-2.5 flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        ตำแหน่งดาวจร Real-time (Transit Degrees)
+                    </h3>
+                    <div id="transitDegreeBox" class="flex flex-wrap gap-2 text-xs">
+                        <span class="text-slate-400">กำลังโหลดตำแหน่งดาวจร...</span>
                     </div>
                 </div>
             </div>
@@ -143,30 +171,7 @@
 
     </main>
 
-    <!-- JavaScript Handlers -->
     <script>
-        // Fetch Real-time Transit Data
-        async function fetchRealtimeTransit() {
-            try {
-                const res = await fetch('/transit');
-                const data = await res.json();
-                if (data?.transits) {
-                    const planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'];
-                    const tickerHtml = planets.map(p => {
-                        const info = data.transits[p];
-                        const sign = (info?.sign || '').toUpperCase();
-                        const deg = info?.formatted || '';
-                        return `<span class="bg-purple-100/70 border border-purple-200 text-purple-950 px-2 py-0.5 rounded-md font-medium"><strong class="text-purple-700">${p}:</strong> ${sign} ${deg}</span>`;
-                    }).join('');
-                    document.getElementById('transitTicker').innerHTML = `<span class="text-purple-900 font-bold text-xs mr-1">ดาวจรตอนนี้:</span> ` + tickerHtml;
-                }
-            } catch (err) {
-                console.error("Transit Fetch Error:", err);
-                document.getElementById('transitTicker').innerText = "ไม่สามารถโหลดข้อมูลดาวจรได้";
-            }
-        }
-
-        // Form Submit Handler
         document.getElementById('astroForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -175,19 +180,23 @@
             const reportOutput = document.getElementById('reportOutput');
             const chartContainer = document.getElementById('chartContainer');
 
-            // UI Loading State
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> <span>กำลังคำนวณตำแหน่งดาว...</span>`;
+            submitBtn.innerHTML = `<span>กำลังคำนวณตำแหน่งดาว...</span>`;
             statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
             statusBadge.innerText = "Analyzing";
 
+            // แปลง พ.ศ. เป็น ค.ศ.
+            const yearBE = parseInt(document.getElementById('year_be').value);
+            const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
+
             const payload = {
+                user_name: document.getElementById('user_name').value.trim() || "คุณ",
                 day: parseInt(document.getElementById('day').value),
                 month: parseInt(document.getElementById('month').value),
-                year: parseInt(document.getElementById('year').value),
+                year: yearAD,
                 hour: parseInt(document.getElementById('hour').value),
                 minute: parseInt(document.getElementById('minute').value),
-                location_name: document.getElementById('location_name').value,
+                location_name: document.getElementById('location_name').value.trim(),
                 question: document.getElementById('question').value.trim() || null
             };
 
@@ -199,17 +208,10 @@
                 });
 
                 const result = await response.json();
+                if (!response.ok) throw new Error(result.detail || 'เกิดข้อผิดพลาดในการประมวลผล');
 
-                if (!response.ok) {
-                    throw new Error(result.detail || 'เกิดข้อผิดพลาดในการประมวลผล');
-                }
+                if (result?.chart_svg) chartContainer.innerHTML = result.chart_svg;
 
-                // Render Birth Chart SVG
-                if (result?.chart_svg) {
-                    chartContainer.innerHTML = result.chart_svg;
-                }
-
-                // Render Answer or 7 Modules Report
                 if (result?.answer) {
                     reportOutput.innerHTML = `
                         <div class="space-y-4">
@@ -223,12 +225,11 @@
                         </div>
                     `;
                 } else if (result?.report) {
-                    reportOutput.innerHTML = `
-                        <div class="prose prose-invert max-w-none text-slate-200">
-                            ${formatMarkdown(result.report)}
-                        </div>
-                    `;
+                    reportOutput.innerHTML = `<div class="prose prose-invert max-w-none text-slate-200">${formatMarkdown(result.report)}</div>`;
                 }
+
+                if (result?.birth_chart_degrees) renderBirthChartDegrees(result.birth_chart_degrees);
+                if (result?.transit_degrees) renderTransitDegrees(result.transit_degrees);
 
                 statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
                 statusBadge.innerText = "Completed";
@@ -239,11 +240,56 @@
                 statusBadge.innerText = "Error";
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและทำนาย</span>`;
+                submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
             }
         });
 
-        // Markdown Formatter Utility
+        function renderBirthChartDegrees(degrees) {
+            const container = document.getElementById('birthChartDegreeBox');
+            container.innerHTML = '';
+            for (const [key, val] of Object.entries(degrees)) {
+                const sign = (val?.sign || '').toUpperCase();
+                const deg = val?.formatted || '';
+                const house = val?.house ? `(H${val.house})` : '';
+                const retro = val?.is_retrograde ? ' Rx' : '';
+                container.innerHTML += `
+                    <div class="bg-purple-50/70 p-2 rounded-lg border border-purple-100 flex justify-between items-center">
+                        <span class="font-bold text-purple-950 text-[11px]">${key}:</span>
+                        <span class="font-mono text-purple-700 font-medium text-[11px]">${sign} ${deg}${retro} ${house}</span>
+                    </div>
+                `;
+            }
+        }
+
+        function renderTransitDegrees(transits) {
+            const container = document.getElementById('transitDegreeBox');
+            container.innerHTML = '';
+            const mainPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron'];
+            mainPlanets.forEach(p => {
+                const info = transits[p];
+                if (info) {
+                    const sign = (info?.sign || '').toUpperCase();
+                    const deg = info?.formatted || '';
+                    const retro = info?.is_retrograde ? ' Rx' : '';
+                    container.innerHTML += `
+                        <span class="bg-purple-50 border border-purple-200 text-purple-950 px-2.5 py-1 rounded-md font-medium">
+                            <strong class="text-purple-700">${p}:</strong> ${sign} ${deg}${retro}
+                        </span>
+                    `;
+                }
+            });
+        }
+
+        async function fetchInitialTransit() {
+            try {
+                const res = await fetch('/transit');
+                const data = await res.json();
+                if (data?.transits) renderTransitDegrees(data.transits);
+            } catch (err) {
+                console.error("Transit Fetch Error:", err);
+            }
+        }
+
         function formatMarkdown(text) {
             if (!text) return '';
             return text
@@ -256,8 +302,7 @@
                 .replace(/\n\n/g, '<br><br>');
         }
 
-        // Initialize Real-time Transit Ticker
-        fetchRealtimeTransit();
+        fetchInitialTransit();
     </script>
 </body>
 </html>
