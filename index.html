@@ -7,108 +7,135 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Sarabun', sans-serif; }
-        .prose h1, .prose h2, .prose h3 { color: #818cf8; font-weight: 700; margin-top: 1.25rem; margin-bottom: 0.5rem; }
+        body { 
+            font-family: 'Sarabun', sans-serif; 
+            background-color: #f8f5ff;
+        }
+        .prose h1, .prose h2, .prose h3 { 
+            color: #c084fc; 
+            font-weight: 700; 
+            margin-top: 1.25rem; 
+            margin-bottom: 0.5rem; 
+        }
         .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
         .prose ol, .prose ul { margin-left: 1.25rem; margin-bottom: 0.75rem; }
         .prose li { margin-bottom: 0.25rem; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="text-slate-800 min-h-screen">
 
-    <!-- Top Navigation & Real-time Transit Ticker -->
-    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+    <!-- Top Bar Navigation & Real-time Transit Ticker -->
+    <header class="border-b border-purple-100 bg-white/90 backdrop-blur sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-3">
-                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
-                <h1 class="text-lg font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
-                    EVOLUTIONARY ASTROLOGY ENGINE
-                </h1>
+                <div class="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-purple-200">
+                    🔮
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-purple-950 tracking-tight">
+                        EVOLUTIONARY ASTROLOGY
+                    </h1>
+                    <p class="text-[10px] text-purple-600 font-medium">โหราศาสตร์สากลเชิงพัฒนาศักยภาพ</p>
+                </div>
             </div>
+
             <!-- Ticker สำหรับแสดง Real-time Transit -->
-            <div id="transitTicker" class="text-xs text-slate-400 flex flex-wrap items-center gap-3 overflow-x-auto max-w-full py-1">
-                <span>กำลังโหลดข้อมูลดาวจร Real-time...</span>
+            <div id="transitTicker" class="text-xs text-slate-500 flex flex-wrap items-center gap-2 overflow-x-auto max-w-full py-1">
+                <span class="text-purple-500 font-medium">กำลังโหลดตำแหน่งดาวจร Real-time...</span>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Grid -->
-    <main class="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        <!-- Column Left: Birth Input & Chart Visualization (5 Cols) -->
+        <!-- Column Left: Birth Inputs & Birth Chart Wheel (5 Cols) -->
         <section class="lg:col-span-5 space-y-6">
-            <!-- Form Input Card -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-                <h2 class="text-md font-semibold text-indigo-400 mb-4 flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    ข้อมูลวันเวลาและสถานที่เกิด
-                </h2>
+            
+            <!-- Input Form Card -->
+            <div class="bg-white border border-purple-100 rounded-2xl p-6 shadow-xl shadow-purple-950/5">
+                <div class="flex items-center gap-2 mb-5 pb-3 border-b border-purple-50">
+                    <span class="text-purple-600">✨</span>
+                    <h2 class="text-base font-bold text-purple-950">ผูกดวงชะตา (Birth Data)</h2>
+                </div>
                 
                 <form id="astroForm" class="space-y-4">
                     <div class="grid grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">วัน</label>
-                            <input type="number" id="day" value="15" min="1" max="31" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">วันเกิด</label>
+                            <input type="number" id="day" value="15" min="1" max="31" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">เดือน</label>
-                            <input type="number" id="month" value="8" min="1" max="12" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เดือนเกิด</label>
+                            <input type="number" id="month" value="8" min="1" max="12" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">ปี (ค.ศ.)</label>
-                            <input type="number" id="year" value="1995" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีเกิด (ค.ศ.)</label>
+                            <input type="number" id="year" value="1995" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">ชั่วโมง (0-23)</label>
-                            <input type="number" id="hour" value="14" min="0" max="23" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาเกิด (ชั่วโมง 0-23)</label>
+                            <input type="number" id="hour" value="14" min="0" max="23" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="block text-xs text-slate-400 mb-1">นาที (0-59)</label>
-                            <input type="number" id="minute" value="30" min="0" max="59" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">นาทีเกิด (0-59)</label>
+                            <input type="number" id="minute" value="30" min="0" max="59" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs text-slate-400 mb-1">สถานที่เกิด (เมือง, ประเทศ)</label>
-                        <input type="text" id="location_name" value="Bangkok, Thailand" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" placeholder="เช่น Chiang Mai, Thailand">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">สถานที่เกิด (เมือง, ประเทศ)</label>
+                        <input type="text" id="location_name" value="Bangkok, Thailand" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น Chiang Mai, Thailand">
                     </div>
 
-                    <div class="border-t border-slate-800 pt-3">
-                        <label class="block text-xs text-indigo-300 mb-1">คำถามเจาะจง (ระบุ Transit vs Natal - เว้นว่างได้)</label>
-                        <input type="text" id="question" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none" placeholder="เช่น ผมจะได้งานช่วงไหน / ปัญหาการเงินแก้อย่างไร">
+                    <div class="pt-2">
+                        <label class="block text-xs font-bold text-purple-800 mb-1">คำถามเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
+                        <input type="text" id="question" class="w-full bg-purple-50/50 border border-purple-300 rounded-xl px-3 py-2 text-sm text-purple-950 placeholder-purple-400 focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น ผมจะได้งานช่วงไหน / ปัญหาตอนนี้แก้อย่างไร">
                     </div>
 
-                    <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white font-medium py-2.5 rounded-lg transition duration-200 shadow-lg text-sm flex justify-center items-center gap-2">
-                        <span>คำนวณตำแหน่งดาวและวิเคราะห์</span>
+                    <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md shadow-purple-900/20 text-sm flex justify-center items-center gap-2 mt-4">
+                        <span>คำนวณตำแหน่งดาวและทำนาย</span>
                     </button>
                 </form>
             </div>
 
-            <!-- SVG Birth Chart Container -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col items-center justify-center min-h-[350px]">
-                <h3 class="text-xs font-semibold text-slate-400 mb-3 self-start">BIRTH CHART WHEEL (ASTRO-SEEK STYLE)</h3>
-                <div id="chartContainer" class="w-full max-w-[400px] aspect-square flex items-center justify-center">
-                    <div class="text-slate-600 text-xs text-center">กรอกข้อมูลและกดวิเคราะห์เพื่อสร้างวงกลมดวงชะตา</div>
+            <!-- SVG Birth Chart Wheel Container -->
+            <div class="bg-white border border-purple-100 rounded-2xl p-5 shadow-xl shadow-purple-950/5 flex flex-col items-center">
+                <h3 class="text-xs font-bold text-purple-900 mb-4 self-start flex items-center gap-2">
+                    <span>☸️</span> BIRTH CHART WHEEL (ASTRO-SEEK)
+                </h3>
+                <div id="chartContainer" class="w-full max-w-[380px] aspect-square flex items-center justify-center border border-purple-50 rounded-full p-2 bg-slate-50/50">
+                    <div class="text-purple-400 text-xs text-center font-medium">ระบุวันเวลาเกิดและกดทำนายเพื่อสร้างรูปดวงชะตา</div>
                 </div>
             </div>
         </section>
 
-        <!-- Column Right: Analysis Report (7 Cols) -->
+        <!-- Column Right: Horoscope & Analysis Report Card (7 Cols) -->
         <section class="lg:col-span-7">
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 min-h-[650px] shadow-xl flex flex-col">
-                <div class="border-b border-slate-800 pb-3 mb-4 flex justify-between items-center">
-                    <h2 class="text-md font-semibold text-cyan-400">ผลการวิเคราะห์เชิงพัฒนาศักยภาพ</h2>
-                    <span id="statusBadge" class="text-[10px] bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full">Ready</span>
+            <!-- Theme Card สีม่วงเข้มมืด ตามตัวอย่างรูปที่ 3 -->
+            <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[650px] shadow-2xl flex flex-col">
+                
+                <!-- Card Header -->
+                <div class="border-b border-purple-800/60 pb-4 mb-5 flex justify-between items-center">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-amber-300 text-xs">
+                            ✦
+                        </div>
+                        <h2 class="text-base font-bold text-white tracking-wide">INSIGHT ANALYTICS</h2>
+                    </div>
+                    <span id="statusBadge" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-medium">Ready</span>
                 </div>
 
-                <!-- Content Display Area -->
-                <div id="reportOutput" class="prose prose-invert max-w-none text-slate-300 text-sm flex-1 overflow-y-auto">
-                    <div class="flex flex-col items-center justify-center h-64 text-slate-500 text-center space-y-3">
-                        <svg class="w-12 h-12 text-slate-700 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        <p>ระบบพร้อมประมวลผลตำแหน่งดาว Real-time และบทวิเคราะห์พื้นดวง 7 หมวดหมู่</p>
+                <!-- Content Output Area -->
+                <div id="reportOutput" class="prose prose-invert max-w-none text-slate-200 text-sm flex-1 overflow-y-auto">
+                    <div class="flex flex-col items-center justify-center h-80 text-purple-300/60 text-center space-y-4">
+                        <div class="w-16 h-16 rounded-full bg-purple-900/40 border border-purple-700/40 flex items-center justify-center text-2xl text-amber-400 animate-pulse">
+                            🌟
+                        </div>
+                        <p class="text-xs font-medium max-w-xs">ระบบพร้อมประมวลผลตำแหน่งดาว และออกคำพยากรณ์เชิงพัฒนาศักยภาพ 7 หมวดหมู่</p>
                     </div>
                 </div>
             </div>
@@ -116,9 +143,9 @@
 
     </main>
 
-    <!-- JavaScript Handling -->
+    <!-- JavaScript Handlers -->
     <script>
-        // Fetch Real-time Transit on Page Load
+        // Fetch Real-time Transit Data
         async function fetchRealtimeTransit() {
             try {
                 const res = await fetch('/transit');
@@ -129,17 +156,17 @@
                         const info = data.transits[p];
                         const sign = (info?.sign || '').toUpperCase();
                         const deg = info?.formatted || '';
-                        return `<span class="bg-slate-800 px-2 py-0.5 rounded border border-slate-700"><strong class="text-indigo-400">${p}:</strong> ${sign} ${deg}</span>`;
+                        return `<span class="bg-purple-100/70 border border-purple-200 text-purple-950 px-2 py-0.5 rounded-md font-medium"><strong class="text-purple-700">${p}:</strong> ${sign} ${deg}</span>`;
                     }).join('');
-                    document.getElementById('transitTicker').innerHTML = `<span class="text-emerald-400 font-bold">TRANSIT REAL-TIME:</span> ` + tickerHtml;
+                    document.getElementById('transitTicker').innerHTML = `<span class="text-purple-900 font-bold text-xs mr-1">ดาวจรตอนนี้:</span> ` + tickerHtml;
                 }
             } catch (err) {
-                console.error("Transit Error:", err);
+                console.error("Transit Fetch Error:", err);
                 document.getElementById('transitTicker').innerText = "ไม่สามารถโหลดข้อมูลดาวจรได้";
             }
         }
 
-        // Form Submission Handler
+        // Form Submit Handler
         document.getElementById('astroForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -150,9 +177,9 @@
 
             // UI Loading State
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> <span>กำลังประมวลผล...</span>`;
-            statusBadge.className = "text-[10px] bg-amber-900/50 text-amber-300 border border-amber-700 px-2.5 py-1 rounded-full animate-pulse";
-            statusBadge.innerText = "Processing";
+            submitBtn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> <span>กำลังคำนวณตำแหน่งดาว...</span>`;
+            statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
+            statusBadge.innerText = "Analyzing";
 
             const payload = {
                 day: parseInt(document.getElementById('day').value),
@@ -177,19 +204,18 @@
                     throw new Error(result.detail || 'เกิดข้อผิดพลาดในการประมวลผล');
                 }
 
-                // Render Birth Chart SVG (Safe Injection)
+                // Render Birth Chart SVG
                 if (result?.chart_svg) {
                     chartContainer.innerHTML = result.chart_svg;
                 }
 
-                // Render Report / Answer
+                // Render Answer or 7 Modules Report
                 if (result?.answer) {
-                    // Q&A Response
                     reportOutput.innerHTML = `
                         <div class="space-y-4">
-                            <div class="bg-indigo-950/40 border border-indigo-800/50 p-4 rounded-lg">
-                                <h3 class="text-xs text-indigo-400 font-bold uppercase tracking-wider mb-1">คำถามของคุณ</h3>
-                                <p class="text-base text-white font-medium">"${result.question}"</p>
+                            <div class="bg-purple-900/40 border border-purple-700/50 p-4 rounded-xl">
+                                <h3 class="text-xs text-amber-300 font-bold uppercase tracking-wider mb-1">คำถามของคุณ</h3>
+                                <p class="text-sm text-white font-medium">"${result.question}"</p>
                             </div>
                             <div class="prose prose-invert max-w-none text-slate-200">
                                 ${formatMarkdown(result.answer)}
@@ -197,7 +223,6 @@
                         </div>
                     `;
                 } else if (result?.report) {
-                    // 7 Categories Report Response
                     reportOutput.innerHTML = `
                         <div class="prose prose-invert max-w-none text-slate-200">
                             ${formatMarkdown(result.report)}
@@ -205,33 +230,33 @@
                     `;
                 }
 
-                statusBadge.className = "text-[10px] bg-emerald-900/50 text-emerald-300 border border-emerald-700 px-2.5 py-1 rounded-full";
+                statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
                 statusBadge.innerText = "Completed";
 
             } catch (err) {
-                reportOutput.innerHTML = `<div class="p-4 bg-rose-950/50 border border-rose-800 rounded-lg text-rose-300 text-sm">❌ ${err.message}</div>`;
-                statusBadge.className = "text-[10px] bg-rose-900/50 text-rose-300 border border-rose-700 px-2.5 py-1 rounded-full";
+                reportOutput.innerHTML = `<div class="p-4 bg-rose-950/60 border border-rose-800 rounded-xl text-rose-200 text-sm">❌ ${err.message}</div>`;
+                statusBadge.className = "text-[10px] bg-rose-950 text-rose-300 border border-rose-700/60 px-3 py-1 rounded-full";
                 statusBadge.innerText = "Error";
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
+                submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและทำนาย</span>`;
             }
         });
 
-        // Simple Markdown Formatter Helper
+        // Markdown Formatter Utility
         function formatMarkdown(text) {
             if (!text) return '';
             return text
-                .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-indigo-400 mt-4 mb-2">$1</h3>')
-                .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-cyan-400 mt-5 mb-2">$1</h2>')
-                .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold text-white mt-6 mb-3">$1</h1>')
-                .replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
-                .replace(/^\d+\.\s(.*$)/gim, '<li class="ml-4 list-decimal font-medium text-slate-100">$1</li>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-indigo-300 font-semibold">$1</strong>')
+                .replace(/^### (.*$)/gim, '<h3 class="text-base font-bold text-amber-300 mt-5 mb-2">$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2 class="text-lg font-bold text-purple-300 mt-6 mb-2 border-b border-purple-800/40 pb-1">$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1 class="text-xl font-bold text-white mt-6 mb-3">$1</h1>')
+                .replace(/^\* (.*$)/gim, '<li class="ml-4 list-disc text-slate-300">$1</li>')
+                .replace(/^\d+\.\s(.*$)/gim, '<li class="ml-4 list-decimal font-semibold text-purple-200">$1</li>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-300 font-semibold">$1</strong>')
                 .replace(/\n\n/g, '<br><br>');
         }
 
-        // Initialize Real-time Transit
+        // Initialize Real-time Transit Ticker
         fetchRealtimeTransit();
     </script>
 </body>
