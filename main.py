@@ -30,7 +30,7 @@ app.add_middleware(
 )
 
 # ------------------------------------------------------------------
-# 1. CONFIGURATION & CONFIG
+# 1. SWISS EPHEMERIS & SYSTEM CONFIG
 # ------------------------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -42,20 +42,12 @@ RULES_FILE = "school_rules.json"
 DEFAULT_RULES = {
     "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
     "natal_categories": {
-        "1_personality": "",
-        "2_finance": "",
-        "3_career": "",
-        "4_love": "",
-        "5_strengths_weaknesses": "",
-        "6_potentials": "",
-        "7_growth": ""
+        "1_personality": "", "2_finance": "", "3_career": "",
+        "4_love": "", "5_strengths_weaknesses": "", "6_potentials": "", "7_growth": ""
     },
     "love_advanced_rules": {
-        "personal_attraction_indicators": "",
-        "complex_relationship_indicators": "",
-        "sun_moon_midpoint_rules": "",
-        "house_7_and_ruler_rules": "",
-        "planets_in_7th_house": ""
+        "personal_attraction_indicators": "", "complex_relationship_indicators": "",
+        "sun_moon_midpoint_rules": "", "house_7_and_ruler_rules": "", "planets_in_7th_house": ""
     }
 }
 
@@ -128,9 +120,6 @@ def load_school_rules() -> dict:
         pass
     return DEFAULT_RULES
 
-# ------------------------------------------------------------------
-# 2. ASTROLOGICAL CALCULATIONS
-# ------------------------------------------------------------------
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
     if loc_key in LOCATION_CACHE:
@@ -205,7 +194,7 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     return planets, formatted_houses
 
 # ------------------------------------------------------------------
-# 3. ENDPOINTS & PROMPT ENGINE
+# 3. REQUEST SCHEMAS & ENDPOINTS
 # ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
@@ -289,20 +278,17 @@ def analyze_chart(req: AnalysisRequest):
 
         school_rules = load_school_rules()
 
-        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่ (Storytelling Style + Evolutionary Psychology)
         if not req.question:
             system_prompt = f"""
-คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ สุภาพ อบอุ่น และชี้ทางสว่าง
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามมีคำทักทายเด็ดขาด
 
-หลักเกณฑ์สำคัญในการนำเสนอ:
-1. **ห้ามใช้คำศัพท์เชิงเทคนิคโหราศาสตร์เด็ดขาด** (เช่น ห้ามพูดคำว่า ดาวเสาร์, ดาวศุกร์, เรือนที่ 7, MC, ลัคนา, ฉาก, ตรีโกณ ฯลฯ)
-2. **แปรรูปตำแหน่งดาวเป็นเรื่องราวชีวิต (Storytelling):** อธิบายเป็นสภาวะทางจิตวิทยา พฤติกรรม อารมณ์ ความท้าทาย และโอกาสในการเติบโตของมนุษย์
-3. **การติดสัญลักษณ์หัวข้อ:**
-   - หมวดหมู่ใดที่มีตรรกะระบุใน 'natal_categories' ของสำนัก -> **ไม่ต้องใส่สัญลักษณ์ใดๆ**
-   - หมวดหมู่ใดที่เว้นว่างไว้ใน 'natal_categories' -> **ต้องใส่สัญลักษณ์ (i) ต่อท้ายชื่อหัวข้อนั้นๆ เสมอ** (เช่น '## 2. การเงิน (i)')
+หลักเกณฑ์สำคัญ:
+1. ห้ามใช้ศัพท์เทคนิคโหราศาสตร์เด็ดขาด (แปลงตำแหน่งดาวเป็นเรื่องราวชีวิต สภาวะอารมณ์ และพฤติกรรม)
+2. หากหมวดใดมีในคลัง -> ไม่ต้องใส่สัญลักษณ์
+3. หากหมวดใดเว้นว่างในคลัง -> ต้องใส่สัญลักษณ์ (i) ต่อท้ายชื่อหัวข้อนั้นๆ เสมอ
 
-โครงสร้างคำทำนาย 7 หมวดหมู่ (ให้ใช้ชื่อหัวข้อตามนี้):
+แบ่งเนื้อหาเป็น 7 หมวดหมู่:
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -310,10 +296,8 @@ def analyze_chart(req: AnalysisRequest):
 5. จุดเด่น จุดด้อย และการแก้จุดด้อย
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
-
-*ในทุกหมวดหมู่ ต้องตบท้ายด้วย 'กลยุทธ์พัฒนาศักยภาพ' เพื่อให้คำแนะนำเชิงพฤติกรรมที่นำไปใช้ได้จริง*
 """
-            user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets & Midpoints Data]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses Data]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+            user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -327,24 +311,13 @@ def analyze_chart(req: AnalysisRequest):
                 "report": response.choices[0].message.content,
                 "chart_svg": chart_svg
             }
-
-        # CASE 2: พยากรณ์คำถามเจาะจง Transit vs Natal (Storytelling + Actionable Window)
         else:
             qa_system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-ชื่อผู้ใช้: {req.user_name}
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ 
-
-หลักเกณฑ์สำคัญในการนำเสนอ:
-1. **ห้ามใช้ศัพท์เทคนิคโหราศาสตร์ในข้อความตอบผู้ใช้** (แปลงการเคลื่อนตัวของดาวจรและจุดกระทบ เป็นช่วงเวลาชีวิต สภาวะอารมณ์ และเหตุการณ์จริง)
-2. **การติดสัญลักษณ์:** ส่วนใดที่เป็นการแปลขยายความโดย AI ให้เติมสัญลักษณ์ (i) กำกับไว้
-3. **จัดโครงสร้างคำตอบ:**
-   - สภาวะและแนวโน้มปัจจุบัน
-   - จังหวะเวลาทองและการเปลี่ยนแปลง (ระบุเดือน/ปี ชัดเจน)
-   - ฟันธงบทสรุป
-   - กลยุทธ์ชีวิตเชิงพฤติกรรม (Actionable Strategy)
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+หน้าที่: ตอบคำถามเจาะจง Transit vs Natal โดยห้ามใช้คำศัพท์โหราศาสตร์เชิงเทคนิคในเนื้อหา
 """
-            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Data]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Data]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
+            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Transit]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -363,3 +336,126 @@ def analyze_chart(req: AnalysisRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis Error: {str(e)}")
+
+# ------------------------------------------------------------------
+# 4. ENDPOINT: GENERATE DEEP REPORT (HTML TEMPLATE INJECTION)
+# ------------------------------------------------------------------
+@app.post("/generate-report", response_class=HTMLResponse)
+def generate_deep_report(req: AnalysisRequest):
+    """สร้างรายงานฉบับลึก 12 มิติชีวิตจากเทมเพลต report_template.html"""
+    try:
+        year_ad = req.year - 543 if req.year > 2400 else req.year
+        lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
+        
+        local_tz = pytz.timezone(tz_str)
+        local_dt = local_tz.localize(datetime(year_ad, req.month, req.day, req.hour, req.minute))
+        utc_dt = local_dt.astimezone(pytz.utc)
+
+        natal_planets, natal_houses = _calculate_chart_data(utc_dt, lat, lon)
+        school_rules = load_school_rules()
+
+        if not client:
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured on server")
+
+        system_prompt = """
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพผู้เชี่ยวชาญ
+หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้เพื่อสร้าง JSON Data สำหรับฉีดลงรายงานฉบับเจาะลึก 12 มิติชีวิต
+
+ข้อบังคับการตอบ:
+1. ต้องตอบกลับในรูปแบบ JSON Object เท่านั้น
+2. **ห้ามใช้ศัพท์เทคนิคโหราศาสตร์เด็ดขาด** ในข้อความส่วนการวิเคราะห์
+3. ภาษาที่ใช้ต้องเป็นสไตล์ Storytelling, อบอุ่น, ตรงประเด็น, ให้ข้อคิดทางจิตวิทยาและการพัฒนาชีวิต
+
+โครงสร้าง JSON ที่ต้องส่งกลับ:
+{
+  "executive_summary": "ข้อความสรุปภาพรวมชีวิต 2-3 ย่อหน้า",
+  "identity_list": ["หัวข้อที่ 1", "หัวข้อที่ 2", "หัวข้อที่ 3"],
+  "identity_dev": "คำแนะนำพัฒนาตัวตน",
+  "shadow_list": ["ปมที่ 1", "ปมที่ 2", "ปมที่ 3"],
+  "shadow_dev": "คำแนะนำรับมือปมลึก",
+  "wound_list": ["แผลใจที่ 1", "แผลใจที่ 2"],
+  "wound_dev": "คำแนะนำการเยียวยา",
+  "sabotage_list": ["จุดพังที่ 1", "จุดพังที่ 2"],
+  "sabotage_mechanism": "อธิบายกลไกจิตวิทยาของจุดพัง",
+  "career_summary": "สรุปพิมพ์เขียวการงาน",
+  "career_match_list": ["อาชีพ 1", "อาชีพ 2", "อาชีพ 3"],
+  "career_avoid_list": ["อาชีพที่ควรหลีกเลี่ยง 1", "อาชีพ 2"],
+  "career_dev": "คำแนะนำเติบโตในอาชีพ",
+  "money_list": ["แนวทางเปิดทรัพย์ 1", "แนวทาง 2"],
+  "edu_list": ["สายการเรียนที่เหมาะ 1", "สายการเรียน 2"],
+  "rel_list": ["สภาวะความรัก 1", "สภาวะ 2"],
+  "health_list": ["ข้อควรระวังสุขภาพจิต 1", "แนวทางฟื้นฟู 2"],
+  "life_strategy": "กลยุทธ์ชีวิตระยะยาว",
+  "diagnosis": "คำวินิจฉัยและทางแก้หลักจากเมนเทอร์",
+  "father_desc": "อธิบายภาพสะท้อนจากพ่อ",
+  "mother_desc": "อธิบายภาพสะท้อนจากแม่",
+  "family_atmosphere": "บรรยากาศในบ้าน",
+  "family_dev": "คำแนะนำความสัมพันธ์ในครอบครัว"
+}
+"""
+        user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_content}],
+            temperature=0.2
+        )
+
+        data = json.loads(response.choices[0].message.content)
+
+        # โหลดไฟล์แม่แบบ HTML
+        template_path = "report_template.html"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="ไม่พบไฟล์ report_template.html ในระบบ")
+
+        with open(template_path, "r", encoding="utf-8") as f:
+            html_content = f.read()
+
+        # แปลง List ให้เป็น <li> HTML
+        def to_li(items):
+            if isinstance(items, list):
+                return "".join([f"<li>{item}</li>" for item in items])
+            return f"<li>{items}</li>"
+
+        # แทนที่ตัวแปรใน HTML Template
+        replacements = {
+            "{{ USER_NAME }}": req.user_name,
+            "{{ SUN_SIGN }}": f"{natal_planets['Sun']['sign']} ({natal_planets['Sun']['formatted']})",
+            "{{ MOON_SIGN }}": f"{natal_planets['Moon']['sign']} ({natal_planets['Moon']['formatted']})",
+            "{{ ASC_SIGN }}": f"{natal_planets['ASC']['sign']} ({natal_planets['ASC']['formatted']})",
+            "{{ MC_SIGN }}": f"{natal_planets['MC']['sign']} ({natal_planets['MC']['formatted']})",
+            "{{ EXECUTIVE_SUMMARY }}": data.get("executive_summary", ""),
+            "{{ IDENTITY_LIST }}": to_li(data.get("identity_list", [])),
+            "{{ IDENTITY_DEV }}": data.get("identity_dev", ""),
+            "{{ SHADOW_LIST }}": to_li(data.get("shadow_list", [])),
+            "{{ SHADOW_DEV }}": data.get("shadow_dev", ""),
+            "{{ WOUND_LIST }}": to_li(data.get("wound_list", [])),
+            "{{ WOUND_DEV }}": data.get("wound_dev", ""),
+            "{{ SABOTAGE_LIST }}": to_li(data.get("sabotage_list", [])),
+            "{{ SABOTAGE_MECHANISM }}": data.get("sabotage_mechanism", ""),
+            "{{ CAREER_SUMMARY }}": data.get("career_summary", ""),
+            "{{ CAREER_MATCH_LIST }}": to_li(data.get("career_match_list", [])),
+            "{{ CAREER_AVOID_LIST }}": to_li(data.get("career_avoid_list", [])),
+            "{{ CAREER_DEV }}": data.get("career_dev", ""),
+            "{{ MONEY_LIST }}": to_li(data.get("money_list", [])),
+            "{{ EDU_LIST }}": to_li(data.get("edu_list", [])),
+            "{{ REL_LIST }}": to_li(data.get("rel_list", [])),
+            "{{ HEALTH_LIST }}": to_li(data.get("health_list", [])),
+            "{{ LIFE_STRATEGY }}": data.get("life_strategy", ""),
+            "{{ DIAGNOSIS }}": data.get("diagnosis", ""),
+            "{{ FATHER_DESC }}": data.get("father_desc", ""),
+            "{{ MOTHER_DESC }}": data.get("mother_desc", ""),
+            "{{ FAMILY_ATMOSPHERE }}": data.get("family_atmosphere", ""),
+            "{{ FAMILY_DEV }}": data.get("family_dev", "")
+        }
+
+        for key, val in replacements.items():
+            html_content = html_content.replace(key, str(val))
+
+        return HTMLResponse(content=html_content)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Generate Report Error: {str(e)}")
