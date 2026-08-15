@@ -245,10 +245,42 @@
         });
 
         // Function สำหรับเปิด Deep Report ฉบับเจาะลึก 12 มิติชีวิตใน Tab ใหม่
+        // Function สำหรับเปิด Deep Report แก้ไขปัญหา Pop-up Blocker
         async function generateDeepReport() {
             const deepReportBtn = document.getElementById('deepReportBtn');
             deepReportBtn.disabled = true;
             deepReportBtn.innerHTML = `<span>กำลังสร้างรายงานเจาะลึก...</span>`;
+
+            // 1. เปิดหน้าต่างใหม่ "ทันที" ที่คลิก ก่อนทำการ Fetch ข้อมูล (แก้ปัญหาโดนบล็อก)
+            const newWindow = window.open('', '_blank');
+            if (!newWindow) {
+                alert("⚠️ เบราว์เซอร์ของคุณบล็อก Pop-up กรุณากดอนุญาต (Allow Pop-ups) สำหรับเว็บไซต์นี้ก่อนทำรายการ");
+                deepReportBtn.disabled = false;
+                deepReportBtn.innerHTML = `<span>🔍 กดดูปมลึกของคุณ</span>`;
+                return;
+            }
+            
+            // 2. ใส่หน้า Loading รอไว้ใน Tab ใหม่
+            newWindow.document.write(`
+                <html lang='th'>
+                <head>
+                    <meta charset='UTF-8'>
+                    <title>กำลังสร้างรายงาน...</title>
+                    <style>
+                        body { font-family: 'sans-serif'; display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f8f5ff; color: #4c1d95; margin: 0; text-align: center; }
+                        .loader { border: 4px solid #ede9fe; border-top: 4px solid #7c3aed; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
+                        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    </style>
+                </head>
+                <body>
+                    <div>
+                        <div class="loader"></div>
+                        <h2>กำลังประมวลผลรายงานเจาะลึก 12 มิติ...</h2>
+                        <p style="color: #6d28d9; font-size: 14px;">โปรดรอสักครู่ AI กำลังวิเคราะห์ข้อมูลของคุณ</p>
+                    </div>
+                </body>
+                </html>
+            `);
 
             const yearBE = parseInt(document.getElementById('year_be').value);
             const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
@@ -264,6 +296,7 @@
             };
 
             try {
+                // 3. ยิง API ประมวลผลข้อมูล
                 const response = await fetch('/generate-report', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -275,13 +308,19 @@
                     throw new Error(error.detail || 'ไม่สามารถสร้างรายงานเจาะลึกได้');
                 }
 
+                // 4. เขียนทับเนื้อหา HTML ฉบับสมบูรณ์ลงใน Tab ที่เปิดรอไว้
                 const htmlContent = await response.text();
-                const newWindow = window.open('', '_blank');
+                newWindow.document.open();
                 newWindow.document.write(htmlContent);
                 newWindow.document.close();
 
             } catch (err) {
-                alert('เกิดข้อผิดพลาด: ' + err.message);
+                newWindow.document.body.innerHTML = `
+                    <div style="text-align:center; padding: 20px; font-family: sans-serif;">
+                        <h2 style="color: #e11d48;">❌ เกิดข้อผิดพลาด</h2>
+                        <p style="color: #475569;">${err.message}</p>
+                    </div>
+                `;
             } finally {
                 deepReportBtn.disabled = false;
                 deepReportBtn.innerHTML = `<span>🔍 กดดูปมลึกของคุณ</span>`;
