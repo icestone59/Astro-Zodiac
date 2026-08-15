@@ -31,7 +31,6 @@
 
     <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        <!-- Form & Chart Wheel -->
         <section class="lg:col-span-5 space-y-6">
             <div class="bg-white border border-purple-100 rounded-2xl p-6 shadow-xl shadow-purple-950/5">
                 <div class="flex items-center gap-2 mb-5 pb-3 border-b border-purple-50">
@@ -75,7 +74,6 @@
                         <label class="block text-xs font-semibold text-slate-600 mb-1">จังหวัดที่เกิด (ประเทศไทย)</label>
                         <input type="text" id="location_name" list="thai_provinces" value="กรุงเทพมหานคร" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="พิมพ์ชื่อจังหวัด...">
                         
-                        <!-- Auto-complete 77 Provinces -->
                         <datalist id="thai_provinces">
                             <option value="กรุงเทพมหานคร"><option value="กระบี่"><option value="กาญจนบุรี"><option value="กาฬสินธุ์">
                             <option value="กำแพงเพชร"><option value="ขอนแก่น"><option value="จันทบุรี"><option value="ฉะเชิงเทรา">
@@ -110,7 +108,6 @@
                 </form>
             </div>
 
-            <!-- SVG Chart Wheel -->
             <div class="bg-white border border-purple-100 rounded-2xl p-5 shadow-xl shadow-purple-950/5 flex flex-col items-center">
                 <h3 class="text-xs font-bold text-purple-900 mb-4 self-start flex items-center gap-2">
                     <span>☸️</span> BIRTH CHART WHEEL
@@ -121,7 +118,6 @@
             </div>
         </section>
 
-        <!-- Report Output & Technical Data Dropdown -->
         <section class="lg:col-span-7 space-y-6">
             <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[550px] shadow-2xl flex flex-col justify-between">
                 <div>
@@ -143,7 +139,6 @@
             </div>
 
             <div class="space-y-4">
-                <!-- Dropdown: Birth Chart Degrees -->
                 <details class="bg-white border border-purple-100 rounded-2xl shadow-md overflow-hidden group">
                     <summary class="flex justify-between items-center p-4 font-bold text-xs text-purple-950 cursor-pointer bg-purple-50/50 hover:bg-purple-100/50 transition">
                         <span class="flex items-center gap-2">
@@ -156,7 +151,6 @@
                     </div>
                 </details>
 
-                <!-- Bottom Box: Real-time Transit Degrees -->
                 <div class="bg-white border border-purple-100 rounded-2xl p-4 shadow-md">
                     <h3 class="text-xs font-bold text-purple-950 mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -185,7 +179,6 @@
             statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
             statusBadge.innerText = "Analyzing";
 
-            // แปลง พ.ศ. เป็น ค.ศ.
             const yearBE = parseInt(document.getElementById('year_be').value);
             const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
 
