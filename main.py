@@ -76,7 +76,7 @@ def ensure_ephe() -> bool:
                     swe.set_ephe_path(EPHE_DIR)
                     return True
         except Exception:
-            pass
+            continue
 
     swe.set_ephe_path(EPHE_DIR)
     return os.path.exists(CHIRON_FILE) and os.path.getsize(CHIRON_FILE) > 200000
@@ -87,6 +87,7 @@ tf = TimezoneFinder()
 LOCATION_CACHE = {
     "กรุงเทพ": (13.7563, 100.5018, "Asia/Bangkok"),
     "กรุงเทพมหานคร": (13.7563, 100.5018, "Asia/Bangkok"),
+    "ราชบุรี": (13.5283, 99.8134, "Asia/Bangkok"),
     "เชียงใหม่": (18.7883, 98.9853, "Asia/Bangkok"),
     "ภูเก็ต": (7.8804, 98.3923, "Asia/Bangkok"),
     "ขอนแก่น": (16.4322, 102.8236, "Asia/Bangkok"),
@@ -193,8 +194,9 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     formatted_houses = {f"House_{i+1}": _get_degree_info(houses[i]) for i in range(12)}
     return planets, formatted_houses
 
+
 # ------------------------------------------------------------------
-# 3. REQUEST SCHEMAS & ENDPOINTS
+# 2. REQUEST SCHEMAS & ENDPOINTS
 # ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
@@ -278,22 +280,20 @@ def analyze_chart(req: AnalysisRequest):
 
         school_rules = load_school_rules()
 
+        # CASE 1: วิเคราะห์พื้นดวง 7 หมวด (เมื่อไม่มีคำถาม)
         if not req.question:
             system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
-หน้าที่: แปลงตำแหน่งดาวใน Birth Chart เป็นบทวิเคราะห์พฤติกรรม ลึกซึ้ง และเป็นเรื่องราวชีวิต (Storytelling)
+หน้าที่: แปลงข้อมูล Birth Chart เป็นเรื่องราวชีวิตและพฤติกรรม
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ 
 
-กฎการเขียนเนื้อหาเชิงลึก:
-1. **ห้ามใช้ศัพท์เทคนิคโหราศาสตร์เด็ดขาด** (แปลดาว/เรือนชะตา ให้กลายเป็นสภาวะจิตใจและพฤติกรรมจริง)
-2. **ความลึกของเนื้อหา:** แต่ละหัวข้อต้องเขียนบรรยายเป็นเรื่องราวความยาว 2-3 ย่อหน้า ประกอบด้วย:
-   - สภาวะจิตใจ พฤติกรรมภายนอก และสิ่งที่ซ่อนอยู่ภายใน
-   - ปมความท้าทาย หรือจุดติดขัดที่เจ้าชะตามักเผชิญ
-   - **กลยุทธ์พัฒนาศักยภาพ:** คำแนะนำเชิงพฤติกรรมที่นำไปใช้ได้จริง 1-2 ข้อ
-3. **การติดสัญลักษณ์:**
-   - หมวดใดมีตรรกะใน Library ของสำนัก -> ไม่ต้องใส่สัญลักษณ์
-   - หมวดใดใช้ AI แปลขยายความ -> ต้องใส่ (i) ต่อท้ายชื่อหัวข้อ
+กฎสำคัญ:
+1. ห้ามใช้ศัพท์เทคนิคโหราศาสตร์เด็ดขาด (ห้ามระบุชื่อดาว ราศี เรือน หรือองศา)
+2. เขียนอธิบายแต่ละหมวดหมู่ให้ลึกซึ้ง 2-3 ย่อหน้า เป็นสภาวะอารมณ์และเรื่องราวชีวิต
+3. ทุกหัวข้อต้องตบท้ายด้วยคำแนะนำเชิงพฤติกรรม (Actionable Advice)
+4. การติดสัญลักษณ์: หมวดใดที่มีในคลังของสำนัก (Library) ไม่ต้องใส่สัญลักษณ์ หมวดใดที่เว้นว่างไว้ให้เติม (i) หลังชื่อหัวข้อ
 
-โครงสร้าง 7 หมวดหมู่:
+แบ่งการพยากรณ์เป็น 7 หมวดหมู่ดังนี้:
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -301,8 +301,10 @@ def analyze_chart(req: AnalysisRequest):
 5. จุดเด่น จุดด้อย และการแก้จุดด้อย
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
+
+วิชาของสำนัก: {json.dumps(school_rules, ensure_ascii=False)}
 """
-            user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+            user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Data]\n{json.dumps(natal_planets, ensure_ascii=False)}\n\n[House Data]\n{json.dumps(natal_houses, ensure_ascii=False)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -316,13 +318,21 @@ def analyze_chart(req: AnalysisRequest):
                 "report": response.choices[0].message.content,
                 "chart_svg": chart_svg
             }
+
+        # CASE 2: ตอบคำถามเจาะจง Transit vs Natal
         else:
             qa_system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ให้กำลังใจ ให้คำแนะนำ ทางออก
-หน้าที่: ตอบคำถามเจาะจง Transit vs Natal โดยห้ามใช้คำศัพท์โหราศาสตร์เชิงเทคนิคในเนื้อหา
+หน้าที่: วิเคราะห์ดวงจร (Transit) กระทบพื้นดวง (Birth Chart) เพื่อหาจังหวะเวลา (Timing) และทางแก้ปัญหา
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+
+กฎสำคัญ:
+1. ห้ามใช้ศัพท์เทคนิคโหราศาสตร์เด็ดขาด (แปลงดาวกระทบกันเป็น จังหวะเวลาและเหตุการณ์)
+2. วิเคราะห์หาสาเหตุของปัญหาที่ผู้ใช้ถาม และระบุวิธีแก้อย่างตรงจุด
+3. หากถามเรื่องเวลา (เมื่อไหร่) ให้คาดการณ์ช่วงเวลาเชิงจิตวิทยาหรือสภาวะที่เหมาะสม
+4. ส่วนใดที่ใช้ AI ขยายความ ให้เติม (i) กำกับ
 """
-            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Transit]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
+            qa_user_content = f"คำถาม: \"{req.question}\"\n\n[Birth Chart]\n{json.dumps(natal_planets, ensure_ascii=False)}\n\n[Transit (Real-time)]\n{json.dumps(transit_planets, ensure_ascii=False)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -343,11 +353,10 @@ def analyze_chart(req: AnalysisRequest):
         raise HTTPException(status_code=500, detail=f"Analysis Error: {str(e)}")
 
 # ------------------------------------------------------------------
-# 4. ENDPOINT: GENERATE DEEP REPORT (HTML TEMPLATE INJECTION)
+# 3. ENDPOINT: GENERATE DEEP REPORT
 # ------------------------------------------------------------------
 @app.post("/generate-report", response_class=HTMLResponse)
 def generate_deep_report(req: AnalysisRequest):
-    """สร้างรายงานฉบับลึก 12 มิติชีวิตจากเทมเพลต report_template.html"""
     try:
         year_ad = req.year - 543 if req.year > 2400 else req.year
         lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
@@ -357,51 +366,48 @@ def generate_deep_report(req: AnalysisRequest):
         utc_dt = local_dt.astimezone(pytz.utc)
 
         natal_planets, natal_houses = _calculate_chart_data(utc_dt, lat, lon)
-        school_rules = load_school_rules()
 
         if not client:
             raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured on server")
 
-system_prompt = """
+        system_prompt = """
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพผู้เชี่ยวชาญ
 หน้าที่: วิเคราะห์พื้นดวงชะตาเพื่อสร้าง JSON Data สำหรับฉีดลงรายงานฉบับเจาะลึก 12 มิติชีวิต
 
-ข้อบังคับการตอบแบบเจาะลึก (Deep Detail):
+ข้อบังคับการตอบ:
 1. ตอบกลับเป็น JSON Object เท่านั้น
-2. ห้ามใช้ศัพท์เทคนิคโหราศาสตร์ (เช่น ชื่อดาว, เรือนชะตา, องศา) ในข้อความวิเคราะห์เด็ดขาด
-3. โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น อบอุ่นและชี้ทางสว่าง
-4. การเขียน List ใน Array (เช่น identity_list, shadow_list): ห้ามเขียนสั้นแค่วลี แต่ต้องบรรยายพฤติกรรม สภาวะจิตใจ และความรู้สึกที่ลงลึก เป็นเรื่องราว 2-3 บรรทัดต่อ 1 ข้อ
+2. ห้ามใช้ศัพท์เทคนิคโหราศาสตร์ในข้อความวิเคราะห์เด็ดขาด
+3. โทนเสียง: ผู้เชี่ยวชาญ ตรงประเด็น อบอุ่น ชี้ทางสว่าง
+4. ข้อมูลใน Array (เช่น identity_list): บรรยายลึกซึ้ง 2-3 บรรทัดต่อข้อ
 
-โครงสร้าง JSON ที่ต้องอ้างอิง:
+โครงสร้าง JSON:
 {
-  "executive_summary": "สรุปภาพรวมตัวตน ความคาดหวัง ปมชีวิต และเป้าหมายการเติบโต เขียนบรรยายความยาว 2-3 ย่อหน้าอย่างละเอียด",
-  "identity_list": ["เรื่องราวข้อ 1...", "เรื่องราวข้อ 2...", "เรื่องราวข้อ 3..."],
-  "identity_dev": "คำแนะนำเชิงพฤติกรรมเพื่อพัฒนาตัวตน (Actionable Advice)",
-  "shadow_list": ["ปมในใจข้อ 1...", "ปมในใจข้อ 2..."],
-  "shadow_dev": "คำแนะนำรับมือปมลึก",
-  "wound_list": ["แผลใจข้อ 1...", "แผลใจข้อ 2..."],
-  "wound_dev": "แนวทางการเยียวยา",
-  "sabotage_list": ["พฤติกรรมทำลายตัวเองข้อ 1...", "พฤติกรรมทำลายตัวเองข้อ 2..."],
-  "sabotage_mechanism": "อธิบายกลไกจิตวิทยาเบื้องหลังจุดพังนี้",
-  "career_summary": "สรุปการงานเชิงลึก",
+  "executive_summary": "สรุปภาพรวมตัวตน ความคาดหวัง ปมชีวิต ความยาว 2 ย่อหน้า",
+  "identity_list": ["เรื่องราวข้อ 1...", "เรื่องราวข้อ 2..."],
+  "identity_dev": "คำแนะนำพัฒนาตัวตน",
+  "shadow_list": ["ปมลึกข้อ 1...", "ปมลึกข้อ 2..."],
+  "shadow_dev": "คำแนะนำแก้ปม",
+  "wound_list": ["แผลใจข้อ 1..."],
+  "wound_dev": "วิธีเยียวยา",
+  "sabotage_list": ["พฤติกรรมทำลายตัวเอง 1..."],
+  "sabotage_mechanism": "กลไกจิตวิทยาของความผิดพลาดนี้",
+  "career_summary": "สรุปทิศทางอาชีพ",
   "career_match_list": ["อาชีพ 1", "อาชีพ 2"],
-  "career_avoid_list": ["อาชีพที่ไม่ควรทำ 1", "อาชีพ 2"],
-  "career_dev": "คำแนะนำเติบโตในอาชีพ",
-  "money_list": ["แนวทางเปิดทรัพย์ 1...", "แนวทาง 2..."],
-  "edu_list": ["สายการเรียน 1...", "สายการเรียน 2..."],
-  "rel_list": ["สภาวะความรักข้อ 1...", "สภาวะ 2..."],
-  "health_list": ["ข้อควรระวังสุขภาพจิต 1...", "แนวทาง 2..."],
+  "career_avoid_list": ["อาชีพที่ห้ามทำ 1"],
+  "career_dev": "กลยุทธ์เติบโตในงาน",
+  "money_list": ["พิกัดเปิดทรัพย์ 1..."],
+  "edu_list": ["สายการเรียน 1..."],
+  "rel_list": ["สภาวะความรัก 1..."],
+  "health_list": ["ระวังสุขภาพจิต 1..."],
   "life_strategy": "กลยุทธ์ชีวิตระยะยาว",
-  "diagnosis": "คำวินิจฉัยและทางแก้จากเมนเทอร์",
-  "father_desc": "อธิบายภาพสะท้อนจิตวิทยาจากพ่อ",
-  "mother_desc": "อธิบายภาพสะท้อนจิตวิทยาจากแม่",
-  "family_atmosphere": "บรรยากาศในบ้านที่หล่อหลอมตัวตน",
-  "family_dev": "คำแนะนำความสัมพันธ์ในครอบครัว"
+  "diagnosis": "คำวินิจฉัยจากเมนเทอร์",
+  "father_desc": "ภาพสะท้อนจากพ่อ",
+  "mother_desc": "ภาพสะท้อนจากแม่",
+  "family_atmosphere": "บรรยากาศในบ้าน",
+  "family_dev": "คำแนะนำสำหรับครอบครัว"
 }
 """
-        # ---------------------------------------------------------
-        
-        user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+        user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False)}"
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -412,21 +418,18 @@ system_prompt = """
 
         data = json.loads(response.choices[0].message.content)
 
-        # โหลดไฟล์แม่แบบ HTML
         template_path = "report_template.html"
         if not os.path.exists(template_path):
-            raise HTTPException(status_code=500, detail="ไม่พบไฟล์ report_template.html ในระบบ")
+            raise HTTPException(status_code=500, detail="ไม่พบไฟล์ report_template.html")
 
         with open(template_path, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        # แปลง List ให้เป็น <li> HTML
         def to_li(items):
             if isinstance(items, list):
                 return "".join([f"<li>{item}</li>" for item in items])
             return f"<li>{items}</li>"
 
-        # แทนที่ตัวแปรใน HTML Template
         replacements = {
             "{{ USER_NAME }}": req.user_name,
             "{{ SUN_SIGN }}": f"{natal_planets['Sun']['sign']} ({natal_planets['Sun']['formatted']})",
