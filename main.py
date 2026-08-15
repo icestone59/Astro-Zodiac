@@ -30,7 +30,7 @@ app.add_middleware(
 )
 
 # ------------------------------------------------------------------
-# 1. SWISS EPHEMERIS & SYSTEM CONFIG
+# 1. CONFIGURATION & CONFIG
 # ------------------------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -121,7 +121,6 @@ def load_school_rules() -> dict:
                 return json.load(f)
         except Exception:
             pass
-    # หากยังไม่มีไฟล์ ให้สร้างไฟล์เริ่มต้นทันที
     try:
         with open(RULES_FILE, "w", encoding="utf-8") as f:
             json.dump(DEFAULT_RULES, f, ensure_ascii=False, indent=2)
@@ -130,7 +129,7 @@ def load_school_rules() -> dict:
     return DEFAULT_RULES
 
 # ------------------------------------------------------------------
-# 2. DEGREE & HOUSE CALCULATIONS
+# 2. ASTROLOGICAL CALCULATIONS
 # ------------------------------------------------------------------
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
@@ -206,7 +205,7 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     return planets, formatted_houses
 
 # ------------------------------------------------------------------
-# 3. ENDPOINTS
+# 3. ENDPOINTS & PROMPT ENGINE
 # ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
@@ -290,20 +289,20 @@ def analyze_chart(req: AnalysisRequest):
 
         school_rules = load_school_rules()
 
-        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่
+        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่ (Storytelling Style + Evolutionary Psychology)
         if not req.question:
             system_prompt = f"""
-คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามมีคำทักทายเด็ดขาด
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ สุภาพ อบอุ่น และชี้ทางสว่าง
 
-หลักวิชาประจำสำนักจากคลัง (Library):
-{json.dumps(school_rules, ensure_ascii=False, indent=2)}
+หลักเกณฑ์สำคัญในการนำเสนอ:
+1. **ห้ามใช้คำศัพท์เชิงเทคนิคโหราศาสตร์เด็ดขาด** (เช่น ห้ามพูดคำว่า ดาวเสาร์, ดาวศุกร์, เรือนที่ 7, MC, ลัคนา, ฉาก, ตรีโกณ ฯลฯ)
+2. **แปรรูปตำแหน่งดาวเป็นเรื่องราวชีวิต (Storytelling):** อธิบายเป็นสภาวะทางจิตวิทยา พฤติกรรม อารมณ์ ความท้าทาย และโอกาสในการเติบโตของมนุษย์
+3. **การติดสัญลักษณ์หัวข้อ:**
+   - หมวดหมู่ใดที่มีตรรกะระบุใน 'natal_categories' ของสำนัก -> **ไม่ต้องใส่สัญลักษณ์ใดๆ**
+   - หมวดหมู่ใดที่เว้นว่างไว้ใน 'natal_categories' -> **ต้องใส่สัญลักษณ์ (i) ต่อท้ายชื่อหัวข้อนั้นๆ เสมอ** (เช่น '## 2. การเงิน (i)')
 
-กฎการติดสัญลักษณ์อย่างเคร่งครัด:
-- หากหมวดหมู่ใดอ้างอิงเนื้อหาจากคลัง (Library) ของสำนัก -> **ไม่ต้องใส่สัญลักษณ์ใดๆ**
-- หากหมวดหมู่ใดเว้นว่างไว้ในคลัง และคุณต้องใช้วิชาโหราศาสตร์สากลเชิงพัฒนาศักยภาพในการแปล -> **ต้องใส่สัญลักษณ์ (i) ต่อท้ายชื่อหัวข้อนั้นๆ เสมอ** (เช่น '## 2. การเงิน (i)')
-
-หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้ชื่อ '{req.user_name}' ตาม 7 หมวดหมู่ดังนี้:
+โครงสร้างคำทำนาย 7 หมวดหมู่ (ให้ใช้ชื่อหัวข้อตามนี้):
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -311,8 +310,10 @@ def analyze_chart(req: AnalysisRequest):
 5. จุดเด่น จุดด้อย และการแก้จุดด้อย
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
+
+*ในทุกหมวดหมู่ ต้องตบท้ายด้วย 'กลยุทธ์พัฒนาศักยภาพ' เพื่อให้คำแนะนำเชิงพฤติกรรมที่นำไปใช้ได้จริง*
 """
-            user_content = f"[Natal Planets & Midpoints]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+            user_content = f"ชื่อผู้ใช้: {req.user_name}\n\n[Natal Planets & Midpoints Data]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses Data]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -327,22 +328,23 @@ def analyze_chart(req: AnalysisRequest):
                 "chart_svg": chart_svg
             }
 
-        # CASE 2: พยากรณ์ตามคำถามเจาะจง (Transit vs Natal)
+        # CASE 2: พยากรณ์คำถามเจาะจง Transit vs Natal (Storytelling + Actionable Window)
         else:
             qa_system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+ชื่อผู้ใช้: {req.user_name}
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ 
 
-หลักวิชาประจำสำนักจากคลัง (Library):
-{json.dumps(school_rules, ensure_ascii=False, indent=2)}
-
-กฎการติดสัญลักษณ์:
-- ส่วนใดที่แปลมาจากคลังของสำนัก -> **ไม่ต้องใส่สัญลักษณ์**
-- ส่วนใดที่เป็นการวิเคราะห์ขยายความโดย AI -> **ให้ใส่สัญลักษณ์ (i) กำกับไว้**
-
-หน้าที่: เปรียบเทียบ Transit vs Birth Chart ตอบคำถามผู้ใช้ ระบุจังหวะเวลา (Timing) และทางออกเชิงพฤติกรรม
+หลักเกณฑ์สำคัญในการนำเสนอ:
+1. **ห้ามใช้ศัพท์เทคนิคโหราศาสตร์ในข้อความตอบผู้ใช้** (แปลงการเคลื่อนตัวของดาวจรและจุดกระทบ เป็นช่วงเวลาชีวิต สภาวะอารมณ์ และเหตุการณ์จริง)
+2. **การติดสัญลักษณ์:** ส่วนใดที่เป็นการแปลขยายความโดย AI ให้เติมสัญลักษณ์ (i) กำกับไว้
+3. **จัดโครงสร้างคำตอบ:**
+   - สภาวะและแนวโน้มปัจจุบัน
+   - จังหวะเวลาทองและการเปลี่ยนแปลง (ระบุเดือน/ปี ชัดเจน)
+   - ฟันธงบทสรุป
+   - กลยุทธ์ชีวิตเชิงพฤติกรรม (Actionable Strategy)
 """
-            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Planets & Midpoint]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Planets]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
+            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Data]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Data]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
