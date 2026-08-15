@@ -17,7 +17,7 @@ try:
     from chart_drawer import generate_astroseek_svg
 except ImportError:
     def generate_astroseek_svg(planets, houses, asc_deg):
-        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Birth Chart Wheel Generated</text></svg>"
+        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Chart Generated</text></svg>"
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
@@ -29,9 +29,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ------------------------------------------------------------------
-# 1. SWISS EPHEMERIS & SYSTEM SETUP
-# ------------------------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
@@ -72,11 +69,15 @@ def ensure_ephe() -> bool:
 geolocator = Nominatim(user_agent="evolutionary_astro_engine")
 tf = TimezoneFinder()
 
+# แคชพิกัดจังหวัดหลักในไทยเพื่อประมวลผลเร็วขึ้น
 LOCATION_CACHE = {
-    "bangkok, thailand": (13.7563, 100.5018, "Asia/Bangkok"),
-    "bangkok": (13.7563, 100.5018, "Asia/Bangkok"),
     "กรุงเทพ": (13.7563, 100.5018, "Asia/Bangkok"),
-    "กรุงเทพมหานคร": (13.7563, 100.5018, "Asia/Bangkok")
+    "กรุงเทพมหานคร": (13.7563, 100.5018, "Asia/Bangkok"),
+    "เชียงใหม่": (18.7883, 98.9853, "Asia/Bangkok"),
+    "ภูเก็ต": (7.8804, 98.3923, "Asia/Bangkok"),
+    "ขอนแก่น": (16.4322, 102.8236, "Asia/Bangkok"),
+    "ชลบุรี": (13.3611, 100.9847, "Asia/Bangkok"),
+    "สงขลา": (7.1988, 100.5951, "Asia/Bangkok")
 }
 
 PLANETS = {
@@ -104,23 +105,23 @@ def load_school_rules() -> dict:
         "love_advanced_rules": {}
     }
 
-# ------------------------------------------------------------------
-# 2. HIGH-PRECISION ASTROLOGICAL CALCULATIONS
-# ------------------------------------------------------------------
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
     if loc_key in LOCATION_CACHE:
         lat, lon, tz = LOCATION_CACHE[loc_key]
         return lat, lon, tz, loc_str
     try:
-        loc = geolocator.geocode(loc_str, timeout=10)
+        # ค้นหาพิกัดระดับลิปดาด้วย Geopy
+        search_query = f"{loc_str}, Thailand" if "thailand" not in loc_key and "ไทย" not in loc_key else loc_str
+        loc = geolocator.geocode(search_query, timeout=10)
         if loc:
-            tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude) or "UTC"
+            tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude) or "Asia/Bangkok"
             LOCATION_CACHE[loc_key] = (loc.latitude, loc.longitude, tz_str)
             return loc.latitude, loc.longitude, tz_str, loc.address
     except Exception:
         pass
-    raise HTTPException(status_code=400, detail="ไม่พบพิกัดสถานที่เกิดที่ระบุ กรุณาระบุชื่อเมืองและประเทศให้ชัดเจน")
+    # Fallback กรณีค้นหาเจาะจง ให้ใช้พิกัดมาตรฐานประเทศไทย (กรุงเทพฯ)
+    return 13.7563, 100.5018, "Asia/Bangkok", loc_str
 
 def _get_degree_info(degree: float, speed: float = 0.0) -> dict:
     degree = degree % 360
@@ -161,7 +162,6 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     planets['ASC'] = _get_degree_info(ascmc[0])
     planets['MC'] = _get_degree_info(ascmc[1])
 
-    # Sun/Moon Midpoint
     sun_deg = planets['Sun']['absolute_degree']
     moon_deg = planets['Moon']['absolute_degree']
     diff = abs(sun_deg - moon_deg)
@@ -180,9 +180,6 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     formatted_houses = {f"House_{i+1}": _get_degree_info(houses[i]) for i in range(12)}
     return planets, formatted_houses
 
-# ------------------------------------------------------------------
-# 3. REQUEST SCHEMAS & API ENDPOINTS
-# ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
     year: int
@@ -207,7 +204,6 @@ def serve_admin():
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณตำแหน่งดาวจรแบบ Real-Time ทุกดวง (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         dec_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -243,14 +239,14 @@ def save_rules(data: dict):
 
 @app.post("/analyze")
 def analyze_chart(req: AnalysisRequest):
-    """
-    2. คำนวณ Birth Chart + Transit + วาด SVG + แปลความหมายเชิงพัฒนาศักยภาพ
-    """
     try:
+        # ระบบแปลงปี พ.ศ. เป็น ค.ศ. (กรณีส่ง พ.ศ. มาทาง Backend)
+        year_ad = req.year - 543 if req.year > 2400 else req.year
+
         lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
         
         local_tz = pytz.timezone(tz_str)
-        local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
+        local_dt = local_tz.localize(datetime(year_ad, req.month, req.day, req.hour, req.minute))
         utc_dt = local_dt.astimezone(pytz.utc)
 
         natal_planets, natal_houses = _calculate_chart_data(utc_dt, lat, lon)
@@ -267,16 +263,20 @@ def analyze_chart(req: AnalysisRequest):
 
         school_rules = load_school_rules()
 
-        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่ (ไม่มีคำถาม)
+        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่
         if not req.question:
             system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
 โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามมีคำทักทายเด็ดขาด
 
-หลักวิชาประจำสำนักที่ต้องใช้เป็นเกณฑ์:
+หลักวิชาประจำสำนักจากคลัง (Library):
 {json.dumps(school_rules, ensure_ascii=False, indent=2)}
 
-หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้ชื่อ '{req.user_name}' โดยแบ่งเนื้อหาออกเป็น 7 หัวข้อดังนี้เท่านั้น:
+กฎการติดสัญลักษณ์อย่างเคร่งครัด:
+- หากหมวดหมู่ใดอ้างอิงเนื้อหาจากคลัง (Library) ของสำนัก -> **ไม่ต้องใส่สัญลักษณ์ใดๆ**
+- หากหมวดหมู่ใดเว้นว่างไว้ในคลัง และคุณต้องใช้วิชาโหราศาสตร์สากลเชิงพัฒนาศักยภาพในการแปล -> **ต้องใส่สัญลักษณ์ (i) ต่อท้ายชื่อหัวข้อนั้นๆ เสมอ** (เช่น '## 2. การเงิน (i)')
+
+หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้ชื่อ '{req.user_name}' ตาม 7 หมวดหมู่ดังนี้:
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -284,8 +284,6 @@ def analyze_chart(req: AnalysisRequest):
 5. จุดเด่น จุดด้อย และการแก้จุดด้อย
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
-
-* หมายเหตุ: หากหมวดใดมีข้อมูลใน 'natal_categories' ของสำนัก ให้ใช้หลักการนั้นเป็นหลัก หากหมวดใดเว้นว่างไว้ ("") ให้ใช้วิชาโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Psychological & Evolutionary Astrology) วิเคราะห์ให้อัตโนมัติ
 """
             user_content = f"[Natal Planets & Midpoints]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
             
@@ -297,24 +295,27 @@ def analyze_chart(req: AnalysisRequest):
             return {
                 "location_info": {"address": address, "timezone": tz_str},
                 "birth_chart_degrees": natal_planets,
+                "transit_degrees": transit_planets,
                 "report": response.choices[0].message.content,
                 "chart_svg": chart_svg
             }
 
-        # CASE 2: วิเคราะห์ Transit vs Natal ตอบคำถามเจาะจง
+        # CASE 2: พยากรณ์ตามคำถามเจาะจง (Transit vs Natal)
         else:
             qa_system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามมีคำทักทายเด็ดขาด
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
 
-หลักวิชาประจำสำนัก:
+หลักวิชาประจำสำนักจากคลัง (Library):
 {json.dumps(school_rules, ensure_ascii=False, indent=2)}
 
-หน้าที่: เปรียบเทียบตำแหน่งดาวจรปัจจุบัน (Real-time Transit) กับดาวเดิม (Birth Chart)
-1. วิเคราะห์ระยะมุมสัมพันธ์ (Aspect Orb <= 4°) ระหว่างดาวจรและดาวเดิม
-2. ตอบคำถามผู้ใช้ตรงประเด็น โดยระบุจังหวะเวลา (Timing Window) และทางออกเชิงพฤติกรรม (Actionable Strategy)
+กฎการติดสัญลักษณ์:
+- ส่วนใดที่แปลมาจากคลังของสำนัก -> **ไม่ต้องใส่สัญลักษณ์**
+- ส่วนใดที่เป็นการวิเคราะห์ขยายความโดย AI -> **ให้ใส่สัญลักษณ์ (i) กำกับไว้**
+
+หน้าที่: เปรียบเทียบ Transit vs Birth Chart ตอบคำถามผู้ใช้ ระบุจังหวะเวลา (Timing) และทางออกเชิงพฤติกรรม
 """
-            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Planets & Sun/Moon Midpoint]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Planets]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
+            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Planets & Midpoint]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Planets]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -324,6 +325,8 @@ def analyze_chart(req: AnalysisRequest):
             return {
                 "question": req.question,
                 "answer": response.choices[0].message.content,
+                "birth_chart_degrees": natal_planets,
+                "transit_degrees": transit_planets,
                 "chart_svg": chart_svg
             }
 
