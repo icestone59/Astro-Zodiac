@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import ssl
 import urllib.request
 from datetime import datetime
@@ -13,11 +12,12 @@ from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import openai
 
-# นำเข้าโมดูลวาดรูป Birth Chart
+# นำเข้าโมดูลสร้างภาพ SVG Birth Chart สไตล์ Astro-Seek
 from chart_drawer import generate_astroseek_svg
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
+# เปิดใช้งาน CORS รองรับการเชื่อมต่อ Frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -36,7 +36,7 @@ EPHE_DIR = "/tmp/ephe"
 CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 
 def ensure_ephe() -> bool:
-    """ดาวน์โหลดไฟล์ Chiron (seas_18.se1) ป้องกันระบบค้างหากไม่มีไฟล์"""
+    """ตรวจสอบและดาวน์โหลดไฟล์ตำแหน่งดาว Chiron (seas_18.se1) ป้องกันระบบ Crash"""
     os.makedirs(EPHE_DIR, exist_ok=True)
     if os.path.exists(CHIRON_FILE) and os.path.getsize(CHIRON_FILE) > 200000:
         swe.set_ephe_path(EPHE_DIR)
@@ -69,10 +69,12 @@ def ensure_ephe() -> bool:
 geolocator = Nominatim(user_agent="evolutionary_astro_engine")
 tf = TimezoneFinder()
 
+# In-memory Cache ป้องกัน Latency จาก Geocoding
 LOCATION_CACHE = {
     "bangkok, thailand": (13.7563, 100.5018, "Asia/Bangkok"),
     "bangkok": (13.7563, 100.5018, "Asia/Bangkok"),
-    "กรุงเทพ": (13.7563, 100.5018, "Asia/Bangkok")
+    "กรุงเทพ": (13.7563, 100.5018, "Asia/Bangkok"),
+    "กรุงเทพมหานคร": (13.7563, 100.5018, "Asia/Bangkok")
 }
 
 PLANETS = {
@@ -93,7 +95,8 @@ ZODIAC_SIGNS = [
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
     if loc_key in LOCATION_CACHE:
-        return LOCATION_CACHE[loc_key][0], LOCATION_CACHE[loc_key][1], LOCATION_CACHE[loc_key][2], loc_str
+        lat, lon, tz = LOCATION_CACHE[loc_key]
+        return lat, lon, tz, loc_str
     try:
         loc = geolocator.geocode(loc_str, timeout=10)
         if loc:
@@ -102,7 +105,7 @@ def get_coordinates_fast(loc_str: str):
             return loc.latitude, loc.longitude, tz_str, loc.address
     except Exception:
         pass
-    raise HTTPException(status_code=400, detail="ไม่พบพิกัดสถานที่เกิดที่ระบุ")
+    raise HTTPException(status_code=400, detail="ไม่พบพิกัดสถานที่เกิดที่ระบุ กรุณาระบุชื่อเมืองและประเทศให้ชัดเจน")
 
 def _get_degree_info(degree: float) -> dict:
     degree = degree % 360
@@ -125,7 +128,7 @@ def _calc_planet_degree(julday: float, p_id: int) -> float:
                 return res[0]
             except Exception:
                 pass
-        return 0.0 # Fallback 
+        return 0.0
     try:
         res, _ = swe.calc_ut(julday, p_id, swe.FLG_MOSEPH)
         return res[0]
@@ -168,17 +171,17 @@ class AnalysisRequest(BaseModel):
     question: str | None = None
 
 # ------------------------------------------------------------------
-# 4. FASTAPI ENDPOINTS
+# 4. API ENDPOINTS
 # ------------------------------------------------------------------
 @app.get("/", response_class=HTMLResponse)
 def serve_frontend():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return HTMLResponse("<h1>Evolutionary Astrology API Running</h1>")
+    return HTMLResponse("<h1>Evolutionary Astrology Engine API Active</h1>")
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. Transit ของดาวทุกดวงแบบ Real time"""
+    """1. คำนวณตำแหน่งดาวจรแบบ Real-time (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         dec_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -191,7 +194,9 @@ def get_realtime_transit():
 
 @app.post("/analyze")
 def analyze_chart(req: AnalysisRequest):
-    """2. & 3. คำนวณองศาดาวครบถ้วน (Birth Chart) + วิเคราะห์พื้นดวง/ตอบคำถาม (Transit)"""
+    """
+    2. คำนวณ Birth Chart + วาด SVG + แปลความหมาย (7 หมวดหมู่ หรือ ตอบคำถามจาก Transit)
+    """
     try:
         lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
         
@@ -199,27 +204,27 @@ def analyze_chart(req: AnalysisRequest):
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
         utc_dt = local_dt.astimezone(pytz.utc)
 
+        # คำนวณ Birth Chart และ Real-time Transit
         natal_planets, natal_houses = _calculate_chart_data(utc_dt, lat, lon)
-        
         now_utc = datetime.now(pytz.utc)
         transit_planets, _ = _calculate_chart_data(now_utc, lat, lon)
 
-        # วาดรูป SVG
+        # วาด Birth Chart SVG
         target_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron']
         simple_planets = {p: natal_planets[p]['absolute_degree'] for p in target_planets}
         simple_houses = [natal_houses[f'House_{i+1}']['absolute_degree'] for i in range(12)]
         chart_svg = generate_astroseek_svg(simple_planets, simple_houses, natal_planets['ASC']['absolute_degree'])
 
         if not client:
-            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured.")
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured on server")
 
-        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่
+        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่ (ไม่มีคำถาม)
         if not req.question:
             system_prompt = """
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Psychological & Evolutionary Astrologer)
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามใช้คำทักทายหรือเกริ่นนำเด็ดขาด
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามใช้คำทักทาย เกริ่นนำ หรือคำอวยพรเด็ดขาด
 
-ให้วิเคราะห์พื้นดวงชะตา (Birth Chart) โดยแบ่งเป็น 7 หัวข้อดังนี้เท่านั้น:
+หน้าที่: วิเคราะห์พื้นดวงชะตาจากข้อมูลพิกัดดาวและเรือนชะตา โดยแบ่งเนื้อหาออกเป็น 7 หัวข้อหลักอย่างชัดเจน ดังนี้:
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -228,7 +233,7 @@ def analyze_chart(req: AnalysisRequest):
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
 """
-            user_content = f"พิกัดดาวกำเนิด:\n{natal_planets}\nพิกัดเรือนชะตา:\n{natal_houses}"
+            user_content = f"[Birth Chart Planets]\n{natal_planets}\n\n[Birth Chart Houses]\n{natal_houses}"
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_content}],
@@ -241,15 +246,16 @@ def analyze_chart(req: AnalysisRequest):
                 "chart_svg": chart_svg
             }
 
-        # CASE 2: พยากรณ์ตามคำถามโดยใช้ Transit + Birth Chart
+        # CASE 2: พยากรณ์ตามคำถามเจาะจง (Transit vs Birth Chart)
         else:
             qa_system_prompt = """
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามใช้คำทักทาย
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามใช้คำทักทายเด็ดขาด
 
-หน้าที่: วิเคราะห์คำถามของผู้ใช้ โดยเทียบมุมสัมพันธ์ระหว่างดาวจรปัจจุบัน (Transit) และ ดาวกำเนิด (Birth Chart)
-- หาคำตอบที่ชัดเจน เช่น จะได้งานช่วงไหน ปัญหาแก้ด้วยพฤติกรรมใด
-- ให้อธิบายตามหลักอิทธิพลดาวที่มากระทบอย่างเป็นเหตุเป็นผล
+หน้าที่: คำนวณระยะมุมสัมพันธ์ (Aspect Orb <= 4°) ระหว่างดาวจรปัจจุบัน (Transit) และดาวกำเนิด (Birth Chart) เพื่อตอบคำถามผู้ใช้
+1. ระบุจังหวะเวลา/ช่วงเดือนที่ดาวจรทำมุมส่งผลชัดเจน
+2. อธิบายสาเหตุทางโหราศาสตร์และโครงสร้างจิตวิทยาอย่างตรงไปตรงมา
+3. กำหนดทางออกเชิงพฤติกรรม (Actionable Steps) เพื่อแก้ปัญหาหรือปลดล็อกศักยภาพทันที
 """
             qa_user_content = f"คำถาม: \"{req.question}\"\n\n[Birth Chart]\n{natal_planets}\n\n[Real-time Transit]\n{transit_planets}"
             response = client.chat.completions.create(
@@ -267,7 +273,3 @@ def analyze_chart(req: AnalysisRequest):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Analysis Error: {str(e)}")
-
-@app.get("/db-view", response_class=HTMLResponse)
-def view_database_contents():
-    return "<h1>Local DB is disabled. Engine is running fully via System Prompts & High-precision Ephemeris.</h1>"
