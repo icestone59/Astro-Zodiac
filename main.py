@@ -29,12 +29,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ------------------------------------------------------------------
+# 1. SWISS EPHEMERIS & SYSTEM CONFIG
+# ------------------------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 EPHE_DIR = "/tmp/ephe"
 CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 RULES_FILE = "school_rules.json"
+
+DEFAULT_RULES = {
+    "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
+    "natal_categories": {
+        "1_personality": "",
+        "2_finance": "",
+        "3_career": "",
+        "4_love": "",
+        "5_strengths_weaknesses": "",
+        "6_potentials": "",
+        "7_growth": ""
+    },
+    "love_advanced_rules": {
+        "personal_attraction_indicators": "",
+        "complex_relationship_indicators": "",
+        "sun_moon_midpoint_rules": "",
+        "house_7_and_ruler_rules": "",
+        "planets_in_7th_house": ""
+    }
+}
 
 def ensure_ephe() -> bool:
     os.makedirs(EPHE_DIR, exist_ok=True)
@@ -69,7 +92,6 @@ def ensure_ephe() -> bool:
 geolocator = Nominatim(user_agent="evolutionary_astro_engine")
 tf = TimezoneFinder()
 
-# แคชพิกัดจังหวัดหลักในไทยเพื่อประมวลผลเร็วขึ้น
 LOCATION_CACHE = {
     "กรุงเทพ": (13.7563, 100.5018, "Asia/Bangkok"),
     "กรุงเทพมหานคร": (13.7563, 100.5018, "Asia/Bangkok"),
@@ -99,19 +121,23 @@ def load_school_rules() -> dict:
                 return json.load(f)
         except Exception:
             pass
-    return {
-        "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
-        "natal_categories": {},
-        "love_advanced_rules": {}
-    }
+    # หากยังไม่มีไฟล์ ให้สร้างไฟล์เริ่มต้นทันที
+    try:
+        with open(RULES_FILE, "w", encoding="utf-8") as f:
+            json.dump(DEFAULT_RULES, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+    return DEFAULT_RULES
 
+# ------------------------------------------------------------------
+# 2. DEGREE & HOUSE CALCULATIONS
+# ------------------------------------------------------------------
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
     if loc_key in LOCATION_CACHE:
         lat, lon, tz = LOCATION_CACHE[loc_key]
         return lat, lon, tz, loc_str
     try:
-        # ค้นหาพิกัดระดับลิปดาด้วย Geopy
         search_query = f"{loc_str}, Thailand" if "thailand" not in loc_key and "ไทย" not in loc_key else loc_str
         loc = geolocator.geocode(search_query, timeout=10)
         if loc:
@@ -120,7 +146,6 @@ def get_coordinates_fast(loc_str: str):
             return loc.latitude, loc.longitude, tz_str, loc.address
     except Exception:
         pass
-    # Fallback กรณีค้นหาเจาะจง ให้ใช้พิกัดมาตรฐานประเทศไทย (กรุงเทพฯ)
     return 13.7563, 100.5018, "Asia/Bangkok", loc_str
 
 def _get_degree_info(degree: float, speed: float = 0.0) -> dict:
@@ -180,6 +205,9 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     formatted_houses = {f"House_{i+1}": _get_degree_info(houses[i]) for i in range(12)}
     return planets, formatted_houses
 
+# ------------------------------------------------------------------
+# 3. ENDPOINTS
+# ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
     year: int
@@ -240,7 +268,6 @@ def save_rules(data: dict):
 @app.post("/analyze")
 def analyze_chart(req: AnalysisRequest):
     try:
-        # ระบบแปลงปี พ.ศ. เป็น ค.ศ. (กรณีส่ง พ.ศ. มาทาง Backend)
         year_ad = req.year - 543 if req.year > 2400 else req.year
 
         lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
