@@ -13,14 +13,16 @@ from geopy.geocoders import Nominatim
 from timezonefinder import TimezoneFinder
 import openai
 
+# โมดูลวาดวงกลมดวงชะตา SVG (Astro-Seek Style)
 try:
     from chart_drawer import generate_astroseek_svg
 except ImportError:
     def generate_astroseek_svg(planets, houses, asc_deg):
-        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Chart Generated</text></svg>"
+        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Birth Chart Wheel Generated</text></svg>"
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
+# ตั้งค่า CORS รองรับการเชื่อมต่อ Frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -30,7 +32,7 @@ app.add_middleware(
 )
 
 # ------------------------------------------------------------------
-# 1. SWISS EPHEMERIS & SYSTEM CONFIGURATION
+# 1. SWISS EPHEMERIS & SYSTEM SETUP
 # ------------------------------------------------------------------
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
@@ -40,6 +42,7 @@ CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
 RULES_FILE = "school_rules.json"
 
 def ensure_ephe() -> bool:
+    """ตรวจสอบและดาวน์โหลดไฟล์ ephemeris ของ Chiron ป้องกันระบบ Crash"""
     os.makedirs(EPHE_DIR, exist_ok=True)
     if os.path.exists(CHIRON_FILE) and os.path.getsize(CHIRON_FILE) > 200000:
         swe.set_ephe_path(EPHE_DIR)
@@ -92,16 +95,21 @@ ZODIAC_SIGNS = [
 ]
 
 def load_school_rules() -> dict:
+    """โหลดแก่นวิชาประจำสำนักจากไฟล์ school_rules.json"""
     if os.path.exists(RULES_FILE):
         try:
             with open(RULES_FILE, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             pass
-    return {}
+    return {
+        "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
+        "natal_categories": {},
+        "love_advanced_rules": {}
+    }
 
 # ------------------------------------------------------------------
-# 2. HIGH-PRECISION DEGREE & HOUSE CALCULATIONS
+# 2. HIGH-PRECISION ASTROLOGICAL CALCULATIONS
 # ------------------------------------------------------------------
 def get_coordinates_fast(loc_str: str):
     loc_key = loc_str.strip().lower()
@@ -116,7 +124,7 @@ def get_coordinates_fast(loc_str: str):
             return loc.latitude, loc.longitude, tz_str, loc.address
     except Exception:
         pass
-    raise HTTPException(status_code=400, detail="ไม่พบพิกัดสถานที่เกิดที่ระบุ กรุณาระบุเมืองและประเทศให้ชัดเจน")
+    raise HTTPException(status_code=400, detail="ไม่พบพิกัดสถานที่เกิดที่ระบุ กรุณาระบุชื่อเมืองและประเทศให้ชัดเจน")
 
 def _get_degree_info(degree: float, speed: float = 0.0) -> dict:
     degree = degree % 360
@@ -137,7 +145,7 @@ def _calc_planet_position(julday: float, p_id: int) -> tuple[float, float]:
     flag = swe.FLG_SWIEPH if (p_id == swe.CHIRON and ephe_ready) else swe.FLG_MOSEPH
     try:
         res, _ = swe.calc_ut(julday, p_id, flag)
-        return res[0], res[3]
+        return res[0], res[3]  # degree, speed
     except Exception:
         return 0.0, 0.0
 
@@ -150,9 +158,11 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
         deg, speed = _calc_planet_position(julday, p_id)
         planets[name] = _get_degree_info(deg, speed)
 
+    # คำนวณ South Node (ตรงข้าม North Node 180 องศา)
     sn_deg = (planets['North_Node']['absolute_degree'] + 180) % 360
     planets['South_Node'] = _get_degree_info(sn_deg)
 
+    # คำนวณเรือนชะตา Placidus, ASC และ MC
     houses, ascmc = swe.houses(julday, lat, lon, b'P')
     planets['ASC'] = _get_degree_info(ascmc[0])
     planets['MC'] = _get_degree_info(ascmc[1])
@@ -164,6 +174,7 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     midpoint_deg = ((sun_deg + moon_deg + 360) / 2.0) % 360 if diff > 180 else (sun_deg + moon_deg) / 2.0
     planets['Sun_Moon_Midpoint'] = _get_degree_info(midpoint_deg)
 
+    # จัดดาวลงเรือนชะตา 1-12
     house_cusps = [houses[i] for i in range(12)]
     for p_name, p_data in planets.items():
         p_abs = p_data['absolute_degree']
@@ -177,7 +188,7 @@ def _calculate_chart_data(dt_utc: datetime, lat: float, lon: float):
     return planets, formatted_houses
 
 # ------------------------------------------------------------------
-# 3. REQUEST SCHEMAS & API ENDPOINTS
+# 3. REQUEST SCHEMAS & ENDPOINTS
 # ------------------------------------------------------------------
 class AnalysisRequest(BaseModel):
     user_name: str | None = "คุณ"
@@ -193,11 +204,17 @@ class AnalysisRequest(BaseModel):
 def serve_frontend():
     if os.path.exists("index.html"):
         return FileResponse("index.html")
-    return HTMLResponse("<h1>Evolutionary Astrology Engine Active</h1>")
+    return HTMLResponse("<h1>Evolutionary Astrology Engine API Active</h1>")
+
+@app.get("/admin", response_class=HTMLResponse)
+def serve_admin():
+    if os.path.exists("admin.html"):
+        return FileResponse("admin.html")
+    return HTMLResponse("<h1>Admin Dashboard</h1>")
 
 @app.get("/transit")
 def get_realtime_transit():
-    """1. คำนวณ Transit ดาวจร Real-Time ทุกดวง"""
+    """1. คำนวณตำแหน่งดาวจรแบบ Real-Time ทุกดวง (UTC)"""
     try:
         now_utc = datetime.now(pytz.utc)
         dec_hour = now_utc.hour + (now_utc.minute / 60.0) + (now_utc.second / 3600.0)
@@ -218,10 +235,23 @@ def get_realtime_transit():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transit Error: {str(e)}")
 
+@app.get("/api/rules")
+def get_rules():
+    return load_school_rules()
+
+@app.post("/api/rules")
+def save_rules(data: dict):
+    try:
+        with open(RULES_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        return {"status": "success", "message": "บันทึกหลักการของสำนักเรียบร้อยแล้ว"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Save Error: {str(e)}")
+
 @app.post("/analyze")
 def analyze_chart(req: AnalysisRequest):
     """
-    2. คำนวณ Birth Chart + Transit + สร้าง SVG + วิเคราะห์ตามโครงสร้างและโทนเสียงเฉพาะ
+    2. คำนวณ Birth Chart + Transit + สร้าง SVG + ทำนายผลเชิงพัฒนาศักยภาพ
     """
     try:
         lat, lon, tz_str, address = get_coordinates_fast(req.location_name)
@@ -230,10 +260,12 @@ def analyze_chart(req: AnalysisRequest):
         local_dt = local_tz.localize(datetime(req.year, req.month, req.day, req.hour, req.minute))
         utc_dt = local_dt.astimezone(pytz.utc)
 
+        # 1. คำนวณข้อมูลองศาดาว Birth Chart และ Real-time Transit
         natal_planets, natal_houses = _calculate_chart_data(utc_dt, lat, lon)
         now_utc = datetime.now(pytz.utc)
         transit_planets, _ = _calculate_chart_data(now_utc, lat, lon)
 
+        # 2. วาด Birth Chart SVG Wheel
         target_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron']
         simple_planets = {p: natal_planets[p]['absolute_degree'] for p in target_planets}
         simple_houses = [natal_houses[f'House_{i+1}']['absolute_degree'] for i in range(12)]
@@ -245,16 +277,16 @@ def analyze_chart(req: AnalysisRequest):
         school_rules = load_school_rules()
         current_date_str = now_utc.strftime("%d %B %Y")
 
-        # CASE 1: พยากรณ์พื้นดวง 7 หมวดหมู่ (ไม่มีคำถาม)
+        # CASE 1: วิเคราะห์พื้นดวง 7 หมวดหมู่ (ไม่มีคำถามเจาะจง)
         if not req.question:
             system_prompt = f"""
-คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพผู้เชี่ยวชาญ
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ อบอุ่น ตรงประเด็น ไม่พูดเยิ่นเย้อ ให้กำลังใจและชี้ทางสว่าง
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ ห้ามใช้คำทักทายหรือคำเกริ่นนำเด็ดขาด
 
-หลักวิชาประจำสำนัก:
+หลักวิชาประจำสำนักที่ต้องใช้เป็นเกณฑ์:
 {json.dumps(school_rules, ensure_ascii=False, indent=2)}
 
-หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้ชื่อ '{req.user_name}' โดยแบ่งออกเป็น 7 หัวข้อหลักอย่างชัดเจน ดังนี้:
+หน้าที่: วิเคราะห์พื้นดวงชะตาของผู้ใช้ชื่อ '{req.user_name}' จากองศาดาวและเรือนชะตา โดยแบ่งเนื้อหาเป็น 7 หัวข้ออย่างชัดเจนดังนี้:
 1. นิสัย บุคลิกภาพ
 2. การเงิน
 3. การงาน อาชีพ ที่ตรงกับดวง
@@ -263,9 +295,9 @@ def analyze_chart(req: AnalysisRequest):
 6. ศักยภาพที่มี และวิธีการพัฒนา
 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
 
-ให้อธิบายด้วยภาษามนุษย์ที่สลวย มีพลัง อ่านง่าย และนำไปปฏิบัติได้จริง
+* หมายเหตุ: หากหัวข้อใดมีข้อมูลใน 'natal_categories' ของสำนัก ให้ใช้หลักการนั้นเป็นหลัก หากหมวดใดเว้นว่างไว้ ("") ให้ใช้วิชาโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Psychological & Evolutionary Astrology) วิเคราะห์ให้อัตโนมัติ
 """
-            user_content = f"[Natal Planets]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
+            user_content = f"[Natal Planets & Midpoints]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Natal Houses]\n{json.dumps(natal_houses, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -279,32 +311,33 @@ def analyze_chart(req: AnalysisRequest):
                 "chart_svg": chart_svg
             }
 
-        # CASE 2: พยากรณ์ตามคำถามเจาะจง (Transit vs Birth Chart) ด้วยโครงสร้างโทนเสียงตามกำหนด
+        # CASE 2: วิเคราะห์ Transit vs Natal ตอบคำถามเจาะจง ด้วยโครงสร้างและโทนเสียงเฉพาะ
         else:
             qa_system_prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ
 ชื่อผู้ใช้: {req.user_name}
 วันที่ปัจจุบัน: {current_date_str}
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น อบอุ่น ชี้ทางสว่าง
 
 หลักวิชาประจำสำนัก:
 {json.dumps(school_rules, ensure_ascii=False, indent=2)}
 
-หน้าที่: วิเคราะห์มุมสัมพันธ์ระหว่างดาวจรปัจจุบัน (Transit) กับดาวเดิม (Birth Chart) เพื่อตอบคำถามผู้ใช้
-บังคับใช้โครงสร้างและสไตล์การเขียนดังนี้อย่างเคร่งครัด:
+หน้าที่: วิเคราะห์มุมสัมพันธ์ระหว่างดาวจรปัจจุบัน (Real-time Transit) และดาวเดิม (Birth Chart) เพื่อตอบคำถามผู้ใช้
+บังคับใช้โครงสร้างและสไตล์การนำเสนอดังนี้อย่างเคร่งครัด:
 
-1. คำทักทายเปิดหัวเรื่องเป็นกันเอง อบอุ่น และยืนยันวันที่ปัจจุบัน
-2. 🌟 วิเคราะห์พื้นดวงเดิม: "[ตั้งชื่อเปรียบเทียบฉายาดวงชะตา]"
-   - อธิบายโครงสร้างดาวเดิมในเรื่องนั้นๆ ชี้จุดแข็งและจุดที่ต้องระวัง
-3. 🚀 เจาะลึกดวงจร: "[ตั้งชื่อสภาวะดวงจร]"
-   - อธิบายตำแหน่งดาวจรและมุมสัมพันธ์ ระบุช่วงวัน/เดือน/ปี ที่จะเกิดการเปลี่ยนแปลงหรือจังหวะเวลาทองชัดเจน
+1. ประโยคเปิดทักทายเป็นกันเอง อบอุ่น และยืนยันวันที่ปัจจุบัน
+2. 🌟 วิเคราะห์พื้นดวงเดิม: "[ฉายาดวงชะตาเปรียบเทียบ]"
+   - อธิบายโครงสร้างดาวเดิมในเรื่องนั้นๆ อิทธิพลเรือนชะตา จุดแข็ง และข้อควรระวัง
+3. 🚀 เจาะลึกดวงจร: "[สภาวะดาวจร]"
+   - อธิบายตำแหน่งดาวจรและมุมสัมพันธ์ ระบุช่วงวัน/เดือน/ปี ที่จะเกิดจังหวะเวลาทอง หรือการเปลี่ยนแปลงชัดเจน
 4. 💎 บทสรุปแห่งโชคชะตาและกลยุทธ์เหนือพรหมลิขิต
-   - **ฟันธงบทสรุป:** สรุปคำตอบตรงประเด็น ฟันธงช่วงเวลาที่จะประสบความสำเร็จ
-   - **กลยุทธ์ชีวิต (แก้ที่ต้นเหตุ):** 
-     - *รหัสวิธีแก้:* ทางออกเชิงพฤติกรรมและการปรับสภาวะจิตวิทยา (Evolutionary Strategy)
-     - *การใช้ชีวิต/การพัฒนา:* สิ่งที่ต้องเตรียมพร้อมและทักษะที่ต้องใช้
-5. ประโยคคำถามชวนคุยต่อในประเด็นที่เกี่ยวข้องกันในตอนท้าย
+   - **ฟันธงบทสรุป:** ฟันธงช่วงเวลาและผลลัพธ์ที่จะเกิดขึ้นตรงไปตรงมา
+   - **กลยุทธ์ชีวิต (แก้ที่ต้นเหตุแห่งกรรม):** 
+     - *รหัสวิธีแก้:* ทางออกเชิงพฤติกรรมและการปรับสภาวะจิตวิทยา (Evolutionary Action Plan)
+     - *การใช้ชีวิต:* สิ่งที่ต้องเตรียมพร้อม ทักษะที่ต้องใช้ หรือการพัฒนาตนเอง
+5. คำถามชวนคุยต่อ 1 คำถามในตอนท้าย
 """
-            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Planets & Midpoint]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Planets]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
+            qa_user_content = f"คำถามผู้ใช้: \"{req.question}\"\n\n[Birth Chart Planets & Sun/Moon Midpoint]\n{json.dumps(natal_planets, ensure_ascii=False, indent=2)}\n\n[Real-time Transit Planets]\n{json.dumps(transit_planets, ensure_ascii=False, indent=2)}"
             
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
