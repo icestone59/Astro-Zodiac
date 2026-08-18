@@ -7,9 +7,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 
+# Import จากไฟล์ที่เราแยกไว้
 from config_manager import load_school_rules, save_school_rules
 from astro_calc import get_coordinates, calculate_chart
 from ai_service import analyze_natal_7_categories, analyze_transit_qa, analyze_deep_report_json, client
+
+# นำระบบวาดภาพ Birth Chart กลับมา
+try:
+    from chart_drawer import generate_astroseek_svg
+except ImportError:
+    def generate_astroseek_svg(planets, houses, asc_deg):
+        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Chart Generated</text></svg>"
 
 app = FastAPI(title="Evolutionary Astrology Engine API")
 
@@ -63,7 +71,7 @@ def save_rules(data: dict):
 def analyze_chart_endpoint(req: AnalysisRequest):
     try:
         year_ad = req.year - 543 if req.year > 2400 else req.year
-        lat, lon, tz_str, address = get_coordinates(req.location_name)
+        lat, lon, tz_str, _ = get_coordinates(req.location_name)
         local_tz = pytz.timezone(tz_str)
         local_dt = local_tz.localize(datetime(year_ad, req.month, req.day, req.hour, req.minute))
         utc_dt = local_dt.astimezone(pytz.utc)
@@ -72,6 +80,14 @@ def analyze_chart_endpoint(req: AnalysisRequest):
         
         now_utc = datetime.now(pytz.utc)
         transit_planets, _, _ = calculate_chart(now_utc, lat, lon)
+
+        # แก้ไขจุดที่ 2: เตรียมข้อมูลและวาด Birth Chart SVG
+        target_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron']
+        simple_planets = {p: natal_planets.get(p, {}).get('absolute_degree', 0) for p in target_planets}
+        simple_houses = [natal_houses.get(f'House_{i+1}', {}).get('absolute_degree', 0) for i in range(12)]
+        asc_deg = natal_planets.get('ASC', {}).get('absolute_degree', 0)
+        
+        chart_svg = generate_astroseek_svg(simple_planets, simple_houses, asc_deg)
 
         if not client: raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
 
@@ -85,7 +101,8 @@ def analyze_chart_endpoint(req: AnalysisRequest):
             "birth_chart_degrees": natal_planets,
             "natal_aspects": natal_aspects,
             "transit_degrees": transit_planets,
-            "report": report
+            "report": report,
+            "chart_svg": chart_svg  # ส่ง SVG กลับไปแสดงผลที่หน้าเว็บ
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -103,12 +120,14 @@ def generate_deep_report_endpoint(req: AnalysisRequest):
 
         if not client: raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
 
-    # โหลดสูตรจาก DB
+        # โหลดสูตรการแปลของสำนักเพื่อส่งไปครอบหัว AI
         school_rules = load_school_rules()
         deep_rules = school_rules.get("deep_report_rules", "")
 
-        # ส่ง deep_rules เข้าไปใน AI Service
         json_result = analyze_deep_report_json(req.user_name, natal_planets, natal_houses, natal_aspects, deep_rules)
+        
+        # แก้ไขจุดที่ 1: นำโค้ดแปลง JSON กลับมาเพื่อให้มีตัวแปร data
+        data = json.loads(json_result)
 
         template_path = "report_template.html"
         if not os.path.exists(template_path):
