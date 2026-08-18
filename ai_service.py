@@ -5,26 +5,23 @@ from openai import OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def analyze_natal_7_categories(user_name, chart_data, school_rules):
-    """สังเคราะห์บทแปลโหราศาสตร์สากล 7 หมวดหมู่ ตรงตาม Master Rules"""
-    natal_lib = school_rules.get("natal_categories", {})
-    
     prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ เล่าเรื่องเชิงจิตวิทยาพฤติกรรมมนุษย์
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ แปลความหมายเชิงจิตวิทยาพฤติกรรมมนุษย์
 
-โครงสร้างหัวข้อที่ต้องตอบให้ครบ 7 หมวดหมู่ (ใช้ Markdown ## และ ###):
-## 1. นิสัย บุคลิกภาพ
-## 2. การเงิน
-## 3. การงาน อาชีพ ที่ตรงกับดวง
-## 4. ความรัก
-## 5. จุดเด่น จุดด้อย และการแก้จุดด้อย
-## 6. ศักยภาพที่มี และวิธีการพัฒนา
-## 7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
+📌 บังคับคำนวณ Ruler (เจ้าเรือน) แยกตามหมวดหมู่อื่นๆ ดังนี้:
+1. นิสัย บุคลิกภาพ: คำนวณจาก ASC + ดาวใน House 1 + ASC Ruler (เจ้าเรือนลัคนาไปสถิตที่ไหน)
+2. การเงิน: คำนวณจาก Cusp House 2 + House 2 Ruler (เจ้าเรือนการเงิน) + Venus
+3. การงาน อาชีพ: คำนวณจาก MC + House 10 Ruler (เจ้าเรือนการงาน) + House 6 Ruler
+4. ความรัก: คำนวณจาก DSC + House 7 Ruler (เจ้าเรือนคู่ครอง) + Venus
+5. จุดเด่น จุดด้อย: คำนวณจาก Sun, Moon, Saturn + ASC/MC Rulers
+6. ศักยภาพที่มี และการพัฒนา: คำนวณจาก North Node, Jupiter + Ruler ของ House 9/10
+7. ปัญหาที่ต้องปรับปรุง: คำนวณจาก Chiron, Saturn + Ruler ของ House 6/8/12
 
-กฎเหล็กบทบรรยายหลัก:
-1. ห้ามพิมพ์ชื่อดาว, ราศี, เรือนชะตา (เช่น Sun, Moon, ASC, House 1) ลงในเนื้อหาบทพฤติกรรมมนุษย์เด็ดขาด
-2. แปลความหมายเป็นภาษาคนเชิงจิตวิทยา 2-3 ย่อหน้าต่อหมวด
-3. ท้ายทุกหมวด ให้ระบุบรรทัด '**หลักฐานที่ใช้วิเคราะห์:**' แสดงตำแหน่งองศาดาวจริง และ Ruler จากข้อมูลที่ให้มาเท่านั้น
+กฎเหล็กการตอบ:
+1. เนื้อหาหลัก: แปลเป็นภาษาคนเชิงจิตวิทยา ห้ามพิมพ์ชื่อดาว/ราศี/เรือนชะตาในเนื้อหาหลัก
+2. บรรทัดสุดท้ายของทุกหมวด: ต้องระบุ '**ที่มา:**' โดยต้องแสดงทั้ง "ดาวหลัก" และ "Ruler (เจ้าเรือน)" ที่ใช้คำนวณจริงเสมอ
+   (ตัวอย่างรูปแบบ: **ที่มา:** ASC 14° Aries, Moon 23° Aries, ASC Ruler (Mars) in Leo 22° (House 5))
 """
     content = f"ผู้ถาม: {user_name}\n[Chart Data & Ruler Mapping]: {json.dumps(chart_data, ensure_ascii=False)}"
 
@@ -35,16 +32,16 @@ def analyze_natal_7_categories(user_name, chart_data, school_rules):
     )
     return res.choices[0].message.content
 
+
 def analyze_transit_qa(user_name, question, chart_data):
-    """วิเคราะห์คำถามเจาะจงด้วย Transit Real-time vs Birth Chart"""
     prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
 โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
 
 หน้าที่:
-1. นำข้อมูล [Transit Degrees Real-time] มาจับมุมสัมพันธ์กับ [Birth Chart Degrees]
-2. ตอบคำถามผู้ใช้โดยตรง เช่น Timing สภาวะอารมณ์ และทางออกเชิงกลยุทธ์
-3. ห้ามพิมพ์ชื่อดาวในบทวิเคราะห์หลัก ให้นำไปไว้ในบรรทัด '**หลักฐานที่ใช้วิเคราะห์:**' ท้ายสุดเท่านั้น
+1. คำนวณดาวจร Real-time กระทบกับ Birth Chart โดยต้องเช็ก Transit Planet สถิตใน House ใด และกระทบถึง House Ruler ใด
+2. ตอบคำถามผู้ใช้เรื่อง Timing, สภาวะ และทางออกเชิงพฤติกรรม
+3. ห้ามพิมพ์ชื่อดาวในบทวิเคราะห์หลัก ให้แสดงในบรรทัด '**หลักฐานที่ใช้วิเคราะห์:**' ท้ายสุดเท่านั้น (รวมถึง Transit Planet & Affected Ruler)
 """
     content = f"ผู้ถาม: {user_name}\nคำถาม: {question}\n[Chart Data]: {json.dumps(chart_data, ensure_ascii=False)}"
 
@@ -55,11 +52,11 @@ def analyze_transit_qa(user_name, question, chart_data):
     )
     return res.choices[0].message.content
 
+
 def analyze_deep_report_json(user_name, chart_data, school_rules):
     prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
-ทำรายงานเจาะลึก 12 มิติชีวิตภาษาคนเชิงจิตวิทยา ถอดบทเรียนพัฒนาตนเองจากพื้นดวง
+วิเคราะห์ปมชีวิตและโครงสร้างดวงชะตาโดยนำ House Rulers ทั้ง 12 เรือนมาประมวลผลร่วมกับองศาดาว
 """
     content = f"ผู้ถาม: {user_name}\n[Chart Data]: {json.dumps(chart_data, ensure_ascii=False)}"
 
