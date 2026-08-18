@@ -2,17 +2,21 @@ import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
 
-# 1. ฟังก์ชันแปลงสถานที่เกิดเป็นพิกัด lat, lon ที่ main.py เรียกหา
 def get_coordinates(location_name):
-    """แปลงชื่อเมือง/สถานที่เกิดเป็น พิกัด (lat, lon)"""
+    """แปลงชื่อสถานที่เกิดเป็น พิกัด (lat, lon, city, country) คืนค่าครบ 4 ตัวแปร"""
     try:
         geolocator = Nominatim(user_agent="evolutionary_astro_app")
-        location = geolocator.geocode(location_name)
+        location = geolocator.geocode(location_name, addressdetails=True)
         if location:
-            return location.latitude, location.longitude
-        return 13.7563, 100.5018  # ค่าเริ่มต้น กรุงเทพฯ หากหาไม่พบ
+            address = location.raw.get('address', {})
+            city = address.get('city') or address.get('town') or address.get('village') or location_name
+            country = address.get('country', 'Unknown')
+            return location.latitude, location.longitude, city, country
+        
+        # Default ค่าสำรองกรณีหาไม่พบ (กรุงเทพฯ, ไทย)
+        return 13.7563, 100.5018, "Bangkok", "Thailand"
     except Exception:
-        return 13.7563, 100.5018
+        return 13.7563, 100.5018, "Bangkok", "Thailand"
 
 # กำหนดเกษตรเจ้าเรือน (Rulers) ตามหลักโหราศาสตร์สากลวิวัฒนาการ
 ZODIAC_RULERS = {
