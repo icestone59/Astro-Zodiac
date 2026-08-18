@@ -163,49 +163,63 @@
             }
         }
 
-        async function saveRules() {
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.disabled = true;
-            saveBtn.innerText = "กำลังบันทึกข้อมูล...";
-            payload.deep_report_rules = document.getElementById('deep_report_rules').value;
+async function saveRules() {
+    const saveBtn = document.getElementById('saveBtn'); // เปลี่ยน ID ให้ตรงกับปุ่มของคุณ
+    if (saveBtn) {
+        saveBtn.innerText = 'กำลังบันทึกข้อมูล...';
+        saveBtn.disabled = true;
+    }
 
-            const payload = {
-                school_name: "สำนักโหราศาสตร์วิวัฒนาการ",
-                natal_categories: {},
-                love_advanced_rules: {
-                    personal_attraction_indicators: document.getElementById('love_attraction').value,
-                    complex_relationship_indicators: document.getElementById('love_complex').value,
-                    sun_moon_midpoint_rules: document.getElementById('love_midpoints').value,
-                    house_7_and_ruler_rules: document.getElementById('love_house7').value,
-                    planets_in_7th_house: document.getElementById('love_planets_h7').value
-                }
-            };
+    try {
+        // ใช้ Optional Chaining (?.) เพื่อป้องกัน Error ถ้าหา Element ไม่เจอ
+        const payload = {
+            school_name: document.getElementById('school_name')?.value || "สำนักโหราศาสตร์วิวัฒนาการ",
+            natal_categories: {
+                "1_personality": document.getElementById('cat_1')?.value || "",
+                "2_finance": document.getElementById('cat_2')?.value || "",
+                "3_career": document.getElementById('cat_3')?.value || "",
+                "4_love": document.getElementById('cat_4')?.value || "",
+                "5_strengths_weaknesses": document.getElementById('cat_5')?.value || "",
+                "6_potentials": document.getElementById('cat_6')?.value || "",
+                "7_growth": document.getElementById('cat_7')?.value || ""
+            },
+            love_advanced_rules: {
+                personal_attraction_indicators: document.getElementById('love_1')?.value || "",
+                complex_relationship_indicators: document.getElementById('love_2')?.value || "",
+                sun_moon_midpoint_rules: document.getElementById('love_3')?.value || "",
+                house_7_and_ruler_rules: document.getElementById('love_4')?.value || "",
+                planets_in_7th_house: document.getElementById('love_5')?.value || ""
+            },
+            // จุดที่มักทำให้เกิด Error หากลืมใส่ textarea ลงใน HTML
+            deep_report_rules: document.getElementById('deep_report_rules')?.value || "" 
+        };
 
-            categories.forEach(cat => {
-                const el = document.getElementById(`cat_${cat}`);
-                payload.natal_categories[cat] = el ? el.value : '';
-            });
+        const response = await fetch('/api/rules', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
 
-            try {
-                const res = await fetch('/api/rules', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const result = await res.json();
-                
-                if (res.ok) {
-                    showAlert(result.message || 'บันทึกหลักการทุกหมวดเรียบร้อยแล้ว', 'success');
-                } else {
-                    throw new Error(result.detail || 'เกิดข้อผิดพลาดในการบันทึก');
-                }
-            } catch (err) {
-                showAlert(err.message, 'error');
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.innerText = "💾 บันทึกข้อมูลทุกหมวด";
-            }
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const result = await response.json();
+        alert('บันทึกข้อมูลสำเร็จ');
+
+    } catch (error) {
+        console.error('Save Error:', error);
+        alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: โปรดตรวจสอบว่าใส่ HTML ID ครบถ้วนหรือไม่');
+    } finally {
+        // เคลียร์สถานะปุ่มกลับมาเป็นปกติเสมอ ไม่ว่าจะสำเร็จหรือพัง
+        if (saveBtn) {
+            saveBtn.innerText = 'บันทึกข้อมูล';
+            saveBtn.disabled = false;
+        }
+    }
+}
 
         function showAlert(msg, type) {
             const alertBox = document.getElementById('alertBox');
