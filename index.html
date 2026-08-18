@@ -243,6 +243,47 @@
                 submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
             }
         });
+
+        async function calculateAstro() {
+  const payload = {
+    user_name: document.getElementById('userName').value || 'ลูกดวง',
+    day: document.getElementById('day').value,
+    month: document.getElementById('month').value,
+    year: document.getElementById('year').value,
+    hour: document.getElementById('hour').value || 0,
+    minute: document.getElementById('minute').value || 0,
+    location: document.getElementById('location').value || 'กรุงเทพมหานคร'
+  };
+
+  try {
+    const response = await fetch('/api/calculate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const contentType = response.headers.get('content-type');
+    
+    // ตรวจสอบว่า Response เป็น JSON หรือไม่
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      if (data.status === 'success') {
+        document.getElementById('result').innerText = data.analysis;
+      } else {
+        alert('เกิดข้อผิดพลาดจาก Server: ' + data.message);
+      }
+    } else {
+      // กรณีหลุดรับ HTML
+      const htmlText = await response.text();
+      console.error('HTML Response:', htmlText);
+      alert(`Server ตอบกลับเป็น HTML (Status ${response.status}) โปรดตรวจสอบ Log บน Render`);
+    }
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+  }
+}
+        
 async function handleCalculate() {
   const payload = {
     user_name: document.getElementById('userName').value || 'ลูกดวง',
