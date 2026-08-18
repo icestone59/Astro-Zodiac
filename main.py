@@ -14,6 +14,15 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 RULES_FILE = 'school_rules.json'
 
+# 📌 บังคับให้ Flask คืนค่าเป็น JSON เสมอเมื่อเกิด Error ทุกกรณี (แก้ Unexpected token '<')
+@app.errorhandler(Exception)
+def handle_all_errors(e):
+    code = getattr(e, 'code', 500)
+    return jsonify({
+        "status": "error",
+        "message": f"Server Error ({code}): {str(e)}"
+    }), code
+
 def load_school_rules():
     if os.path.exists(RULES_FILE):
         try:
@@ -21,10 +30,7 @@ def load_school_rules():
                 return json.load(f)
         except Exception:
             pass
-    return {
-        "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
-        "natal_categories": {}
-    }
+    return {"school_name": "สำนักโหราศาสตร์วิวัฒนาการ", "natal_categories": {}}
 
 def save_school_rules(data):
     with open(RULES_FILE, 'w', encoding='utf-8') as f:
@@ -38,7 +44,7 @@ def index():
 def admin():
     return app.send_static_file('admin.html')
 
-@app.route('/api/rules', methods=['GET', 'POST'])
+@app.route('/api/rules', methods=['GET', 'POST'], strict_slashes=False)
 def handle_rules():
     if request.method == 'POST':
         data = request.get_json() or {}
@@ -46,89 +52,71 @@ def handle_rules():
         return jsonify({"status": "success", "message": "บันทึก Master Rules เรียบร้อย"})
     return jsonify(load_school_rules())
 
-@app.route('/api/calculate', methods=['POST'])
+@app.route('/api/calculate', methods=['POST'], strict_slashes=False)
 def calculate():
-    # ... โค้ดรับ payload และคำนวณดวง ...
+    """คำนวณพื้นดวง 7+1 หมวดหมู่ พร้อม Real-time Transit"""
+    data = request.get_json() or {}
+    user_name = data.get('user_name', 'ลูกดวง')
+    day = int(data.get('day', 1))
+    month = int(data.get('month', 1))
+    year_be = int(data.get('year', 2538))
+    
+    year_ad = year_be - 543 if year_be > 2400 else year_be
+    hour = int(data.get('hour', 0))
+    minute = int(data.get('minute', 0))
+    user_location = data.get('location', 'กรุงเทพมหานคร')
+
+    # แปลงพิกัดพร้อมระบบกัน Error
+    lat, lon, city, country = get_coordinates(user_location)
+    birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+
+    # คำนวณ Chart Data จาก Swiss Ephemeris
+    school_rules = load_school_rules()
+    chart_data = calculate_chart(birth_dt_utc, lat, lon)
+
+    # AI แปลความหมายพัฒนาศักยภาพ
+    analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
+
     return jsonify({
         "status": "success",
+        "user_info": {
+            "name": user_name,
+            "location": f"{city}, {country}",
+            "latitude": lat,
+            "longitude": lon,
+            "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
+        },
+        "chart_data": chart_data,
         "analysis": analysis_result
     })
-    try:
-        data = request.get_json() or {}
-        user_name = data.get('user_name', 'ลูกดวง')
-        day = int(data.get('day', 1))
-        month = int(data.get('month', 1))
-        year_be = int(data.get('year', 2538))
-        
-        year_ad = year_be - 543 if year_be > 2400 else year_be
-        hour = int(data.get('hour', 0))
-        minute = int(data.get('minute', 0))
-        user_location = data.get('location', 'กรุงเทพมหานคร')
 
-        # ค้นหาพิกัด Geocoding ป้องกัน Unpack Error
-        try:
-            lat, lon, city, country = get_coordinates(user_location)
-        except Exception:
-            lat, lon, city, country = 13.7563, 100.5018, "Bangkok", "Thailand"
-
-        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
-
-        # คำนวณองศาเกิด + Transit Real-time + Rulers
-        school_rules = load_school_rules()
-        chart_data = calculate_chart(birth_dt_utc, lat, lon)
-
-        # AI สังเคราะห์พยากรณ์พัฒนาศักยภาพ 8 หมวดหมู่
-        analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
-
-        return jsonify({
-            "status": "success",
-            "user_info": {
-                "name": user_name,
-                "location": f"{city}, {country}",
-                "latitude": lat,
-                "longitude": lon,
-                "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
-            },
-            "chart_data": chart_data,
-            "analysis": analysis_result
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
-
-@app.route('/api/transit-qa', methods=['POST'])
+@app.route('/api/transit-qa', methods=['POST'], strict_slashes=False)
 def transit_qa():
-    try:
-        data = request.get_json() or {}
-        user_name = data.get('user_name', 'ลูกดวง')
-        question = data.get('question', '')
-        
-        day = int(data.get('day', 1))
-        month = int(data.get('month', 1))
-        year_be = int(data.get('year', 2538))
-        year_ad = year_be - 543 if year_be > 2400 else year_be
-        hour = int(data.get('hour', 0))
-        minute = int(data.get('minute', 0))
-        user_location = data.get('location', 'กรุงเทพมหานคร')
+    """วิเคราะห์ Transit Real-time ร่วมกับ Birth Chart ตอบคำถามเจาะจง"""
+    data = request.get_json() or {}
+    user_name = data.get('user_name', 'ลูกดวง')
+    question = data.get('question', '')
+    
+    day = int(data.get('day', 1))
+    month = int(data.get('month', 1))
+    year_be = int(data.get('year', 2538))
+    year_ad = year_be - 543 if year_be > 2400 else year_be
+    hour = int(data.get('hour', 0))
+    minute = int(data.get('minute', 0))
+    user_location = data.get('location', 'กรุงเทพมหานคร')
 
-        try:
-            lat, lon, city, country = get_coordinates(user_location)
-        except Exception:
-            lat, lon, city, country = 13.7563, 100.5018, "Bangkok", "Thailand"
+    lat, lon, city, country = get_coordinates(user_location)
+    birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+    chart_data = calculate_chart(birth_dt_utc, lat, lon)
 
-        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
-        chart_data = calculate_chart(birth_dt_utc, lat, lon)
+    qa_result = analyze_transit_qa(user_name, question, chart_data)
 
-        # AI ประมวลผล Transit Real-time vs Natal ตอบคำถาม Timing
-        qa_result = analyze_transit_qa(user_name, question, chart_data)
-
-        return jsonify({
-            "status": "success",
-            "question": question,
-            "transit_timestamp": chart_data.get("transit_timestamp_utc"),
-            "answer": qa_result
-        })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 400
+    return jsonify({
+        "status": "success",
+        "question": question,
+        "transit_timestamp": chart_data.get("transit_timestamp_utc"),
+        "answer": qa_result
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
