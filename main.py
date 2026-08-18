@@ -54,41 +54,48 @@ def handle_rules():
 
 @app.route('/api/calculate', methods=['POST'], strict_slashes=False)
 def calculate():
-    """คำนวณพื้นดวง 7+1 หมวดหมู่ พร้อม Real-time Transit"""
-    data = request.get_json() or {}
-    user_name = data.get('user_name', 'ลูกดวง')
-    day = int(data.get('day', 1))
-    month = int(data.get('month', 1))
-    year_be = int(data.get('year', 2538))
-    
-    year_ad = year_be - 543 if year_be > 2400 else year_be
-    hour = int(data.get('hour', 0))
-    minute = int(data.get('minute', 0))
-    user_location = data.get('location', 'กรุงเทพมหานคร')
+    try:
+        data = request.get_json() or {}
+        user_name = data.get('user_name') or 'ลูกดวง'
+        
+        # ป้องกัน ValueError จากค่าว่าง หรือ String ที่แปลงเป็น intไม่ได้
+        day = int(data.get('day') or 1)
+        month = int(data.get('month') or 1)
+        year_be = int(data.get('year') or 2538)
+        hour = int(data.get('hour') or 0)
+        minute = int(data.get('minute') or 0)
+        
+        year_ad = year_be - 543 if year_be > 2400 else year_be
+        user_location = data.get('location') or 'กรุงเทพมหานคร'
 
-    # แปลงพิกัดพร้อมระบบกัน Error
-    lat, lon, city, country = get_coordinates(user_location)
-    birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+        # ค้นหาพิกัด
+        lat, lon, city, country = get_coordinates(user_location)
+        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
 
-    # คำนวณ Chart Data จาก Swiss Ephemeris
-    school_rules = load_school_rules()
-    chart_data = calculate_chart(birth_dt_utc, lat, lon)
+        # คำนวณ Chart Data
+        school_rules = load_school_rules()
+        chart_data = calculate_chart(birth_dt_utc, lat, lon)
 
-    # AI แปลความหมายพัฒนาศักยภาพ
-    analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
+        # AI แปลความหมาย 8 หมวดหมู่
+        analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
 
-    return jsonify({
-        "status": "success",
-        "user_info": {
-            "name": user_name,
-            "location": f"{city}, {country}",
-            "latitude": lat,
-            "longitude": lon,
-            "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
-        },
-        "chart_data": chart_data,
-        "analysis": analysis_result
-    })
+        return jsonify({
+            "status": "success",
+            "user_info": {
+                "name": user_name,
+                "location": f"{city}, {country}",
+                "latitude": lat,
+                "longitude": lon,
+                "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
+            },
+            "chart_data": chart_data,
+            "analysis": analysis_result
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": f"ประมวลผลล้มเหลว: {str(e)}"
+        }), 400
 
 @app.route('/api/transit-qa', methods=['POST'], strict_slashes=False)
 def transit_qa():
