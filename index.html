@@ -244,16 +244,37 @@
             }
         });
 
-        async function calculateAstro() {
+        function logDebug(title, data) {
+  const consoleBox = document.getElementById('debugConsole');
+  const contentBox = document.getElementById('debugContent');
+  consoleBox.style.display = 'block';
+  
+  const timestamp = new Date().toLocaleTimeString();
+  let logText = `\n[${timestamp}] === ${title} ===\n`;
+  if (typeof data === 'object') {
+    logText += JSON.stringify(data, null, 2);
+  } else {
+    logText += data;
+  }
+  contentBox.textContent += logText + '\n';
+  consoleBox.scrollTop = consoleBox.scrollHeight;
+}
+
+async function calculateAstro() {
+  // ล้างค่า Log เก่า
+  document.getElementById('debugContent').textContent = '';
+  
   const payload = {
-    user_name: document.getElementById('userName').value || 'ลูกดวง',
-    day: document.getElementById('day').value,
-    month: document.getElementById('month').value,
-    year: document.getElementById('year').value,
-    hour: document.getElementById('hour').value || 0,
-    minute: document.getElementById('minute').value || 0,
-    location: document.getElementById('location').value || 'กรุงเทพมหานคร'
+    user_name: document.getElementById('userName')?.value || 'ลูกดวง',
+    day: document.getElementById('day')?.value,
+    month: document.getElementById('month')?.value,
+    year: document.getElementById('year')?.value,
+    hour: document.getElementById('hour')?.value || 0,
+    minute: document.getElementById('minute')?.value || 0,
+    location: document.getElementById('location')?.value || 'กรุงเทพมหานคร'
   };
+
+  logDebug('1. SENDING PAYLOAD', payload);
 
   try {
     const response = await fetch('/api/calculate', {
@@ -262,25 +283,28 @@
       body: JSON.stringify(payload)
     });
 
+    logDebug('2. HTTP STATUS', `${response.status} ${response.statusText}`);
+
     const contentType = response.headers.get('content-type');
     
-    // ตรวจสอบว่า Response เป็น JSON หรือไม่
     if (contentType && contentType.includes('application/json')) {
       const data = await response.json();
+      logDebug('3. RAW JSON RESPONSE', data);
+
       if (data.status === 'success') {
-        document.getElementById('result').innerText = data.analysis;
+        document.getElementById('resultContainer').innerText = data.analysis;
       } else {
-        alert('เกิดข้อผิดพลาดจาก Server: ' + data.message);
+        logDebug('❌ SERVER ERROR DETAILS', data.traceback || data.message);
+        alert(`เกิดข้อผิดพลาด: ${data.message}`);
       }
     } else {
-      // กรณีหลุดรับ HTML
       const htmlText = await response.text();
-      console.error('HTML Response:', htmlText);
-      alert(`Server ตอบกลับเป็น HTML (Status ${response.status}) โปรดตรวจสอบ Log บน Render`);
+      logDebug('❌ CRITICAL ERROR (Received HTML instead of JSON)', htmlText.substring(0, 1000));
+      alert('Server ตอบกลับเป็น HTML โปรดเช็ก Debug Log กล่องสีน้ำเงินด้านล่าง');
     }
   } catch (error) {
-    console.error('Fetch Error:', error);
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error.message);
+    logDebug('❌ FETCH/NETWORK ERROR', error.stack || error.message);
+    alert('ไม่สามารถเชื่อมต่อ Server ได้: ' + error.message);
   }
 }
         
