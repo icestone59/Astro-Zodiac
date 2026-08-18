@@ -1,8 +1,15 @@
+import json
+import os
+from openai import OpenAI
+
+# สร้าง Client เชื่อมต่อ OpenAI API
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_aspects, school_rules):
-    # ดึงข้อมูลคลังวิชาจาก Admin
+    """วิเคราะห์พื้นดวง 7 หมวดหมู่หลัก พร้อมตรวจสอบสัญลักษณ์ (i) อัตโนมัติ"""
     natal_lib = school_rules.get("natal_categories", {})
     
-    # ตรวจสอบสถานะว่าหมวดไหนว่างบ้าง ส่งให้ AI รับรู้ชัดเจน
+    # ตรวจสอบว่าคลังความรู้หมวดไหนว่าง เพื่อระบุสถานะการติดสัญลักษณ์ (i)
     lib_status = {
         "1_personality": "มีข้อมูลวิชาของสำนัก" if natal_lib.get("1_personality", "").strip() else "ไม่มีข้อมูล (ต้องเติม (i) หลังชื่อหัวข้อ)",
         "2_finance": "มีข้อมูลวิชาของสำนัก" if natal_lib.get("2_finance", "").strip() else "ไม่มีข้อมูล (ต้องเติม (i) หลังชื่อหัวข้อ)",
@@ -33,6 +40,60 @@ def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_asp
 """
     content = f"ชื่อผู้ใช้: {user_name}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Natal Aspects]: {json.dumps(natal_aspects, ensure_ascii=False)}"
     
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
+        temperature=0.2
+    )
+    return res.choices[0].message.content
+
+
+def analyze_transit_qa(user_name, question, natal_planets, transit_planets, transit_aspects, school_rules):
+    """วิเคราะห์การตอบคำถามโดยจับคู่ดวงเกิด (Natal) กับ ดาวจร Real-time (Transit)"""
+    prompt = f"""
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+
+หน้าที่ของคุณ:
+1. วิเคราะห์ดาวจร (Transit Planets) ที่มากระทบดาวเกิด (Natal Planets) และมุมสัมพันธ์ (Transit Aspects)
+2. ตอบคำถามของผู้ใช้ตรงประเด็น ประเมินจังหวะเวลา (Timing) และเสนอทางออกเชิงจิตวิทยาพัฒนาศักยภาพ
+3. ห้ามใช้เครื่องหมาย Markdown Heading (#, ##, ###) ให้ใช้ตัวหนา **ชื่อหัวข้อ** เท่านั้น
+4. ต้องตบท้ายด้วยส่วน **หลักฐานที่ใช้วิเคราะห์:** โดยระบุดาวจรที่ทำมุมกับดาวเกิดจริงเสมอ (เช่น Transit Saturn Square Natal MC)
+
+โครงสร้างการตอบ:
+**บทวิเคราะห์และจังหวะเวลา**
+(คำตอบเจาะจงกับคำถาม)
+
+**แนวทางแก้ไขและข้อคิดพัฒนาตนเอง**
+(คำแนะนำเชิงรุก)
+
+**หลักฐานที่ใช้วิเคราะห์:**
+(ระบุดาวจร/ดาวเกิด/Aspect ที่ใช้)
+"""
+    content = f"ผู้ถาม: {user_name}\nคำถาม: {question}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Transit Planets Realtime]: {json.dumps(transit_planets, ensure_ascii=False)}\n[Transit Aspects]: {json.dumps(transit_aspects, ensure_ascii=False)}"
+
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
+        temperature=0.2
+    )
+    return res.choices[0].message.content
+
+
+def analyze_deep_report_json(user_name, natal_planets, natal_houses, natal_aspects, school_rules):
+    """วิเคราะห์รายงานปมลึก 12 มิติ (Deep Report)"""
+    deep_rules = school_rules.get("deep_report_rules", "")
+    prompt = f"""
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+
+วิเคราะห์ Deep Report (12 มิติ) ตามสูตรต่อไปนี้:
+{deep_rules}
+
+ห้ามใช้เครื่องหมาย #, ##, ### เด็ดขาด และระบุหลักฐานที่ใช้วิเคราะห์ประกอบทุกมิติ
+"""
+    content = f"ผู้ถาม: {user_name}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Natal Houses]: {json.dumps(natal_houses, ensure_ascii=False)}\n[Natal Aspects]: {json.dumps(natal_aspects, ensure_ascii=False)}"
+
     res = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
