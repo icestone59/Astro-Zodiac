@@ -2,10 +2,11 @@ import json
 import os
 from openai import OpenAI
 
+# 1. Export ตัวแปร client ที่ main.py เรียกใช้
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def analyze_natal_7_categories(user_name, chart_data, school_rules):
-    """วิเคราะห์พื้นดวง 8 หมวดหมู่ บังคับระบุ Ruler และพิกัดดาราศาสตร์ในหลักฐาน"""
+    """วิเคราะห์พื้นดวง 8 หมวดหมู่ บังคับระบุ Ruler และพิกัดดาราศาสตร์ในกล่องหลักฐาน"""
     natal_lib = school_rules.get("natal_categories", {})
     
     def build_header(key, title_name, index):
@@ -35,10 +36,10 @@ def analyze_natal_7_categories(user_name, chart_data, school_rules):
 
 กฎเหล็กสำหรับ "หลักฐานที่ใช้วิเคราะห์:" (Strict Evidence & Ruler Rules):
 1. **ต้องระบุค่าตำแหน่งจริง และ Ruler ของเรือนนั้นๆ จาก [Ruler Mapping] เสมอ!**
-   - หมวด 1 (นิสัย): ต้องระบุ ASC + Ruler of ASC (เช่น ASC in Leo, Ruler 1 (Sun) in Gemini (House 10)) + Sun + Moon
-   - หมวด 2 (การเงิน): ต้องระบุ House 2 + Ruler of H2 (เช่น Ruler 2 (Mercury) in Taurus (House 9)) + ดาวใน H2
-   - หมวด 3 (การงาน): ต้องระบุ MC + Ruler of MC + House 10 + Ruler of H10
-   - หมวด 4 (ความรัก): ต้องระบุ DSC + Ruler of DSC (Ruler 7) + Venus + Moon + Mars
+   - หมวด 1 (นิสัย): ต้องระบุ ASC + Ruler 1 + Sun + Moon
+   - หมวด 2 (การเงิน): ต้องระบุ House 2 + Ruler 2 + ดาวใน H2/H8
+   - หมวด 3 (การงาน): ต้องระบุ MC + Ruler 10 + House 10
+   - หมวด 4 (ความรัก): ต้องระบุ DSC + Ruler 7 + Venus + Moon + Mars
 2. ห้ามใช้คำกว้างๆ เช่น "ดาวในราศี" หรือ "เรือนที่ 1" เด็ดขาด ต้องดึงค่าองศาจริงมาใส่เท่านั้น
 
 โครงสร้างการตอบ:
@@ -117,6 +118,28 @@ def analyze_transit_qa(user_name, question, chart_data):
 (ระบุดาวจร Real-time + ดาวเกิดที่รับมุมกระทบ เช่น Transit Saturn in Pisces (House 10) Square Natal Sun in Gemini)
 """
     content = f"ผู้ถาม: {user_name}\nคำถาม: {question}\n[Chart Data]: {json.dumps(chart_data, ensure_ascii=False)}"
+
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
+        temperature=0.1
+    )
+    return res.choices[0].message.content
+
+
+def analyze_deep_report_json(user_name, chart_data, school_rules):
+    """ฟังก์ชันรองรับ Deep Report 12 มิติ ที่เรียกจาก main.py"""
+    deep_rules = school_rules.get("deep_report_rules", "")
+    prompt = f"""
+คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
+โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
+
+วิเคราะห์ Deep Report (12 มิติ) ตามสูตรภาษาคนเชิงจิตวิทยา:
+{deep_rules}
+
+ห้ามใช้เครื่องหมาย #, ##, ### เด็ดขาด และระบุหลักฐานที่ใช้วิเคราะห์ประกอบทุกมิติไว้ด้านล่างสุด
+"""
+    content = f"ผู้ถาม: {user_name}\n[Chart Data]: {json.dumps(chart_data, ensure_ascii=False)}"
 
     res = client.chat.completions.create(
         model="gpt-4o-mini",
