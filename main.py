@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 
@@ -15,12 +16,17 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 RULES_FILE = 'school_rules.json'
 
 # 📌 บังคับให้ Flask คืนค่าเป็น JSON เสมอเมื่อเกิด Error ทุกกรณี (แก้ Unexpected token '<')
+# บังคับดักจับ Error ทุกชนิดแล้วส่ง Stack Trace กลับเป็น JSON
 @app.errorhandler(Exception)
 def handle_all_errors(e):
     code = getattr(e, 'code', 500)
+    error_trace = traceback.format_exc()
+    print(f"❌ SERVER ERROR: {error_trace}") # พิมพ์ลง Render Log
     return jsonify({
         "status": "error",
-        "message": f"Server Error ({code}): {str(e)}"
+        "message": str(e),
+        "traceback": error_trace,
+        "status_code": code
     }), code
 
 def load_school_rules():
