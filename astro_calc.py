@@ -1,20 +1,25 @@
 import datetime
 import swisseph as swe
+from geopy.geocoders import Nominatim
+
+# 1. ฟังก์ชันแปลงสถานที่เกิดเป็นพิกัด lat, lon ที่ main.py เรียกหา
+def get_coordinates(location_name):
+    """แปลงชื่อเมือง/สถานที่เกิดเป็น พิกัด (lat, lon)"""
+    try:
+        geolocator = Nominatim(user_agent="evolutionary_astro_app")
+        location = geolocator.geocode(location_name)
+        if location:
+            return location.latitude, location.longitude
+        return 13.7563, 100.5018  # ค่าเริ่มต้น กรุงเทพฯ หากหาไม่พบ
+    except Exception:
+        return 13.7563, 100.5018
 
 # กำหนดเกษตรเจ้าเรือน (Rulers) ตามหลักโหราศาสตร์สากลวิวัฒนาการ
 ZODIAC_RULERS = {
-    "Aries": "Mars",
-    "Taurus": "Venus",
-    "Gemini": "Mercury",
-    "Cancer": "Moon",
-    "Leo": "Sun",
-    "Virgo": "Mercury",
-    "Libra": "Venus",
-    "Scorpio": "Pluto",
-    "Sagittarius": "Jupiter",
-    "Capricorn": "Saturn",
-    "Aquarius": "Uranus",
-    "Pisces": "Neptune"
+    "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury",
+    "Cancer": "Moon", "Leo": "Sun", "Virgo": "Mercury",
+    "Libra": "Venus", "Scorpio": "Pluto", "Sagittarius": "Jupiter",
+    "Capricorn": "Saturn", "Aquarius": "Uranus", "Pisces": "Neptune"
 }
 
 ZODIAC_NAMES = [
@@ -23,18 +28,10 @@ ZODIAC_NAMES = [
 ]
 
 PLANET_IDS = {
-    "Sun": swe.SUN,
-    "Moon": swe.MOON,
-    "Mercury": swe.MERCURY,
-    "Venus": swe.VENUS,
-    "Mars": swe.MARS,
-    "Jupiter": swe.JUPITER,
-    "Saturn": swe.SATURN,
-    "Uranus": swe.URANUS,
-    "Neptune": swe.NEPTUNE,
-    "Pluto": swe.PLUTO,
-    "Chiron": swe.CHIRON,
-    "North Node": swe.MEAN_NODE
+    "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY,
+    "Venus": swe.VENUS, "Mars": swe.MARS, "Jupiter": swe.JUPITER,
+    "Saturn": swe.SATURN, "Uranus": swe.URANUS, "Neptune": swe.NEPTUNE,
+    "Pluto": swe.PLUTO, "Chiron": swe.CHIRON, "North Node": swe.MEAN_NODE
 }
 
 def get_zodiac_sign(deg):
@@ -51,35 +48,32 @@ def get_house_of_position(deg, house_cusps):
         if c_start < c_end:
             if c_start <= deg < c_end:
                 return i + 1
-        else: # ข้ามจุด 0 องศา Aries
+        else:
             if deg >= c_start or deg < c_end:
                 return i + 1
     return 1
 
 def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
-    """คำนวณดวงเกิดและ Transit Real-time พร้อมผูกโครงสร้าง Ruler"""
-    swe.set_ephe_path('') # ใช้พิกัดbuilt-in หรือระบุ path ephe
+    """คำนวณดวงเกิดและ Transit Real-time พร้อม Ruler Mapping"""
+    swe.set_ephe_path('')
     
-    # 1. คำนวณ Julian Day ดวงเกิด
+    # คำนวณ Julian Day ดวงเกิด
     jul_day_natal = swe.julday(
         birth_dt_utc.year, birth_dt_utc.month, birth_dt_utc.day,
         birth_dt_utc.hour + birth_dt_utc.minute / 60.0 + birth_dt_utc.second / 3600.0
     )
 
-    # คำนวณเรือนชะตา (Placidus System)
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
     house_cusps = list(cusps)
     
-    asc_deg = ascmc[0]
-    mc_deg = ascmc[1]
+    asc_deg, mc_deg = ascmc[0], ascmc[1]
     dsc_deg = (asc_deg + 180) % 360
-    ic_deg = (mc_deg + 180) % 360
-
+    
     asc_sign, asc_orb = get_zodiac_sign(asc_deg)
     dsc_sign, dsc_orb = get_zodiac_sign(dsc_deg)
     mc_sign, mc_orb = get_zodiac_sign(mc_deg)
 
-    # 2. คำนวณตำแหน่งดาวเกิด (Natal Planets)
+    # ตำแหน่งดาวเกิด (Natal)
     natal_planets = {}
     for name, pid in PLANET_IDS.items():
         res, _ = swe.calc_ut(jul_day_natal, pid)
@@ -94,23 +88,11 @@ def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
             "formatted": f"{name} in {sign} {orb} (House {house})"
         }
 
-    # 3. คำนวณ Ruler Mapping ของทุกเรือนชะตา
+    # คำนวณ Ruler Mapping
     ruler_mapping = {
-        "ASC": {
-            "sign": asc_sign,
-            "ruler_planet": ZODIAC_RULERS[asc_sign],
-            "ruler_pos": natal_planets[ZODIAC_RULERS[asc_sign]]["formatted"]
-        },
-        "DSC": {
-            "sign": dsc_sign,
-            "ruler_planet": ZODIAC_RULERS[dsc_sign],
-            "ruler_pos": natal_planets[ZODIAC_RULERS[dsc_sign]]["formatted"]
-        },
-        "MC": {
-            "sign": mc_sign,
-            "ruler_planet": ZODIAC_RULERS[mc_sign],
-            "ruler_pos": natal_planets[ZODIAC_RULERS[mc_sign]]["formatted"]
-        }
+        "ASC": {"sign": asc_sign, "ruler_planet": ZODIAC_RULERS[asc_sign], "ruler_pos": natal_planets[ZODIAC_RULERS[asc_sign]]["formatted"]},
+        "DSC": {"sign": dsc_sign, "ruler_planet": ZODIAC_RULERS[dsc_sign], "ruler_pos": natal_planets[ZODIAC_RULERS[dsc_sign]]["formatted"]},
+        "MC": {"sign": mc_sign, "ruler_planet": ZODIAC_RULERS[mc_sign], "ruler_pos": natal_planets[ZODIAC_RULERS[mc_sign]]["formatted"]}
     }
 
     for h_num in range(1, 13):
@@ -122,7 +104,7 @@ def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
             "ruler_pos": natal_planets[r_planet]["formatted"]
         }
 
-    # 4. คำนวณ Transit Real-time (ถ้าไม่ส่งเวลามา ให้ใช้วินาทีปัจจุบัน)
+    # คำนวณ Transit Real-time
     if not transit_dt_utc:
         transit_dt_utc = datetime.datetime.now(datetime.timezone.utc)
 
@@ -136,12 +118,12 @@ def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
         res, _ = swe.calc_ut(jul_day_transit, pid)
         lon_deg = res[0]
         sign, orb = get_zodiac_sign(lon_deg)
-        house = get_house_of_position(lon_deg, house_cusps) # เรือนในดวงเกิด
+        house = get_house_of_position(lon_deg, house_cusps)
         transit_planets[name] = {
             "sign": sign,
             "orb": orb,
             "house_in_natal": house,
-            "formatted": f"Transit {name} in {sign} {orb} (Transiting Natal House {house})"
+            "formatted": f"Transit {name} in {sign} {orb} (House {house})"
         }
 
     return {
@@ -153,3 +135,6 @@ def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
         "transit_planets": transit_planets,
         "transit_timestamp_utc": transit_dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
     }
+
+# 2. ทำ Alias ชื่อฟังก์ชันให้ตรงกับที่ main.py เรียกใช้
+calculate_chart = calculate_chart_data
