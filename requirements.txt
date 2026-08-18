@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+flask
 pyswisseph
 pytz
 geopy
@@ -11,3 +12,4 @@ pyswisseph
 geopy
 openai
 python-dotenv
+gunicorn
