@@ -3,156 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Evolutionary Astrology Engine</title>
+    <title>Admin - Master Evidence & Rules Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8fafc; }
-        .tab-active { border-bottom: 2px solid #7c3aed; color: #7c3aed; font-weight: 600; }
-        .tab-inactive { color: #64748b; font-weight: 500; }
-        .tab-inactive:hover { color: #475569; }
-        textarea { font-family: 'Sarabun', sans-serif; resize: vertical; }
+        body { font-family: 'Sarabun', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .evidence-badge { background: #1e1b4b; border: 1px solid #6366f1; color: #a5b4fc; }
     </style>
 </head>
 <body class="p-4 md:p-8">
 
-    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <!-- Header -->
-        <div class="bg-slate-900 px-6 py-4 flex justify-between items-center">
-            <h1 class="text-white text-lg font-semibold">⚙️ ตั้งค่าคลังความรู้ (Knowledge Base)</h1>
-            <button id="saveBtn" onclick="saveRules()" class="bg-purple-600 hover:bg-purple-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">
-                💾 บันทึกข้อมูล
+    <div class="max-w-6xl mx-auto bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+        <div class="bg-slate-950 px-6 py-4 flex justify-between items-center border-b border-slate-800">
+            <div>
+                <h1 class="text-white text-lg font-bold">⚙️ Master Rules & Evidence Control Panel</h1>
+                <p class="text-xs text-slate-400">จัดการหลักวิชาและ Evidence หลักสำหรับการประมวลผล AI</p>
+            </div>
+            <button id="saveBtn" onclick="saveRules()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-lg text-sm font-semibold transition-all">
+                💾 บันทึก Master Rules
             </button>
         </div>
 
-        <!-- Tabs Navigation -->
-        <div class="flex border-b border-slate-200 px-6 pt-4 space-x-6 overflow-x-auto">
-            <button onclick="switchTab('natal_tab')" id="btn_natal_tab" class="tab-btn tab-active pb-3 text-sm px-2">1. พื้นดวง 7 หมวด</button>
-            <button onclick="switchTab('deep_tab')" id="btn_deep_tab" class="tab-btn tab-inactive pb-3 text-sm px-2">2. สูตร Deep Report (12 มิติ)</button>
-        </div>
-
-        <!-- Content Area -->
-        <div class="p-6 bg-slate-50 h-[calc(100vh-220px)] overflow-y-auto">
+        <div class="p-6 space-y-6 h-[calc(100vh-140px)] overflow-y-auto">
             
-            <!-- TAB 1: พื้นดวง 7 หมวด -->
-            <div id="natal_tab" class="tab-content block space-y-6">
-                <div class="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm mb-4">
-                    <strong>คำแนะนำ:</strong> ใส่หลักการวิเคราะห์พื้นดวง 7 หมวดหมู่ (Personality, Finance, Career, Love, etc.) ระบบจะนำข้อมูลนี้ไปครอบหัว AI ตอนแปลผลพื้นดวง
+            <!-- 1. นิสัย บุคลิกภาพ -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">1. นิสัย บุคลิกภาพ</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: ASC, Ruler ASC, Sun, Moon, H1, Aspects</span>
                 </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">1. นิสัย บุคลิกภาพ</label>
-                        <textarea id="cat_1" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">2. การเงิน</label>
-                        <textarea id="cat_2" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">3. การงาน อาชีพ ที่ตรงกับดวง</label>
-                        <textarea id="cat_3" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">4. ความรัก</label>
-                        <textarea id="cat_4" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">5. จุดเด่น จุดด้อย และการแก้จุดด้อย</label>
-                        <textarea id="cat_5" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">6. ศักยภาพที่มี และวิธีการพัฒนา</label>
-                        <textarea id="cat_6" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-bold text-slate-700 mb-2">7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า</label>
-                        <textarea id="cat_7" rows="5" class="w-full p-3 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none"></textarea>
-                    </div>
-                </div>
+                <textarea id="cat_1" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none" placeholder="ระบุตรรกะการแปลผลภาษาคนเชิงจิตวิทยา..."></textarea>
             </div>
 
-            <!-- TAB 2: Deep Report 12 มิติ -->
-            <div id="deep_tab" class="tab-content hidden space-y-4">
-                <div class="bg-purple-50 text-purple-800 p-4 rounded-lg text-sm mb-4">
-                    <strong>คำแนะนำ:</strong> วางโครงสร้างและสูตรการวิเคราะห์ปมลึก เช่น "Step 1: ดู Sun, Step 2: หา Aspect ที่แรงที่สุด" เพื่อใช้ในปุ่ม "ดูปมลึกของคุณ"
+            <!-- 2. การเงิน -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">2. การเงิน</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: H2, Ruler H2, ดาวใน H2, H8, Ruler H8, Venus/Jupiter/Saturn, Aspects</span>
                 </div>
-                <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-2">สูตรแปล Deep Report (12 มิติ)</label>
-                    <textarea id="deep_report_rules" rows="20" class="w-full p-4 border border-slate-300 rounded-lg text-sm focus:border-purple-500 outline-none font-mono text-slate-800 bg-white" placeholder="ใส่สูตรวิเคราะห์ เช่น การแปล Executive Summary ให้ดู Sun, ASC, Moon..."></textarea>
+                <textarea id="cat_2" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 3. การงาน อาชีพ -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">3. การงาน อาชีพ ที่ตรงกับดวง</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: MC, H10, Ruler H10, ดาว H10, H6, H2, Sun/Saturn/Jupiter, Aspects</span>
                 </div>
+                <textarea id="cat_3" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 4. ความรัก -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">4. ความรัก (แฟนเป็นใคร / อยู่ที่ไหน / Dynamic)</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: DSC, H7, Ruler H7, Venus/Mars/Moon, Saturn/Uranus/Neptune/Pluto</span>
+                </div>
+                <textarea id="cat_4" rows="4" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 5. จุดเด่น จุดด้อย -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">5. จุดเด่น จุดด้อย และการแก้จุดด้อย</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: Hard Aspects, ดาวที่ถูกกดดัน, Ruler ที่มีความขัดแย้ง, Angular, Dignity</span>
+                </div>
+                <textarea id="cat_5" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 6. ศักยภาพที่มี -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">6. ศักยภาพที่มี และวิธีการพัฒนา</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: จุดแข็ง + ความขัดแย้ง + ดาว/เรือนที่สามารถพัฒนาได้</span>
+                </div>
+                <textarea id="cat_6" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 7. ปัญหาที่ต้องปรับปรุง -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: Hard Aspect + House ที่ได้รับผล + Ruler + Pattern</span>
+                </div>
+                <textarea id="cat_7" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
+            </div>
+
+            <!-- 8. สุขภาพ -->
+            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="font-bold text-indigo-300">8. สุขภาพที่ต้องระวัง</label>
+                    <span class="evidence-badge px-3 py-1 rounded-full text-xs font-mono">Evidence: H6, H12, Ruler H6/H12, Saturn, Uranus, Neptune, Pluto, Aspects</span>
+                </div>
+                <textarea id="cat_8" rows="3" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:border-indigo-500 outline-none"></textarea>
             </div>
 
         </div>
-    </div>
-
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-y-20 opacity-0 font-medium">
-        ✅ บันทึกข้อมูลสำเร็จ
     </div>
 
     <script>
-        // ระบบจัดการ Tabs
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => {
-                el.classList.remove('tab-active');
-                el.classList.add('tab-inactive');
-            });
-            
-            document.getElementById(tabId).classList.remove('hidden');
-            document.getElementById('btn_' + tabId).classList.remove('tab-inactive');
-            document.getElementById('btn_' + tabId).classList.add('tab-active');
-        }
-
-        // ระบบแจ้งเตือน (Toast)
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.className = `fixed bottom-5 right-5 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 font-medium ${isError ? 'bg-red-600' : 'bg-green-600'}`;
-            
-            // Slide in
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            
-            // Slide out after 3 seconds
-            setTimeout(() => {
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
-        }
-
-        // โหลดข้อมูลจาก Server
         async function loadRules() {
             try {
-                // ใส่ Time timestamp เพื่อเจาะทะลุ Cache ของเบราว์เซอร์
-                const response = await fetch('/api/rules?t=' + new Date().getTime());
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                const data = await response.json();
+                const res = await fetch('/api/rules?t=' + new Date().getTime());
+                const data = await res.json();
+                const cats = data.natal_categories || {};
                 
-                // Map ข้อมูลลงฟิลด์ (ใช้ Optional Chaining ป้องกัน Error)
-                document.getElementById('cat_1').value = data.natal_categories?.['1_personality'] || "";
-                document.getElementById('cat_2').value = data.natal_categories?.['2_finance'] || "";
-                document.getElementById('cat_3').value = data.natal_categories?.['3_career'] || "";
-                document.getElementById('cat_4').value = data.natal_categories?.['4_love'] || "";
-                document.getElementById('cat_5').value = data.natal_categories?.['5_strengths_weaknesses'] || "";
-                document.getElementById('cat_6').value = data.natal_categories?.['6_potentials'] || "";
-                document.getElementById('cat_7').value = data.natal_categories?.['7_growth'] || "";
-                
-                document.getElementById('deep_report_rules').value = data.deep_report_rules || "";
-
-                console.log("✅ โหลดข้อมูลจาก Server สำเร็จ");
-            } catch (error) {
-                console.error('Load Error:', error);
-                showToast("❌ โหลดข้อมูลล้มเหลว โปรดตรวจสอบเซิร์ฟเวอร์", true);
-            }
+                document.getElementById('cat_1').value = cats['1_personality'] || "";
+                document.getElementById('cat_2').value = cats['2_finance'] || "";
+                document.getElementById('cat_3').value = cats['3_career'] || "";
+                document.getElementById('cat_4').value = cats['4_love'] || "";
+                document.getElementById('cat_5').value = cats['5_strengths_weaknesses'] || "";
+                document.getElementById('cat_6').value = cats['6_potentials'] || "";
+                document.getElementById('cat_7').value = cats['7_growth'] || "";
+                document.getElementById('cat_8').value = cats['8_health'] || "";
+            } catch (e) { console.error('Error loading rules:', e); }
         }
 
-        // บันทึกข้อมูลไป Server
         async function saveRules() {
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.innerText = 'กำลังบันทึก...';
-            saveBtn.disabled = true;
-            saveBtn.classList.add('opacity-75');
-
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = 'กำลังบันทึก...';
             try {
                 const payload = {
                     school_name: "สำนักโหราศาสตร์วิวัฒนาการ",
@@ -163,31 +132,20 @@
                         "4_love": document.getElementById('cat_4').value,
                         "5_strengths_weaknesses": document.getElementById('cat_5').value,
                         "6_potentials": document.getElementById('cat_6').value,
-                        "7_growth": document.getElementById('cat_7').value
-                    },
-                    deep_report_rules: document.getElementById('deep_report_rules').value
+                        "7_growth": document.getElementById('cat_7').value,
+                        "8_health": document.getElementById('cat_8').value
+                    }
                 };
-
-                const response = await fetch('/api/rules', {
+                await fetch('/api/rules', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                showToast("✅ บันทึกข้อมูลสำเร็จ");
-            } catch (error) {
-                console.error('Save Error:', error);
-                showToast("❌ เกิดข้อผิดพลาดในการบันทึก", true);
-            } finally {
-                saveBtn.innerText = '💾 บันทึกข้อมูล';
-                saveBtn.disabled = false;
-                saveBtn.classList.remove('opacity-75');
-            }
+                alert('บันทึก Master Rules สำเร็จ');
+            } catch (e) { alert('เกิดข้อผิดพลาดในการบันทึก'); }
+            finally { btn.innerText = '💾 บันทึก Master Rules'; }
         }
 
-        // ทำงานทันทีเมื่อเปิดหน้า
         window.addEventListener('DOMContentLoaded', loadRules);
     </script>
 </body>
