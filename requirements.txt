@@ -7,3 +7,7 @@ timezonefinder
 pydantic
 requests
 openai
+pyswisseph
+geopy
+openai
+python-dotenv
