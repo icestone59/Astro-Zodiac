@@ -5,48 +5,179 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Evolutionary Astrology Engine</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; }
-    .container { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 380px 1fr; gap: 20px; }
-    @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; }
-    h2 { color: #38bdf8; font-size: 1.2rem; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
-    .form-group { margin-bottom: 12px; }
-    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px; }
-    input, select, textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 10px; border-radius: 6px; font-size: 0.95rem; }
-    .row { display: flex; gap: 8px; }
-    button { width: 100%; background: #0284c7; color: #fff; border: none; padding: 12px; border-radius: 6px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 8px; }
-    button:hover { background: #0369a1; }
-    .btn-qa { background: #d97706; }
-    .btn-qa:hover { background: #b45309; }
-    .result-box { white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; color: #e2e8f0; }
-    .debug-box { margin-top: 20px; background: #020617; border: 1px solid #dc2626; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.8rem; color: #f87171; max-height: 300px; overflow-y: auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif; }
+    
+    body {
+      background-color: #0b0518;
+      background-image: radial-gradient(circle at 80% 20%, #2e1058 0%, #0b0518 60%);
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 30px 15px;
+    }
+
+    .container {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 860px) {
+      .container { grid-template-columns: 1fr; }
+    }
+
+    /* ฝั่งซ้าย: โทนขาวสะอาด (Original Theme) */
+    .card-input {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 28px;
+      color: #1e1b4b;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-input h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #4c1d95;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.82rem; font-weight: 600; color: #64748b; margin-bottom: 6px; }
+    
+    input, textarea {
+      width: 100%;
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      color: #0f172a;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: #7c3aed;
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    }
+
+    .row-3 { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 8px; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #6d28d9, #4c1d95);
+      color: #ffffff;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .btn-submit:hover { opacity: 0.95; transform: translateY(-1px); }
+
+    .btn-qa {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+    }
+
+    /* ฝั่งขวา: โทนม่วงดิปอวกาศ (INSIGHT ANALYTICS) */
+    .card-analytics {
+      background: linear-gradient(145deg, #16082c, #250b46);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .analytics-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .analytics-title {
+      font-size: 0.9rem;
+      letter-spacing: 1.5px;
+      font-weight: 800;
+      color: #c084fc;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-status {
+      font-size: 0.7rem;
+      background: rgba(168, 85, 247, 0.2);
+      color: #e9d5ff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+
+    .analysis-body {
+      white-space: pre-wrap;
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #cbd5e1;
+      flex-grow: 1;
+    }
+
+    /* Debug Console ในตัว */
+    .debug-console {
+      margin-top: 25px;
+      background: #090312;
+      border: 1px solid #991b1b;
+      border-radius: 10px;
+      padding: 14px;
+      font-family: ui-monospace, SFMono-Regular, monospace;
+      font-size: 0.78rem;
+      color: #f87171;
+      max-height: 250px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <!-- ฝั่งรับข้อมูล -->
-  <div class="card">
+  <!-- ฝั่งซ้าย: แบบฟอร์มสีขาว -->
+  <div class="card-input">
     <h2>✨ ข้อมูลวันเวลาและสถานที่เกิด</h2>
     
     <div class="form-group">
       <label>ชื่อผู้ใช้</label>
-      <input type="text" id="userName" value="คุณไอซ์" placeholder="ระบุชื่อ">
+      <input type="text" id="userName" value="คุณไอซ์">
     </div>
 
     <div class="form-group">
       <label>วัน / เดือน / ปีเกิด (พ.ศ.)</label>
-      <div class="row">
+      <div class="row-3">
         <input type="number" id="day" value="15" placeholder="วัน">
         <input type="number" id="month" value="8" placeholder="เดือน">
-        <input type="number" id="year" value="2538" placeholder="ปี พ.ศ.">
+        <input type="number" id="year" value="2538" placeholder="พ.ศ.">
       </div>
     </div>
 
     <div class="form-group">
       <label>เวลาเกิด (ชั่วโมง : นาที)</label>
-      <div class="row">
+      <div class="row-2">
         <input type="number" id="hour" value="14" placeholder="ชั่วโมง">
         <input type="number" id="minute" value="30" placeholder="นาที">
       </div>
@@ -54,46 +185,54 @@
 
     <div class="form-group">
       <label>จังหวัดที่เกิด (ประเทศไทย)</label>
-      <input type="text" id="location" value="กรุงเทพมหานคร" placeholder="เช่น กรุงเทพมหานคร, เชียงใหม่">
+      <input type="text" id="location" value="กรุงเทพมหานคร">
     </div>
 
-    <button onclick="calculateNatal()">🔮 คำนวณพื้นดวงพัฒนาศักยภาพ</button>
+    <button class="btn-submit" onclick="runCalculation('/api/calculate')">คำนวณดวงชะตาพัฒนาศักยภาพ</button>
 
-    <hr style="border:0; border-top:1px solid #334155; margin: 20px 0;">
+    <div style="border-top: 1px solid #f1f5f9; margin: 22px 0;"></div>
 
-    <h2>❓ ถามคำถามเจาะจง (Real-time Transit)</h2>
     <div class="form-group">
-      <textarea id="question" rows="3" placeholder="เช่น ผมจะได้งานใหม่เมื่อไหร่? ปัญหาตอนนี้จะแก้อย่างไร?"></textarea>
+      <label>ถามคำถามเจาะจง (Transit Real-time)</label>
+      <textarea id="question" rows="3" placeholder="เช่น ผมจะได้งานใหม่เมื่อไหร่? ปัญหาปัจจุบันแก้ด้วยกลยุทธ์ไหน?"></textarea>
     </div>
-    <button class="btn-qa" onclick="askTransitQA()">⚡ คำนวณ Transit ตอบคำถาม</button>
+    <button class="btn-submit btn-qa" onclick="runCalculation('/api/transit-qa')">⚡ ถามคำถาม Transit</button>
   </div>
 
-  <!-- ฝั่งแสดงผล -->
-  <div class="card">
-    <h2>📊 ผลวิเคราะห์โหราศาสตร์วิวัฒนาการ</h2>
-    <div id="resultOutput" class="result-box">กดปุ่มคำนวณด้านซ้ายเพื่อเริ่มการวิเคราะห์...</div>
+  <!-- ฝั่งขวา: INSIGHT ANALYTICS -->
+  <div class="card-analytics">
+    <div class="analytics-header">
+      <div class="analytics-title">✦ INSIGHT ANALYTICS</div>
+      <div id="statusBadge" class="badge-status">Ready</div>
+    </div>
 
-    <!-- กล่อง Debug Console บังคับแสดงผลลัพธ์ Network/API แบบดิบ -->
-    <div id="debugBox" class="debug-box" style="display: none;">
-      <strong>🛠️ DEBUG LOG CONSOLE:</strong>
-      <pre id="debugContent" style="white-space: pre-wrap; margin-top: 6px;"></pre>
+    <div id="outputContent" class="analysis-body">กรอกข้อมูลวันเกิดด้านซ้ายแล้วกดปุ่มเพื่อเริ่มการสังเคราะห์โหราศาสตร์วิวัฒนาการ...</div>
+
+    <div id="debugConsole" class="debug-console" style="display: none;">
+      <div style="font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #7f1d1d; padding-bottom: 4px;">🛠️ DEBUG LOG CONSOLE:</div>
+      <pre id="debugText" style="white-space: pre-wrap; margin: 0;"></pre>
     </div>
   </div>
 </div>
 
 <script>
-  function showDebug(title, data) {
-    const debugBox = document.getElementById('debugBox');
-    const debugContent = document.getElementById('debugContent');
-    debugBox.style.display = 'block';
+  function appendDebug(title, obj) {
+    const box = document.getElementById('debugConsole');
+    const txt = document.getElementById('debugText');
+    box.style.display = 'block';
     const time = new Date().toLocaleTimeString();
-    let text = `\n[${time}] === ${title} ===\n`;
-    text += (typeof data === 'object') ? JSON.stringify(data, null, 2) : data;
-    debugContent.textContent += text;
+    let str = `\n[${time}] === ${title} ===\n`;
+    str += (typeof obj === 'object') ? JSON.stringify(obj, null, 2) : obj;
+    txt.textContent += str;
   }
 
-  function getPayload() {
-    return {
+  async function runCalculation(endpoint) {
+    document.getElementById('debugText').textContent = '';
+    document.getElementById('debugConsole').style.display = 'none';
+    document.getElementById('statusBadge').innerText = 'Processing...';
+    document.getElementById('outputContent').innerText = 'กำลังคำนวณองศาดาวจาก Swiss Ephemeris และประมวลผล AI...';
+
+    const payload = {
       user_name: document.getElementById('userName').value || 'ลูกดวง',
       day: document.getElementById('day').value,
       month: document.getElementById('month').value,
@@ -103,65 +242,32 @@
       location: document.getElementById('location').value || 'กรุงเทพมหานคร',
       question: document.getElementById('question').value
     };
-  }
 
-  async function calculateNatal() {
-    document.getElementById('debugContent').textContent = '';
-    document.getElementById('resultOutput').innerText = 'กำลังคำนวณองศาดาวและประมวลผล AI...';
-    
-    const payload = getPayload();
-    showDebug('1. REQUEST PAYLOAD', payload);
+    appendDebug('REQUEST PAYLOAD', payload);
 
     try {
-      const res = await fetch('/api/calculate', {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      showDebug('2. HTTP STATUS', `${res.status} ${res.statusText}`);
-      const data = await res.json();
-      showDebug('3. RESPONSE DATA', data);
+      appendDebug('HTTP STATUS', `${response.status} ${response.statusText}`);
+      const data = await response.json();
+      appendDebug('RESPONSE DATA', data);
 
       if (data.status === 'success') {
-        document.getElementById('resultOutput').innerText = data.analysis;
+        document.getElementById('statusBadge').innerText = 'Success';
+        document.getElementById('outputContent').innerText = data.analysis || data.answer;
       } else {
-        document.getElementById('resultOutput').innerText = '❌ เกิดข้อผิดพลาดในการประมวลผล';
-        showDebug('❌ SERVER ERROR TRACEBACK', data.traceback || data.message);
+        document.getElementById('statusBadge').innerText = 'Error';
+        document.getElementById('outputContent').innerText = '❌ เกิดข้อผิดพลาดในการประมวลผล';
+        appendDebug('TRACEBACK', data.traceback || data.message);
       }
     } catch (err) {
-      showDebug('❌ FETCH/NETWORK ERROR', err.message);
-      document.getElementById('resultOutput').innerText = '❌ ไม่สามารถเชื่อมต่อ Server ได้';
-    }
-  }
-
-  async function askTransitQA() {
-    document.getElementById('debugContent').textContent = '';
-    document.getElementById('resultOutput').innerText = 'กำลังคำนวณดาวจร Real-time และวิเคราะห์คำตอบ...';
-    
-    const payload = getPayload();
-    showDebug('1. TRANSIT QA REQUEST', payload);
-
-    try {
-      const res = await fetch('/api/transit-qa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      showDebug('2. HTTP STATUS', `${res.status} ${res.statusText}`);
-      const data = await res.json();
-      showDebug('3. RESPONSE DATA', data);
-
-      if (data.status === 'success') {
-        document.getElementById('resultOutput').innerText = data.answer;
-      } else {
-        document.getElementById('resultOutput').innerText = '❌ เกิดข้อผิดพลาดในการประมวลผลคำถาม';
-        showDebug('❌ SERVER ERROR TRACEBACK', data.traceback || data.message);
-      }
-    } catch (err) {
-      showDebug('❌ FETCH/NETWORK ERROR', err.message);
-      document.getElementById('resultOutput').innerText = '❌ ไม่สามารถเชื่อมต่อ Server ได้';
+      document.getElementById('statusBadge').innerText = 'Network Error';
+      document.getElementById('outputContent').innerText = '❌ ไม่สามารถเชื่อมต่อ Server ได้';
+      appendDebug('FETCH ERROR', err.message);
     }
   }
 </script>
