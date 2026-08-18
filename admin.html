@@ -134,34 +134,57 @@
             activeBtn.classList.add('border-b-2', 'border-purple-700', 'text-purple-900', 'bg-purple-50', 'font-bold');
         }
 
-        async function loadRules() {
-            try {
-                const res = await fetch('/api/rules');
-                if (!res.ok) return;
-                const data = await res.json();
-                
-                const natal = data.natal_categories || {};
-                categories.forEach(cat => {
-                    const el = document.getElementById(`cat_${cat}`);
-                    if (el && natal[cat] !== undefined) {
-                        el.value = natal[cat];
-                    }
-                });
+async function loadRules() {
+    try {
+        const response = await fetch('/api/rules');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
 
-                const loveAdv = data.love_advanced_rules || {};
-                if (document.getElementById('love_attraction')) document.getElementById('love_attraction').value = loveAdv.personal_attraction_indicators || '';
-                if (document.getElementById('love_complex')) document.getElementById('love_complex').value = loveAdv.complex_relationship_indicators || '';
-                if (document.getElementById('love_midpoints')) document.getElementById('love_midpoints').value = loveAdv.sun_moon_midpoint_rules || '';
-                if (document.getElementById('love_house7')) document.getElementById('love_house7').value = loveAdv.house_7_and_ruler_rules || '';
-                if (document.getElementById('love_planets_h7')) document.getElementById('love_planets_h7').value = loveAdv.planets_in_7th_house || '';
-                if (document.getElementById('deep_report_rules')) document.getElementById('deep_report_rules').value = data.deep_report_rules || '';
+        // 1. โหลดข้อมูลสำนัก
+        if (document.getElementById('school_name')) {
+            document.getElementById('school_name').value = data.school_name || "";
+        }
 
-                showAlert('โหลดข้อมูลหลักการเดิมเรียบร้อยแล้ว', 'success');
-
-            } catch (err) {
-                showAlert('ไม่สามารถดึงข้อมูลหลักการเดิมได้: ' + err.message, 'error');
+        // 2. โหลดข้อมูลพื้นดวง 7 หมวด
+        if (data.natal_categories) {
+            const catMap = {
+                'cat_1': '1_personality', 'cat_2': '2_finance', 'cat_3': '3_career',
+                'cat_4': '4_love', 'cat_5': '5_strengths_weaknesses', 
+                'cat_6': '6_potentials', 'cat_7': '7_growth'
+            };
+            for (const [id, key] of Object.entries(catMap)) {
+                if (document.getElementById(id)) {
+                    document.getElementById(id).value = data.natal_categories[key] || "";
+                }
             }
         }
+
+        // 3. โหลดข้อมูลความรักเชิงลึก (ถ้ามีช่องเหล่านี้)
+        if (data.love_advanced_rules) {
+            const loveMap = {
+                'love_1': 'personal_attraction_indicators', 'love_2': 'complex_relationship_indicators',
+                'love_3': 'sun_moon_midpoint_rules', 'love_4': 'house_7_and_ruler_rules',
+                'love_5': 'planets_in_7th_house'
+            };
+            for (const [id, key] of Object.entries(loveMap)) {
+                if (document.getElementById(id)) {
+                    document.getElementById(id).value = data.love_advanced_rules[key] || "";
+                }
+            }
+        }
+
+        // 4. โหลดสูตร Deep Report (12 มิติ)
+        if (document.getElementById('deep_report_rules')) {
+            document.getElementById('deep_report_rules').value = data.deep_report_rules || "";
+        }
+
+    } catch (error) {
+        console.error('Load Error:', error);
+    }
+}
+
+// บังคับให้โหลดข้อมูลทันทีที่เปิดหน้าเว็บ หรือ Refresh
+window.addEventListener('DOMContentLoaded', loadRules);
 
 async function saveRules() {
     const saveBtn = document.getElementById('saveBtn'); // เปลี่ยน ID ให้ตรงกับปุ่มของคุณ
