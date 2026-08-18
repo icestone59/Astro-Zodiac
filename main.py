@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime, timezone
-from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask import Flask, request, jsonify
 
 from astro_calc import get_coordinates, calculate_chart
 from ai_service import (
@@ -15,7 +15,6 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 RULES_FILE = 'school_rules.json'
 
 def load_school_rules():
-    """ดึงคลังวิชาและ Master Evidence Map จาก JSON"""
     if os.path.exists(RULES_FILE):
         try:
             with open(RULES_FILE, 'r', encoding='utf-8') as f:
@@ -28,7 +27,6 @@ def load_school_rules():
     }
 
 def save_school_rules(data):
-    """บันทึกกฎสำนักลงไฟล์ JSON"""
     with open(RULES_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
@@ -42,7 +40,6 @@ def admin():
 
 @app.route('/api/rules', methods=['GET', 'POST'])
 def handle_rules():
-    """API สำหรับดึงและบันทึกกฎหน้า Admin"""
     if request.method == 'POST':
         data = request.get_json() or {}
         save_school_rules(data)
@@ -51,7 +48,6 @@ def handle_rules():
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate():
-    """คำนวณพื้นดวง 8 หมวดหมู่ พร้อมดึง Real-time Transits และ Ruler Mapping"""
     try:
         data = request.get_json() or {}
         user_name = data.get('user_name', 'ลูกดวง')
@@ -59,27 +55,24 @@ def calculate():
         month = int(data.get('month', 1))
         year_be = int(data.get('year', 2538))
         
-        # แปลง พ.ศ. เป็น ค.ศ.
         year_ad = year_be - 543 if year_be > 2400 else year_be
-        
         hour = int(data.get('hour', 0))
         minute = int(data.get('minute', 0))
         user_location = data.get('location', 'กรุงเทพมหานคร')
 
-        # 1. ค้นหาพิกัด ละติจูด / ลองจิจูด ป้องกัน Unpack Error
+        # ค้นหาพิกัด Geocoding ป้องกัน Unpack Error
         try:
             lat, lon, city, country = get_coordinates(user_location)
         except Exception:
             lat, lon, city, country = 13.7563, 100.5018, "Bangkok", "Thailand"
 
-        # 2. แปลงเวลาเกิดเป็น UTC
         birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
 
-        # 3. คำนวณ Chart Data จาก Swiss Ephemeris (Natal + Real-time Transit + Rulers)
+        # คำนวณองศาเกิด + Transit Real-time + Rulers
         school_rules = load_school_rules()
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
 
-        # 4. ส่งประมวลผลบทพยากรณ์ภาษาคนเชิงจิตวิทยา 8 หมวดหมู่
+        # AI สังเคราะห์พยากรณ์พัฒนาศักยภาพ 8 หมวดหมู่
         analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
 
         return jsonify({
@@ -99,7 +92,6 @@ def calculate():
 
 @app.route('/api/transit-qa', methods=['POST'])
 def transit_qa():
-    """คำนวณคำถามเจาะจง (Transit Real-time vs Natal Chart)"""
     try:
         data = request.get_json() or {}
         user_name = data.get('user_name', 'ลูกดวง')
@@ -121,7 +113,7 @@ def transit_qa():
         birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
 
-        # ประมวลผลคำตอบตรงประเด็นประเมิน Timing และทางออก
+        # AI ประมวลผล Transit Real-time vs Natal ตอบคำถาม Timing
         qa_result = analyze_transit_qa(user_name, question, chart_data)
 
         return jsonify({
