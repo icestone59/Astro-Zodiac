@@ -103,8 +103,12 @@ def generate_deep_report_endpoint(req: AnalysisRequest):
 
         if not client: raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
 
-        json_result = analyze_deep_report_json(req.user_name, natal_planets, natal_houses, natal_aspects)
-        data = json.loads(json_result)
+    # โหลดสูตรจาก DB
+        school_rules = load_school_rules()
+        deep_rules = school_rules.get("deep_report_rules", "")
+
+        # ส่ง deep_rules เข้าไปใน AI Service
+        json_result = analyze_deep_report_json(req.user_name, natal_planets, natal_houses, natal_aspects, deep_rules)
 
         template_path = "report_template.html"
         if not os.path.exists(template_path):
