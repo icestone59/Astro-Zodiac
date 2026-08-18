@@ -1,116 +1,155 @@
-import os
-import ssl
-import urllib.request
-from datetime import datetime
-import pytz
+import datetime
 import swisseph as swe
-from geopy.geocoders import Nominatim
-from timezonefinder import TimezoneFinder
 
-EPHE_DIR = "/tmp/ephe"
-CHIRON_FILE = os.path.join(EPHE_DIR, "seas_18.se1")
-
-def ensure_ephe():
-    os.makedirs(EPHE_DIR, exist_ok=True)
-    if os.path.exists(CHIRON_FILE) and os.path.getsize(CHIRON_FILE) > 200000:
-        swe.set_ephe_path(EPHE_DIR)
-        return True
-    url = "https://raw.githubusercontent.com/aloistr/swisseph/master/ephe/seas_18.se1"
-    try:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, context=ctx, timeout=10) as response:
-            with open(CHIRON_FILE, 'wb') as out:
-                out.write(response.read())
-    except Exception:
-        pass
-    swe.set_ephe_path(EPHE_DIR)
-    return True
-
-geolocator = Nominatim(user_agent="evolutionary_astro_engine")
-tf = TimezoneFinder()
-
-PLANETS = {
-    'Sun': swe.SUN, 'Moon': swe.MOON, 'Mercury': swe.MERCURY, 'Venus': swe.VENUS, 
-    'Mars': swe.MARS, 'Jupiter': swe.JUPITER, 'Saturn': swe.SATURN, 'Uranus': swe.URANUS, 
-    'Neptune': swe.NEPTUNE, 'Pluto': swe.PLUTO, 'North_Node': swe.MEAN_NODE, 'Chiron': swe.CHIRON
+# กำหนดเกษตรเจ้าเรือน (Rulers) ตามหลักโหราศาสตร์สากลวิวัฒนาการ
+ZODIAC_RULERS = {
+    "Aries": "Mars",
+    "Taurus": "Venus",
+    "Gemini": "Mercury",
+    "Cancer": "Moon",
+    "Leo": "Sun",
+    "Virgo": "Mercury",
+    "Libra": "Venus",
+    "Scorpio": "Pluto",
+    "Sagittarius": "Jupiter",
+    "Capricorn": "Saturn",
+    "Aquarius": "Uranus",
+    "Pisces": "Neptune"
 }
 
-ZODIAC_SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
+ZODIAC_NAMES = [
+    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+]
 
-def get_coordinates(loc_str: str):
-    try:
-        search_query = f"{loc_str}, Thailand" if "ไทย" not in loc_str else loc_str
-        loc = geolocator.geocode(search_query, timeout=10)
-        if loc:
-            tz_str = tf.timezone_at(lng=loc.longitude, lat=loc.latitude) or "Asia/Bangkok"
-            return loc.latitude, loc.longitude, tz_str, loc.address
-    except:
-        pass
-    return 13.7563, 100.5018, "Asia/Bangkok", loc_str
+PLANET_IDS = {
+    "Sun": swe.SUN,
+    "Moon": swe.MOON,
+    "Mercury": swe.MERCURY,
+    "Venus": swe.VENUS,
+    "Mars": swe.MARS,
+    "Jupiter": swe.JUPITER,
+    "Saturn": swe.SATURN,
+    "Uranus": swe.URANUS,
+    "Neptune": swe.NEPTUNE,
+    "Pluto": swe.PLUTO,
+    "Chiron": swe.CHIRON,
+    "North Node": swe.MEAN_NODE
+}
 
-def calculate_aspects(planets_data):
-    aspects = []
-    aspect_rules = [
-        {"name": "Conjunction (☌)", "angle": 0, "orb": 8},
-        {"name": "Sextile (✶)", "angle": 60, "orb": 6},
-        {"name": "Square (□)", "angle": 90, "orb": 8},
-        {"name": "Trine (△)", "angle": 120, "orb": 8},
-        {"name": "Opposition (☍)", "angle": 180, "orb": 8}
-    ]
-    p_names = list(planets_data.keys())
+def get_zodiac_sign(deg):
+    idx = int(deg // 30)
+    rem_deg = deg % 30
+    d = int(rem_deg)
+    m = int((rem_deg - d) * 60)
+    return ZODIAC_NAMES[idx], f"{d}°{m:02d}'"
+
+def get_house_of_position(deg, house_cusps):
+    for i in range(12):
+        c_start = house_cusps[i]
+        c_end = house_cusps[(i + 1) % 12]
+        if c_start < c_end:
+            if c_start <= deg < c_end:
+                return i + 1
+        else: # ข้ามจุด 0 องศา Aries
+            if deg >= c_start or deg < c_end:
+                return i + 1
+    return 1
+
+def calculate_chart_data(birth_dt_utc, lat, lon, transit_dt_utc=None):
+    """คำนวณดวงเกิดและ Transit Real-time พร้อมผูกโครงสร้าง Ruler"""
+    swe.set_ephe_path('') # ใช้พิกัดbuilt-in หรือระบุ path ephe
     
-    for i in range(len(p_names)):
-        for j in range(i + 1, len(p_names)):
-            p1, p2 = p_names[i], p_names[j]
-            # ข้ามจุดสมมติบางจุดในการหามุม
-            if p1 in ['South_Node', 'Sun_Moon_Midpoint', 'ASC', 'MC'] or p2 in ['South_Node', 'Sun_Moon_Midpoint', 'ASC', 'MC']: continue
-            
-            deg1 = planets_data[p1]['absolute_degree']
-            deg2 = planets_data[p2]['absolute_degree']
-            diff = abs(deg1 - deg2)
-            if diff > 180: diff = 360 - diff
-            
-            for rule in aspect_rules:
-                if abs(diff - rule['angle']) <= rule['orb']:
-                    aspects.append(f"{p1} {rule['name']} {p2}")
-    return aspects
+    # 1. คำนวณ Julian Day ดวงเกิด
+    jul_day_natal = swe.julday(
+        birth_dt_utc.year, birth_dt_utc.month, birth_dt_utc.day,
+        birth_dt_utc.hour + birth_dt_utc.minute / 60.0 + birth_dt_utc.second / 3600.0
+    )
 
-def calculate_chart(dt_utc: datetime, lat: float, lon: float):
-    ensure_ephe()
-    dec_hour = dt_utc.hour + (dt_utc.minute / 60.0) + (dt_utc.second / 3600.0)
-    julday = swe.julday(dt_utc.year, dt_utc.month, dt_utc.day, dec_hour)
-
-    planets = {}
-    for name, p_id in PLANETS.items():
-        flag = swe.FLG_SWIEPH if p_id == swe.CHIRON else swe.FLG_MOSEPH
-        try:
-            res, _ = swe.calc_ut(julday, p_id, flag)
-            deg = res[0] % 360
-            planets[name] = {
-                "sign": ZODIAC_SIGNS[int(deg // 30)],
-                "formatted": f"{int(deg % 30)}°{int((deg % 1) * 60):02d}'",
-                "absolute_degree": round(deg, 4)
-            }
-        except: pass
-
-    houses, ascmc = swe.houses(julday, lat, lon, b'P')
-    planets['ASC'] = {"sign": ZODIAC_SIGNS[int(ascmc[0] // 30)], "absolute_degree": round(ascmc[0], 4)}
-    planets['MC'] = {"sign": ZODIAC_SIGNS[int(ascmc[1] // 30)], "absolute_degree": round(ascmc[1], 4)}
-
-    # Map Planets to Houses
-    h_cusps = [houses[i] for i in range(12)]
-    for p_name, p_data in planets.items():
-        p_abs = p_data['absolute_degree']
-        for h_idx in range(12):
-            h_start, h_end = h_cusps[h_idx], h_cusps[(h_idx + 1) % 12]
-            if (h_start < h_end and h_start <= p_abs < h_end) or (h_start >= h_end and (p_abs >= h_start or p_abs < h_end)):
-                planets[p_name]['house'] = h_idx + 1
-                break
-
-    formatted_houses = {f"House_{i+1}": {"absolute_degree": houses[i]} for i in range(12)}
-    aspects = calculate_aspects(planets)
+    # คำนวณเรือนชะตา (Placidus System)
+    cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
+    house_cusps = list(cusps)
     
-    return planets, formatted_houses, aspects
+    asc_deg = ascmc[0]
+    mc_deg = ascmc[1]
+    dsc_deg = (asc_deg + 180) % 360
+    ic_deg = (mc_deg + 180) % 360
+
+    asc_sign, asc_orb = get_zodiac_sign(asc_deg)
+    dsc_sign, dsc_orb = get_zodiac_sign(dsc_deg)
+    mc_sign, mc_orb = get_zodiac_sign(mc_deg)
+
+    # 2. คำนวณตำแหน่งดาวเกิด (Natal Planets)
+    natal_planets = {}
+    for name, pid in PLANET_IDS.items():
+        res, _ = swe.calc_ut(jul_day_natal, pid)
+        lon_deg = res[0]
+        sign, orb = get_zodiac_sign(lon_deg)
+        house = get_house_of_position(lon_deg, house_cusps)
+        natal_planets[name] = {
+            "degree_raw": lon_deg,
+            "sign": sign,
+            "orb": orb,
+            "house": house,
+            "formatted": f"{name} in {sign} {orb} (House {house})"
+        }
+
+    # 3. คำนวณ Ruler Mapping ของทุกเรือนชะตา
+    ruler_mapping = {
+        "ASC": {
+            "sign": asc_sign,
+            "ruler_planet": ZODIAC_RULERS[asc_sign],
+            "ruler_pos": natal_planets[ZODIAC_RULERS[asc_sign]]["formatted"]
+        },
+        "DSC": {
+            "sign": dsc_sign,
+            "ruler_planet": ZODIAC_RULERS[dsc_sign],
+            "ruler_pos": natal_planets[ZODIAC_RULERS[dsc_sign]]["formatted"]
+        },
+        "MC": {
+            "sign": mc_sign,
+            "ruler_planet": ZODIAC_RULERS[mc_sign],
+            "ruler_pos": natal_planets[ZODIAC_RULERS[mc_sign]]["formatted"]
+        }
+    }
+
+    for h_num in range(1, 13):
+        h_sign, _ = get_zodiac_sign(house_cusps[h_num - 1])
+        r_planet = ZODIAC_RULERS[h_sign]
+        ruler_mapping[f"House_{h_num}"] = {
+            "sign": h_sign,
+            "ruler_planet": r_planet,
+            "ruler_pos": natal_planets[r_planet]["formatted"]
+        }
+
+    # 4. คำนวณ Transit Real-time (ถ้าไม่ส่งเวลามา ให้ใช้วินาทีปัจจุบัน)
+    if not transit_dt_utc:
+        transit_dt_utc = datetime.datetime.now(datetime.timezone.utc)
+
+    jul_day_transit = swe.julday(
+        transit_dt_utc.year, transit_dt_utc.month, transit_dt_utc.day,
+        transit_dt_utc.hour + transit_dt_utc.minute / 60.0
+    )
+
+    transit_planets = {}
+    for name, pid in PLANET_IDS.items():
+        res, _ = swe.calc_ut(jul_day_transit, pid)
+        lon_deg = res[0]
+        sign, orb = get_zodiac_sign(lon_deg)
+        house = get_house_of_position(lon_deg, house_cusps) # เรือนในดวงเกิด
+        transit_planets[name] = {
+            "sign": sign,
+            "orb": orb,
+            "house_in_natal": house,
+            "formatted": f"Transit {name} in {sign} {orb} (Transiting Natal House {house})"
+        }
+
+    return {
+        "asc": f"ASC in {asc_sign} {asc_orb}",
+        "dsc": f"DSC in {dsc_sign} {dsc_orb}",
+        "mc": f"MC in {mc_sign} {mc_orb}",
+        "natal_planets": natal_planets,
+        "ruler_mapping": ruler_mapping,
+        "transit_planets": transit_planets,
+        "transit_timestamp_utc": transit_dt_utc.strftime("%Y-%m-%d %H:%M:%S UTC")
+    }
