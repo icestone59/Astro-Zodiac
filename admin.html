@@ -36,6 +36,7 @@
             <button onclick="switchTab('tab_5')" id="btn_tab_5" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">5. จุดเด่น/จุดด้อย</button>
             <button onclick="switchTab('tab_6')" id="btn_tab_6" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">6. ศักยภาพและการพัฒนา</button>
             <button onclick="switchTab('tab_7')" id="btn_tab_7" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">7. ปัญหาที่ต้องปรับปรุง</button>
+            <button onclick="switchTab('tab_8')" id="btn_tab_8" class="tab-btn px-4 py-2.5 text-xs font-semibold rounded-t-xl transition text-slate-500 hover:text-purple-700">8. สูตร Deep Report (12 มิติ)</button>
         </div>
 
         <div id="tabContents">
@@ -104,6 +105,12 @@
                 <label class="block text-sm font-bold text-purple-900 mb-1">7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า (Growth & Challenges)</label>
                 <textarea id="cat_7_growth" rows="14" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="ใส่หลักการปัญหาที่ต้องปรับปรุงที่นี่..."></textarea>
             </div>
+
+            <div id="tab_8" class="tab-content hidden">
+                <label class="block text-sm font-bold text-purple-900 mb-1">8. ตรรกะและสูตรการแปล Deep Report 12 มิติ</label>
+                <p class="text-xs text-purple-600 mb-3">วางโครงสร้าง วิธีดู Step-by-Step และสูตร Aspect ที่ต้องการให้ AI ใช้ในการเขียนรายงานเจาะลึกที่นี่</p>
+                <textarea id="deep_report_rules" rows="18" class="w-full p-4 border border-purple-200 rounded-xl text-xs font-mono leading-relaxed focus:border-purple-600 focus:outline-none" placeholder="เช่น Step 1 - ดู Sun, Step 2 - หา Aspect ที่แรงที่สุด..."></textarea>
+            </div>
         </div>
 
     </div>
@@ -147,6 +154,7 @@
                 if (document.getElementById('love_midpoints')) document.getElementById('love_midpoints').value = loveAdv.sun_moon_midpoint_rules || '';
                 if (document.getElementById('love_house7')) document.getElementById('love_house7').value = loveAdv.house_7_and_ruler_rules || '';
                 if (document.getElementById('love_planets_h7')) document.getElementById('love_planets_h7').value = loveAdv.planets_in_7th_house || '';
+                if (document.getElementById('deep_report_rules')) document.getElementById('deep_report_rules').value = data.deep_report_rules || '';
 
                 showAlert('โหลดข้อมูลหลักการเดิมเรียบร้อยแล้ว', 'success');
 
@@ -159,6 +167,7 @@
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
             saveBtn.innerText = "กำลังบันทึกข้อมูล...";
+            payload.deep_report_rules = document.getElementById('deep_report_rules').value;
 
             const payload = {
                 school_name: "สำนักโหราศาสตร์วิวัฒนาการ",
