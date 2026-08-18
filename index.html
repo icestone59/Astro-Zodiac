@@ -243,7 +243,45 @@
                 submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
             }
         });
+async function handleCalculate() {
+  const payload = {
+    user_name: document.getElementById('userName').value || 'ลูกดวง',
+    day: document.getElementById('day').value,
+    month: document.getElementById('month').value,
+    year: document.getElementById('year').value,
+    hour: document.getElementById('hour').value || 0,
+    minute: document.getElementById('minute').value || 0,
+    location: document.getElementById('location').value || 'กรุงเทพมหานคร'
+  };
 
+  try {
+    const response = await fetch('/api/calculate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    // ตรวจสอบว่า Server ตอบกลับสำเร็จหรือไม่ ก่อนทำ .json()
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server Error (${response.status}): ${errorText.substring(0, 100)}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      // แสดงผลบทวิเคราะห์บน UI
+      document.getElementById('resultContainer').innerText = data.analysis;
+    } else {
+      alert('เกิดข้อผิดพลาด: ' + data.message);
+    }
+  } catch (error) {
+    console.error('Fetch Error:', error);
+    alert('ระบบขัดข้อง: ' + error.message);
+  }
+}
         // Function สำหรับเปิด Deep Report ฉบับเจาะลึก 12 มิติชีวิตใน Tab ใหม่
         // Function สำหรับเปิด Deep Report แก้ไขปัญหา Pop-up Blocker
         async function generateDeepReport() {
