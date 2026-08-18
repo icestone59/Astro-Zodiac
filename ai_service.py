@@ -4,8 +4,8 @@ from openai import OpenAI
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_aspects, school_rules):
-    """วิเคราะห์พื้นดวง 8 หมวดหมู่ พร้อมบังคับระบุหลักฐานเป็นตำแหน่งองศาและ Aspect จริง"""
+def analyze_natal_7_categories(user_name, chart_data, school_rules):
+    """วิเคราะห์พื้นดวง 8 หมวดหมู่ บังคับระบุ Ruler และพิกัดดาราศาสตร์ในหลักฐาน"""
     natal_lib = school_rules.get("natal_categories", {})
     
     def build_header(key, title_name, index):
@@ -28,50 +28,52 @@ def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_asp
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
 โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ เล่าเรื่องเชิงจิตวิทยาพฤติกรรมมนุษย์
 
-กฎเหล็กเรื่อง "หลักฐานที่ใช้วิเคราะห์:" (Strict Evidence Binding Rule):
-1. **ห้ามเขียนคำกว้างๆ เด็ดขาด!** เช่น ห้ามเขียนว่า "ดาวในราศี", "เรือนที่ 1", "เรือนที่ 10", "ดาวเจ้าเรือน"
-2. **ต้องดึงชื่อดาว ราศี องศา เรือนชะตา และ Aspect ที่คำนวณได้จริงจาก [Natal Planets] และ [Natal Aspects] มาระบุให้ชัดเจนเสมอ**
-   - ตัวอย่างที่ถูกต้อง: "ASC in Leo 12°41', Sun in Gemini 3°49' (House 10), Moon in Leo 22°10' (House 1), Mercury Opposition Uranus (Orb 0°37')"
-   - ตัวอย่างที่ผิด: "ดาวในราศี, เรือนที่ 1, เรือนที่ 10" (ห้ามทำเด็ดขาด)
+กฎเหล็กบทบรรยายหลัก (Strict Narrative Rules):
+1. **ห้ามพิมพ์ชื่อดาว, ราศี, เรือนชะตา, Aspect หรือคำว่า Ruler (เช่น Sun, Moon, ASC, Venus, House 1) ลงในบทบรรยายหลักเด็ดขาดทุกหมวด!**
+2. ถอดความหมายทั้งหมดเป็นภาษาคนเชิงจิตวิทยา 3-4 ย่อหน้าต่อหมวด
+3. ห้ามใช้เครื่องหมาย #, ##, ### และห้ามใส่หัวข้อ "แนวทางพัฒนา:" แยกออกมา
 
-กฎการบรรยายเนื้อหา:
-1. ห้ามใส่ชื่อดาว ราศี หรือศัพท์เทคนิคลงในเนื้อหาบทบรรยายหลัก ให้ถอดรหัสเป็นภาษาคนเชิงจิตวิทยา 3-4 ย่อหน้า
-2. ผลักชื่อดาวและข้อมูลคำนวณทั้งหมดไปไว้ในบรรทัด **หลักฐานที่ใช้วิเคราะห์:** ด้านล่างสุดเท่านั้น
-3. ห้ามใช้เครื่องหมาย #, ##, ### และห้ามใส่หัวข้อ "แนวทางพัฒนา:" แยกต่างหาก
+กฎเหล็กสำหรับ "หลักฐานที่ใช้วิเคราะห์:" (Strict Evidence & Ruler Rules):
+1. **ต้องระบุค่าตำแหน่งจริง และ Ruler ของเรือนนั้นๆ จาก [Ruler Mapping] เสมอ!**
+   - หมวด 1 (นิสัย): ต้องระบุ ASC + Ruler of ASC (เช่น ASC in Leo, Ruler 1 (Sun) in Gemini (House 10)) + Sun + Moon
+   - หมวด 2 (การเงิน): ต้องระบุ House 2 + Ruler of H2 (เช่น Ruler 2 (Mercury) in Taurus (House 9)) + ดาวใน H2
+   - หมวด 3 (การงาน): ต้องระบุ MC + Ruler of MC + House 10 + Ruler of H10
+   - หมวด 4 (ความรัก): ต้องระบุ DSC + Ruler of DSC (Ruler 7) + Venus + Moon + Mars
+2. ห้ามใช้คำกว้างๆ เช่น "ดาวในราศี" หรือ "เรือนที่ 1" เด็ดขาด ต้องดึงค่าองศาจริงมาใส่เท่านั้น
 
 โครงสร้างการตอบ:
 
 **{h1}**
-[บทวิเคราะห์ภาษาคนเชิงจิตวิทยา 3-4 ย่อหน้า]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริงจาก Natal Planets/Aspects เช่น Sun in Gemini 3°49' (House 10), Moon in Leo...]
+[บทวิเคราะห์พฤติกรรมและระบบความคิดภาษาคนเชิงจิตวิทยา 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** ASC in [Sign], Ruler 1 ([Planet]) in [Sign] (House [X]), Sun in..., Moon in...
 
 **{h2}**
-[บทวิเคราะห์การเงินภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง เช่น House 2 in Virgo, Venus in Taurus...]
+[บทวิเคราะห์การเงินภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** House 2 in [Sign], Ruler 2 ([Planet]) in [Sign] (House [X]), Venus in...
 
 **{h3}**
-[บทวิเคราะห์การงานภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง เช่น MC in Taurus, Sun in Gemini (House 10)...]
+[บทวิเคราะห์การงานอาชีพภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** MC in [Sign], Ruler 10 ([Planet]) in [Sign] (House [X]), House 10 in...
 
 **{h4}**
-[บทวิเคราะห์ความรักภาษาคน 3-4 ย่อหน้า]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง เช่น DSC in Aquarius, Saturn in Capricorn (House 12)...]
+[บทวิเคราะห์ความรักตามสูตร 6 ขั้นตอน ภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** DSC in [Sign], Ruler 7 ([Planet]) in [Sign] (House [X]), Venus in..., Moon in..., Mars in...
 
 **{h5}**
-[บทวิเคราะห์จุดเด่นจุดด้อยภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริงจาก Aspects ขัดแย้ง/ส่งเสริม]
+[บทวิเคราะห์จุดเด่นจุดด้อยภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** [ดาวเด่น/มุมสัมพันธ์ขัดแย้งจริง]
 
 **{h6}**
-[บทวิเคราะห์ศักยภาพภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง]
+[บทวิเคราะห์ศักยภาพซ่อนเร้นภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** [North Node/ดาวและเรือนที่ส่งเสริม]
 
 **{h7}**
-[บทวิเคราะห์ปัญหาที่ต้องปรับปรุงภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง]
+[บทวิเคราะห์ปัญหาที่ต้องปรับปรุงภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** [Saturn/Hard Aspects จริง]
 
 **{h8}**
-[บทวิเคราะห์สุขภาพภาษาคน]
-**หลักฐานที่ใช้วิเคราะห์:** [ดึงค่าจริง]
+[บทวิเคราะห์สุขภาพภาษาคน 3-4 ย่อหน้า]
+**หลักฐานที่ใช้วิเคราะห์:** House 6 in [Sign], Ruler 6 ([Planet]) in..., House 12 in...
 
 [สูตรวิเคราะห์เฉพาะจาก Admin]:
 - {h1}: {rule1}
@@ -83,7 +85,7 @@ def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_asp
 - {h7}: {rule7}
 - {h8}: {rule8}
 """
-    content = f"ชื่อผู้ใช้: {user_name}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Natal Houses]: {json.dumps(natal_houses, ensure_ascii=False)}\n[Natal Aspects]: {json.dumps(natal_aspects, ensure_ascii=False)}"
+    content = f"ชื่อผู้ใช้: {user_name}\n[Chart Data & Ruler Mapping]: {json.dumps(chart_data, ensure_ascii=False)}"
     
     res = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -93,55 +95,32 @@ def analyze_natal_7_categories(user_name, natal_planets, natal_houses, natal_asp
     return res.choices[0].message.content
 
 
-def analyze_transit_qa(user_name, question, natal_planets, transit_planets, transit_aspects, school_rules):
-    """วิเคราะห์การตอบคำถามด้วย Transit Real-time ภาษาคนตรงประเด็น"""
+def analyze_transit_qa(user_name, question, chart_data):
+    """วิเคราะห์คำถามเจาะจงด้วย Transit Real-time vs Natal Chart"""
     prompt = f"""
 คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
 โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
 
 หน้าที่ของคุณ:
-1. วิเคราะห์ดาวจร (Transit) ปัจจุบันที่มากระทบดาวเกิด (Natal)
-2. ตอบคำถามผู้ใช้โดยใช้ภาษาคนเชิงจิตวิทยา ประเมินจังหวะเวลา (Timing) และทางออกอย่างตรงไปตรงมา
-3. ห้ามพิมพ์ชื่อดาวหรือศัพท์เทคนิคในบทวิเคราะห์หลัก ให้ผลักไปไว้อยู่ใน 'หลักฐานที่ใช้วิเคราะห์:' ด้านล่างเท่านั้น
-4. ห้ามใช้เครื่องหมาย Markdown Heading (#, ##, ###) ให้ใช้ตัวหนา **ชื่อหัวข้อ** เท่านั้น
+1. นำข้อมูล [Transit Planets Real-time] มาจับคู่กับ [Natal Planets] เพื่อตอบคำถามผู้ใช้
+2. ประเมินช่วงเวลา (Timing) สภาวะอารมณ์ และกลยุทธ์ทางออกด้วยภาษาคนเชิงจิตวิทยา
+3. ห้ามใส่ชื่อดาวในเนื้อหาบทวิเคราะห์ ให้นำไปใส่ในบรรทัด 'หลักฐานที่ใช้วิเคราะห์:' ท้ายคำตอบเท่านั้น
 
 โครงสร้างการตอบ:
 **บทวิเคราะห์และจังหวะเวลา**
-(ตอบคำถามเจาะจง ประเมินช่วงเวลาและสภาวะอารมณ์ด้วยภาษาคน)
+(ตอบคำถามตรงประเด็น ประเมิน timing และสภาวะด้วยภาษาคน)
 
 **แนวทางแก้ไขและข้อคิดพัฒนาตนเอง**
 (คำแนะนำเชิงกลยุทธ์พฤติกรรม)
 
 **หลักฐานที่ใช้วิเคราะห์:**
-(ระบุดาวจร/ดาวเกิด/Aspect ที่ใช้ เช่น Transit Saturn Square Natal MC)
+(ระบุดาวจร Real-time + ดาวเกิดที่รับมุมกระทบ เช่น Transit Saturn in Pisces (House 10) Square Natal Sun in Gemini)
 """
-    content = f"ผู้ถาม: {user_name}\nคำถาม: {question}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Transit Planets Realtime]: {json.dumps(transit_planets, ensure_ascii=False)}\n[Transit Aspects]: {json.dumps(transit_aspects, ensure_ascii=False)}"
+    content = f"ผู้ถาม: {user_name}\nคำถาม: {question}\n[Chart Data]: {json.dumps(chart_data, ensure_ascii=False)}"
 
     res = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
-        temperature=0.2
-    )
-    return res.choices[0].message.content
-
-
-def analyze_deep_report_json(user_name, natal_planets, natal_houses, natal_aspects, school_rules):
-    """วิเคราะห์ Deep Report 12 มิติ ภาษาคน"""
-    deep_rules = school_rules.get("deep_report_rules", "")
-    prompt = f"""
-คุณคือนักโหราศาสตร์สากลเชิงพัฒนาศักยภาพ (Evolutionary Astrologer)
-โทนเสียง: ผู้เชี่ยวชาญ มีหลักการ ตรงประเด็น ไม่พูดเยอะ
-
-วิเคราะห์ Deep Report (12 มิติ) ตามสูตรภาษาคนเชิงจิตวิทยา:
-{deep_rules}
-
-ห้ามใช้เครื่องหมาย #, ##, ### เด็ดขาด และระบุหลักฐานที่ใช้วิเคราะห์ประกอบทุกมิติไว้ด้านล่างสุด
-"""
-    content = f"ผู้ถาม: {user_name}\n[Natal Planets]: {json.dumps(natal_planets, ensure_ascii=False)}\n[Natal Houses]: {json.dumps(natal_houses, ensure_ascii=False)}\n[Natal Aspects]: {json.dumps(natal_aspects, ensure_ascii=False)}"
-
-    res = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
-        temperature=0.2
+        temperature=0.1
     )
     return res.choices[0].message.content
