@@ -1,9 +1,34 @@
+import os
+import math
+import urllib.request
 import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
 
-# บังคับใช้ Moshier Analytical Model ไม่พึ่งพาไฟล์ .se1 ภายนอก
-EPHE_FLAG = swe.FLG_MOSEPH
+# 📌 1. จัดการโฟลเดอร์เก็บไฟล์ Swiss Ephemeris (.se1)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EPHE_DIR = os.path.join(BASE_DIR, 'ephe')
+os.makedirs(EPHE_DIR, exist_ok=True)
+
+# รายชื่อไฟล์ Ephemeris ที่จำเป็น ( seas_18.se1 = Chiron/Asteroids, sepl_18.se1 = Planets, semo_18.se1 = Moon )
+NEEDED_SE1_FILES = ['seas_18.se1', 'sepl_18.se1', 'semo_18.se1']
+ASTRO_FTP_URL = 'https://www.astro.com/ftp/swisseph/ephe/'
+
+def download_missing_ephe_files():
+    """ดาวน์โหลดไฟล์ .se1 เข้าโฟลเดอร์ ephe/ อัตโนมัติหากยังไม่มีในเครื่อง"""
+    for fname in NEEDED_SE1_FILES:
+        fpath = os.path.join(EPHE_DIR, fname)
+        if not os.path.exists(fpath):
+            try:
+                print(f"📥 Downloading SwissEph file: {fname}...")
+                urllib.request.urlretrieve(ASTRO_FTP_URL + fname, fpath)
+                print(f"✅ Downloaded {fname} successfully.")
+            except Exception as e:
+                print(f"⚠️ Failed to download {fname}: {e}")
+
+# ดาวน์โหลดไฟล์ที่ขาดและกำหนด PATH ให้ swisseph
+download_missing_ephe_files()
+swe.set_ephe_path(EPHE_DIR)
 
 THAI_PROVINCES = {
     "กรุงเทพมหานคร": (13.7563, 100.5018), "กรุงเทพ": (13.7563, 100.5018),
@@ -40,20 +65,19 @@ PLANET_IDS = {
 def get_coordinates(location_name):
     if not location_name:
         return 13.7563, 100.5018, "กรุงเทพมหานคร"
-    clean_name = str(location_name).strip()
-    if clean_name in THAI_PROVINCES:
-        lat, lon = THAI_PROVINCES[clean_name]
-        return lat, lon, clean_name
-
+    clean = str(location_name).strip()
+    if clean in THAI_PROVINCES:
+        lat, lon = THAI_PROVINCES[clean]
+        return lat, lon, clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v7", timeout=5)
-        query = f"{clean_name}, Thailand" if "Thailand" not in clean_name else clean_name
+        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v10", timeout=5)
+        query = f"{clean}, Thailand" if "Thailand" not in clean else clean
         loc = geolocator.geocode(query)
         if loc:
-            return loc.latitude, loc.longitude, clean_name
+            return loc.latitude, loc.longitude, clean
     except Exception:
         pass
-    return 13.7563, 100.5018, clean_name
+    return 13.7563, 100.5018, clean
 
 def format_degree(deg):
     idx = int(deg // 30)
@@ -74,21 +98,47 @@ def get_house_of_position(deg, house_cusps):
                 return i + 1
     return 1
 
+def generate_chart_svg(birth_degrees):
+    svg = ['<svg viewBox="0 0 300 300" class="w-full h-full">']
+    svg.append('<circle cx="150" cy="150" r="140" fill="none" stroke="#6b21a8" stroke-width="2"/>')
+    svg.append('<circle cx="150" cy="150" r="100" fill="none" stroke="#c084fc" stroke-width="1" stroke-dasharray="2 2"/>')
+    svg.append('<circle cx="150" cy="150" r="60" fill="#f3e8ff" stroke="#a855f7" stroke-width="1"/>')
+    
+    for i in range(12):
+        angle = math.radians(i * 30)
+        x1 = 150 + 100 * math.cos(angle)
+        y1 = 150 + 100 * math.sin(angle)
+        x2 = 150 + 140 * math.cos(angle)
+        y2 = 150 + 140 * math.sin(angle)
+        svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#e9d5ff" stroke-width="1.5"/>')
+
+    for name, data in birth_degrees.items():
+        if "degree_raw" in data:
+            deg = data["degree_raw"]
+            rad = math.radians(deg - 90)
+            px = 150 + 120 * math.cos(rad)
+            py = 150 + 120 * math.sin(rad)
+            svg.append(f'<circle cx="{px}" cy="{py}" r="4" fill="#7e22ce"/>')
+            svg.append(f'<text x="{px}" y="{py-6}" font-size="8" font-weight="bold" fill="#3b0764" text-anchor="middle">{name[:2]}</text>')
+
+    svg.append('</svg>')
+    return "".join(svg)
+
 def calculate_natal_degrees(jul_day_natal, lat, lon):
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
     house_cusps = list(cusps)
-    
     degrees = {}
+    
     asc_deg, mc_deg = ascmc[0], ascmc[1]
+    asc_sign, asc_fmt = format_degree(asc_deg)
+    mc_sign, mc_fmt = format_degree(mc_deg)
     
-    asc_sign, asc_formatted = format_degree(asc_deg)
-    mc_sign, mc_formatted = format_degree(mc_deg)
-    
-    degrees["ASC"] = {"sign": asc_sign, "formatted": asc_formatted, "degree_raw": asc_deg, "house": 1}
-    degrees["MC"] = {"sign": mc_sign, "formatted": mc_formatted, "degree_raw": mc_deg, "house": 10}
+    degrees["ASC"] = {"sign": asc_sign, "formatted": asc_fmt, "degree_raw": asc_deg, "house": 1}
+    degrees["MC"] = {"sign": mc_sign, "formatted": mc_fmt, "degree_raw": mc_deg, "house": 10}
 
+    # เมื่อมีไฟล์ .se1 ใน ephe/ แล้ว swe.calc_ut จะใช้ไฟล์ความแม่นยำสูงโดยไม่ Error
     for name, pid in PLANET_IDS.items():
-        res, _ = swe.calc_ut(jul_day_natal, pid, EPHE_FLAG)
+        res, _ = swe.calc_ut(jul_day_natal, pid, swe.FLG_SWIEPH)
         lon_deg = res[0]
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
@@ -100,6 +150,7 @@ def calculate_natal_degrees(jul_day_natal, lat, lon):
             "is_retrograde": is_retro,
             "house": house
         }
+
     return degrees, house_cusps
 
 def calculate_current_transits(house_cusps=None):
@@ -107,23 +158,21 @@ def calculate_current_transits(house_cusps=None):
     jul_day_transit = swe.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0)
     transits = {}
     for name, pid in PLANET_IDS.items():
-        res, _ = swe.calc_ut(jul_day_transit, pid, EPHE_FLAG)
+        res, _ = swe.calc_ut(jul_day_transit, pid, swe.FLG_SWIEPH)
         lon_deg = res[0]
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
-        
-        house_in_natal = get_house_of_position(lon_deg, house_cusps) if house_cusps else 1
+        house = get_house_of_position(lon_deg, house_cusps) if house_cusps else 1
         transits[name] = {
             "sign": sign,
             "formatted": formatted,
             "degree_raw": lon_deg,
             "is_retrograde": is_retro,
-            "house_in_natal": house_in_natal
+            "house_in_natal": house
         }
     return transits
 
 def calculate_chart(birth_dt_utc, lat, lon):
-    swe.set_ephe_path('')
     jul_day_natal = swe.julday(
         birth_dt_utc.year, birth_dt_utc.month, birth_dt_utc.day,
         birth_dt_utc.hour + birth_dt_utc.minute / 60.0 + birth_dt_utc.second / 3600.0
@@ -132,20 +181,22 @@ def calculate_chart(birth_dt_utc, lat, lon):
     birth_degrees, house_cusps = calculate_natal_degrees(jul_day_natal, lat, lon)
     transit_degrees = calculate_current_transits(house_cusps)
 
-    # Ruler mapping
     ruler_mapping = {}
     for h_num in range(1, 13):
         h_sign, _ = format_degree(house_cusps[h_num - 1])
         r_planet = ZODIAC_RULERS[h_sign]
-        ruler_pos = birth_degrees.get(r_planet, {})
+        r_pos = birth_degrees.get(r_planet, {})
         ruler_mapping[f"House_{h_num}"] = {
             "sign": h_sign,
             "ruler_planet": r_planet,
-            "ruler_pos": f"{r_planet} in {ruler_pos.get('sign')} {ruler_pos.get('formatted')} (House {ruler_pos.get('house')})"
+            "ruler_pos": f"{r_planet} in {r_pos.get('sign')} {r_pos.get('formatted')} (House {r_pos.get('house')})"
         }
+
+    chart_svg = generate_chart_svg(birth_degrees)
 
     return {
         "birth_chart_degrees": birth_degrees,
         "transit_degrees": transit_degrees,
-        "ruler_mapping": ruler_mapping
+        "ruler_mapping": ruler_mapping,
+        "chart_svg": chart_svg
     }
