@@ -48,6 +48,11 @@ def handle_rules():
 
 @app.route('/api/calculate', methods=['POST'])
 def calculate():
+    # ... โค้ดรับ payload และคำนวณดวง ...
+    return jsonify({
+        "status": "success",
+        "analysis": analysis_result
+    })
     try:
         data = request.get_json() or {}
         user_name = data.get('user_name', 'ลูกดวง')
