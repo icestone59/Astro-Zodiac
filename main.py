@@ -1,179 +1,138 @@
-import os
 import json
-from datetime import datetime
-import pytz
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, FileResponse
-from pydantic import BaseModel
+import os
+from datetime import datetime, timezone
+from flask import Flask, request, jsonify, render_template, send_from_directory
 
-# Import จากไฟล์ที่เราแยกไว้
-from config_manager import load_school_rules, save_school_rules
 from astro_calc import get_coordinates, calculate_chart
-from ai_service import analyze_natal_7_categories, analyze_transit_qa, analyze_deep_report_json, client
-
-# นำระบบวาดภาพ Birth Chart กลับมา
-try:
-    from chart_drawer import generate_astroseek_svg
-except ImportError:
-    def generate_astroseek_svg(planets, houses, asc_deg):
-        return "<svg width='400' height='400'><text x='50%' y='50%' text-anchor='middle'>Chart Generated</text></svg>"
-
-app = FastAPI(title="Evolutionary Astrology Engine API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+from ai_service import (
+    analyze_natal_7_categories,
+    analyze_transit_qa,
+    analyze_deep_report_json
 )
 
-class AnalysisRequest(BaseModel):
-    user_name: str | None = "คุณ"
-    year: int
-    month: int
-    day: int
-    hour: int
-    minute: int
-    location_name: str
-    question: str | None = None
+app = Flask(__name__, static_folder='.', static_url_path='')
 
-@app.get("/", response_class=HTMLResponse)
-def serve_frontend():
-    if os.path.exists("index.html"): return FileResponse("index.html")
-    return HTMLResponse("<h1>API Active</h1>")
+RULES_FILE = 'school_rules.json'
 
-@app.get("/admin", response_class=HTMLResponse)
-def serve_admin():
-    if os.path.exists("admin.html"): return FileResponse("admin.html")
-    return HTMLResponse("<h1>Admin Dashboard</h1>")
+def load_school_rules():
+    """ดึงคลังวิชาและ Master Evidence Map จาก JSON"""
+    if os.path.exists(RULES_FILE):
+        try:
+            with open(RULES_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "school_name": "สำนักโหราศาสตร์วิวัฒนาการ",
+        "natal_categories": {}
+    }
 
-@app.get("/transit")
-def get_realtime_transit():
+def save_school_rules(data):
+    """บันทึกกฎสำนักลงไฟล์ JSON"""
+    with open(RULES_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+@app.route('/')
+def index():
+    return app.send_static_file('index.html')
+
+@app.route('/admin')
+def admin():
+    return app.send_static_file('admin.html')
+
+@app.route('/api/rules', methods=['GET', 'POST'])
+def handle_rules():
+    """API สำหรับดึงและบันทึกกฎหน้า Admin"""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        save_school_rules(data)
+        return jsonify({"status": "success", "message": "บันทึก Master Rules เรียบร้อย"})
+    return jsonify(load_school_rules())
+
+@app.route('/api/calculate', methods=['POST'])
+def calculate():
+    """คำนวณพื้นดวง 8 หมวดหมู่ พร้อมดึง Real-time Transits และ Ruler Mapping"""
     try:
-        now_utc = datetime.now(pytz.utc)
-        transit_planets, _, _ = calculate_chart(now_utc, 13.7563, 100.5018)
-        return {"timestamp_utc": now_utc.isoformat(), "transits": transit_planets}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/rules")
-def get_rules():
-    return load_school_rules()
-
-@app.post("/api/rules")
-def save_rules(data: dict):
-    save_school_rules(data)
-    return {"status": "success"}
-
-@app.post("/analyze")
-def analyze_chart_endpoint(req: AnalysisRequest):
-    try:
-        year_ad = req.year - 543 if req.year > 2400 else req.year
-        lat, lon, tz_str, _ = get_coordinates(req.location_name)
-        local_tz = pytz.timezone(tz_str)
-        local_dt = local_tz.localize(datetime(year_ad, req.month, req.day, req.hour, req.minute))
-        utc_dt = local_dt.astimezone(pytz.utc)
-
-        natal_planets, natal_houses, natal_aspects = calculate_chart(utc_dt, lat, lon)
+        data = request.get_json() or {}
+        user_name = data.get('user_name', 'ลูกดวง')
+        day = int(data.get('day', 1))
+        month = int(data.get('month', 1))
+        year_be = int(data.get('year', 2538))
         
-        now_utc = datetime.now(pytz.utc)
-        transit_planets, _, _ = calculate_chart(now_utc, lat, lon)
-
-        # แก้ไขจุดที่ 2: เตรียมข้อมูลและวาด Birth Chart SVG
-        target_planets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron']
-        simple_planets = {p: natal_planets.get(p, {}).get('absolute_degree', 0) for p in target_planets}
-        simple_houses = [natal_houses.get(f'House_{i+1}', {}).get('absolute_degree', 0) for i in range(12)]
-        asc_deg = natal_planets.get('ASC', {}).get('absolute_degree', 0)
+        # แปลง พ.ศ. เป็น ค.ศ.
+        year_ad = year_be - 543 if year_be > 2400 else year_be
         
-        chart_svg = generate_astroseek_svg(simple_planets, simple_houses, asc_deg)
+        hour = int(data.get('hour', 0))
+        minute = int(data.get('minute', 0))
+        user_location = data.get('location', 'กรุงเทพมหานคร')
 
-        if not client: raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
+        # 1. ค้นหาพิกัด ละติจูด / ลองจิจูด ป้องกัน Unpack Error
+        try:
+            lat, lon, city, country = get_coordinates(user_location)
+        except Exception:
+            lat, lon, city, country = 13.7563, 100.5018, "Bangkok", "Thailand"
 
-        rules = load_school_rules()
-        if not req.question:
-            report = analyze_natal_7_categories(req.user_name, natal_planets, natal_houses, natal_aspects, rules)
-        else:
-            report = analyze_transit_qa(req.user_name, req.question, natal_planets, transit_planets, natal_aspects)
+        # 2. แปลงเวลาเกิดเป็น UTC
+        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
 
-        return {
-            "birth_chart_degrees": natal_planets,
-            "natal_aspects": natal_aspects,
-            "transit_degrees": transit_planets,
-            "report": report,
-            "chart_svg": chart_svg  # ส่ง SVG กลับไปแสดงผลที่หน้าเว็บ
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/generate-report", response_class=HTMLResponse)
-def generate_deep_report_endpoint(req: AnalysisRequest):
-    try:
-        year_ad = req.year - 543 if req.year > 2400 else req.year
-        lat, lon, tz_str, _ = get_coordinates(req.location_name)
-        local_tz = pytz.timezone(tz_str)
-        local_dt = local_tz.localize(datetime(year_ad, req.month, req.day, req.hour, req.minute))
-        utc_dt = local_dt.astimezone(pytz.utc)
-
-        natal_planets, natal_houses, natal_aspects = calculate_chart(utc_dt, lat, lon)
-
-        if not client: raise HTTPException(status_code=500, detail="OPENAI_API_KEY is not configured")
-
-        # โหลดสูตรการแปลของสำนักเพื่อส่งไปครอบหัว AI
+        # 3. คำนวณ Chart Data จาก Swiss Ephemeris (Natal + Real-time Transit + Rulers)
         school_rules = load_school_rules()
-        deep_rules = school_rules.get("deep_report_rules", "")
+        chart_data = calculate_chart(birth_dt_utc, lat, lon)
 
-        json_result = analyze_deep_report_json(req.user_name, natal_planets, natal_houses, natal_aspects, deep_rules)
-        
-        # แก้ไขจุดที่ 1: นำโค้ดแปลง JSON กลับมาเพื่อให้มีตัวแปร data
-        data = json.loads(json_result)
+        # 4. ส่งประมวลผลบทพยากรณ์ภาษาคนเชิงจิตวิทยา 8 หมวดหมู่
+        analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
 
-        template_path = "report_template.html"
-        if not os.path.exists(template_path):
-            raise HTTPException(status_code=500, detail="ไม่พบไฟล์ report_template.html")
-
-        with open(template_path, "r", encoding="utf-8") as f:
-            html_content = f.read()
-
-        def to_li(items):
-            if isinstance(items, list): return "".join([f"<li>{item}</li>" for item in items])
-            return f"<li>{items}</li>"
-
-        replacements = {
-            "{{ USER_NAME }}": req.user_name,
-            "{{ SUN_SIGN }}": f"{natal_planets.get('Sun', {}).get('sign', '')} ({natal_planets.get('Sun', {}).get('formatted', '')})",
-            "{{ MOON_SIGN }}": f"{natal_planets.get('Moon', {}).get('sign', '')} ({natal_planets.get('Moon', {}).get('formatted', '')})",
-            "{{ ASC_SIGN }}": f"{natal_planets.get('ASC', {}).get('sign', '')} ({natal_planets.get('ASC', {}).get('formatted', '')})",
-            "{{ MC_SIGN }}": f"{natal_planets.get('MC', {}).get('sign', '')} ({natal_planets.get('MC', {}).get('formatted', '')})",
-            "{{ EXECUTIVE_SUMMARY }}": data.get("executive_summary", ""),
-            "{{ IDENTITY_LIST }}": to_li(data.get("identity_list", [])),
-            "{{ IDENTITY_DEV }}": data.get("identity_dev", ""),
-            "{{ SHADOW_LIST }}": to_li(data.get("shadow_list", [])),
-            "{{ SHADOW_DEV }}": data.get("shadow_dev", ""),
-            "{{ WOUND_LIST }}": to_li(data.get("wound_list", [])),
-            "{{ WOUND_DEV }}": data.get("wound_dev", ""),
-            "{{ SABOTAGE_LIST }}": to_li(data.get("sabotage_list", [])),
-            "{{ SABOTAGE_MECHANISM }}": data.get("sabotage_mechanism", ""),
-            "{{ CAREER_SUMMARY }}": data.get("career_summary", ""),
-            "{{ CAREER_MATCH_LIST }}": to_li(data.get("career_match_list", [])),
-            "{{ CAREER_AVOID_LIST }}": to_li(data.get("career_avoid_list", [])),
-            "{{ CAREER_DEV }}": data.get("career_dev", ""),
-            "{{ MONEY_LIST }}": to_li(data.get("money_list", [])),
-            "{{ EDU_LIST }}": to_li(data.get("edu_list", [])),
-            "{{ REL_LIST }}": to_li(data.get("rel_list", [])),
-            "{{ HEALTH_LIST }}": to_li(data.get("health_list", [])),
-            "{{ LIFE_STRATEGY }}": data.get("life_strategy", ""),
-            "{{ DIAGNOSIS }}": data.get("diagnosis", ""),
-            "{{ FATHER_DESC }}": data.get("father_desc", "").replace("\n", "<br>"),
-            "{{ MOTHER_DESC }}": data.get("mother_desc", "").replace("\n", "<br>"),
-            "{{ FAMILY_ATMOSPHERE }}": data.get("family_atmosphere", "").replace("\n", "<br>"),
-            "{{ FAMILY_DEV }}": data.get("family_dev", "")
-        }
-
-        for key, val in replacements.items():
-            html_content = html_content.replace(key, str(val))
-
-        return HTMLResponse(content=html_content)
+        return jsonify({
+            "status": "success",
+            "user_info": {
+                "name": user_name,
+                "location": f"{city}, {country}",
+                "latitude": lat,
+                "longitude": lon,
+                "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
+            },
+            "chart_data": chart_data,
+            "analysis": analysis_result
+        })
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+@app.route('/api/transit-qa', methods=['POST'])
+def transit_qa():
+    """คำนวณคำถามเจาะจง (Transit Real-time vs Natal Chart)"""
+    try:
+        data = request.get_json() or {}
+        user_name = data.get('user_name', 'ลูกดวง')
+        question = data.get('question', '')
+        
+        day = int(data.get('day', 1))
+        month = int(data.get('month', 1))
+        year_be = int(data.get('year', 2538))
+        year_ad = year_be - 543 if year_be > 2400 else year_be
+        hour = int(data.get('hour', 0))
+        minute = int(data.get('minute', 0))
+        user_location = data.get('location', 'กรุงเทพมหานคร')
+
+        try:
+            lat, lon, city, country = get_coordinates(user_location)
+        except Exception:
+            lat, lon, city, country = 13.7563, 100.5018, "Bangkok", "Thailand"
+
+        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+        chart_data = calculate_chart(birth_dt_utc, lat, lon)
+
+        # ประมวลผลคำตอบตรงประเด็นประเมิน Timing และทางออก
+        qa_result = analyze_transit_qa(user_name, question, chart_data)
+
+        return jsonify({
+            "status": "success",
+            "question": question,
+            "transit_timestamp": chart_data.get("transit_timestamp_utc"),
+            "answer": qa_result
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 400
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
