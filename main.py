@@ -4,7 +4,7 @@ import traceback
 from datetime import datetime, timezone
 from flask import Flask, request, jsonify
 
-from astro_calc import get_coordinates, calculate_chart
+from astro_calc import get_coordinates, calculate_chart, calculate_current_transits
 from ai_service import (
     analyze_natal_7_categories,
     analyze_transit_qa,
@@ -14,19 +14,6 @@ from ai_service import (
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 RULES_FILE = 'school_rules.json'
-
-# ดักจับ Error ทุกประเภท และคืนค่าเป็น JSON พร้อม Traceback เสมอ (ป้องกัน Unexpected token '<')
-@app.errorhandler(Exception)
-def handle_all_errors(e):
-    code = getattr(e, 'code', 500)
-    tb = traceback.format_exc()
-    print(f"❌ SERVER ERROR TRACEBACK:\n{tb}")
-    return jsonify({
-        "status": "error",
-        "message": str(e),
-        "traceback": tb,
-        "status_code": code
-    }), code
 
 def load_school_rules():
     if os.path.exists(RULES_FILE):
@@ -41,71 +28,108 @@ def load_school_rules():
 def index():
     return app.send_static_file('index.html')
 
-@app.route('/api/calculate', methods=['POST'], strict_slashes=False)
-def calculate():
-    """คำนวณ Birth Chart + Real-time Transit สังเคราะห์ 8 หมวดหมู่พัฒนาศักยภาพ"""
-    data = request.get_json() or {}
-    user_name = data.get('user_name') or 'ลูกดวง'
-    
-    day = int(data.get('day') or 1)
-    month = int(data.get('month') or 1)
-    year_be = int(data.get('year') or 2538)
-    year_ad = year_be - 543 if year_be > 2400 else year_be
-    hour = int(data.get('hour') or 0)
-    minute = int(data.get('minute') or 0)
-    user_location = data.get('location') or 'กรุงเทพมหานคร'
+@app.route('/admin')
+def admin():
+    return app.send_static_file('admin.html')
 
-    # 1. แปลงพิกัดภูมิศาสตร์
-    lat, lon, city, country = get_coordinates(user_location)
-    birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+@app.route('/transit', methods=['GET'])
+def get_transit():
+    """ดึงข้อมูลดาวจร Real-time ล่าสุด"""
+    try:
+        transits = calculate_current_transits()
+        return jsonify({"status": "success", "transits": transits})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-    # 2. คำนวณองศาดาวเกิด + ดาวจร Real-time + Rulers
-    school_rules = load_school_rules()
-    chart_data = calculate_chart(birth_dt_utc, lat, lon)
+@app.route('/analyze', methods=['POST'])
+def analyze():
+    """Endpoint หลักตรงตาม index.html รองรับทั้ง 7 หมวด และคำถามเจาะจง"""
+    try:
+        data = request.get_json() or {}
+        user_name = data.get('user_name') or 'คุณไอซ์'
+        day = int(data.get('day', 1))
+        month = int(data.get('month', 1))
+        year_ad = int(data.get('year', 1995))
+        hour = int(data.get('hour', 0))
+        minute = int(data.get('minute', 0))
+        location_name = data.get('location_name') or 'กรุงเทพมหานคร'
+        question = data.get('question')
 
-    # 3. AI สังเคราะห์พยากรณ์ภาษาคนเชิงจิตวิทยา
-    analysis_result = analyze_natal_7_categories(user_name, chart_data, school_rules)
+        lat, lon, clean_location = get_coordinates(location_name)
+        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
 
-    return jsonify({
-        "status": "success",
-        "user_info": {
-            "name": user_name,
-            "location": f"{city}, {country}",
-            "latitude": lat,
-            "longitude": lon,
-            "birth_utc": birth_dt_utc.strftime("%Y-%m-%d %H:%M UTC")
-        },
-        "chart_data": chart_data,
-        "analysis": analysis_result
-    })
+        chart_data = calculate_chart(birth_dt_utc, lat, lon)
+        school_rules = load_school_rules()
 
-@app.route('/api/transit-qa', methods=['POST'], strict_slashes=False)
-def transit_qa():
-    """คำนวณ Transit Real-time vs Natal Chart ตอบคำถามเจาะจง"""
-    data = request.get_json() or {}
-    user_name = data.get('user_name') or 'ลูกดวง'
-    question = data.get('question') or 'ภาพรวมจังหวะชีวิตและกลยุทธ์ทางออก'
-    
-    day = int(data.get('day') or 1)
-    month = int(data.get('month') or 1)
-    year_be = int(data.get('year') or 2538)
-    year_ad = year_be - 543 if year_be > 2400 else year_be
-    hour = int(data.get('hour') or 0)
-    minute = int(data.get('minute') or 0)
-    user_location = data.get('location') or 'กรุงเทพมหานคร'
+        # กรณีระบุคำถามเจาะจง
+        if question and str(question).strip():
+            qa_answer = analyze_transit_qa(user_name, question, chart_data)
+            return jsonify({
+                "status": "success",
+                "question": question,
+                "answer": qa_answer,
+                "birth_chart_degrees": chart_data["birth_chart_degrees"],
+                "transit_degrees": chart_data["transit_degrees"]
+            })
 
-    lat, lon, city, country = get_coordinates(user_location)
-    birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
-    chart_data = calculate_chart(birth_dt_utc, lat, lon)
+        # กรณีวิเคราะห์พื้นดวง 7 หมวดหลัก
+        report_text = analyze_natal_7_categories(user_name, chart_data, school_rules)
+        return jsonify({
+            "status": "success",
+            "report": report_text,
+            "birth_chart_degrees": chart_data["birth_chart_degrees"],
+            "transit_degrees": chart_data["transit_degrees"]
+        })
 
-    qa_result = analyze_transit_qa(user_name, question, chart_data)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print(f"❌ ANALYZE ERROR:\n{tb}")
+        return jsonify({"detail": str(e), "traceback": tb}), 500
 
-    return jsonify({
-        "status": "success",
-        "question": question,
-        "transit_timestamp": chart_data.get("transit_timestamp_utc"),
-        "answer": qa_result
-    })
+@app.route('/generate-report', methods=['POST'])
+def generate_report():
+    """สร้างรายงาน Deep Report เจาะลึก 12 มิติ ใน Tab ใหม่"""
+    try:
+        data = request.get_json() or {}
+        user_name = data.get('user_name') or 'คุณไอซ์'
+        day = int(data.get('day', 1))
+        month = int(data.get('month', 1))
+        year_ad = int(data.get('year', 1995))
+        hour = int(data.get('hour', 0))
+        minute = int(data.get('minute', 0))
+        location_name = data.get('location_name') or 'กรุงเทพมหานคร'
+
+        lat, lon, _ = get_coordinates(location_name)
+        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+        chart_data = calculate_chart(birth_dt_utc, lat, lon)
+        school_rules = load_school_rules()
+
+        deep_report = analyze_deep_report_json(user_name, chart_data, school_rules)
+
+        html_response = f"""
+        <!DOCTYPE html>
+        <html lang="th">
+        <head>
+            <meta charset="UTF-8">
+            <title>รายงานเจาะลึกปมชีวิต 12 มิติ - {user_name}</title>
+            <style>
+                body {{ font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; line-height: 1.8; }}
+                .container {{ max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #475569; }}
+                h1 {{ color: #c084fc; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }}
+                .content {{ white-space: pre-wrap; margin-top: 20px; font-size: 1rem; color: #e2e8f0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>🔮 รายงานเจาะลึกปมชีวิตพัฒนาศักยภาพ: {user_name}</h1>
+                <div class="content">{deep_report}</div>
+            </div>
+        </body>
+        </html>
+        """
+        return html_response
+    except Exception as e:
+        return f"<h2>เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}</h2>", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
