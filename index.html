@@ -273,6 +273,23 @@
         });
 
         // ปุ่มกดดูปมลึก 12 เรือนชะตา
+        async function safeFetchJson(url, options) {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get("content-type") || "";
+
+    // ป้องกันการเรียก .json() ถ้า Backend ส่งกลับมาเป็น HTML Error Page
+    if (!contentType.includes("application/json")) {
+        const rawText = await res.text();
+        console.error("Server HTML Response:", rawText);
+        throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดปกติ (HTTP Status: ${res.status}) - โปรดตรวจสอบ Backend Log`);
+    }
+
+    const data = await res.json();
+    if (!res.ok || data.status === "error") {
+        throw new Error(data.message || "เกิดข้อผิดพลาดในการประมวลผล");
+    }
+    return data;
+}
         async function handleDeepReport() {
             const deepReportBtn = document.getElementById('deepReportBtn');
             const reportOutput = document.getElementById('reportOutput');
