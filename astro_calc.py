@@ -74,11 +74,28 @@ def get_coordinates(location_name):
         pass
     return 13.7563, 100.5018, clean
 
-def format_degree(deg):
-    deg_norm = float(deg) % 360.0
-    idx = int(deg_norm // 30) % 12
+def format_degree_dual(deg_raw):
+    deg_norm = float(deg_raw) % 360.0
+    sign_idx = int(deg_norm // 30) % 12
     rem_deg = deg_norm % 30
-    return ZODIAC_NAMES[idx], f"{rem_deg:.1f}°", rem_deg
+    
+    degrees = int(rem_deg)
+    minutes = int(round((rem_deg - degrees) * 60))
+    if minutes == 60:
+        degrees += 1
+        minutes = 0
+        
+    sign_name = ZODIAC_NAMES[sign_idx]
+    dms_str = f"{sign_name} {degrees}°{minutes:02d}'"
+    decimal_str = f"{rem_deg:.1f}°"
+    
+    return {
+        "sign": sign_name,
+        "dms": dms_str,
+        "decimal": decimal_str,
+        "display": f"{dms_str} ({decimal_str})", # แสดงผล 2 ตำแหน่ง
+        "degree_in_sign": rem_deg
+    }
 
 def get_house_of_position(deg, house_cusps_12):
     deg_norm = float(deg) % 360.0
