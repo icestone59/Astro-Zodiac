@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evolutionary Astrology | โหราศาสตร์เพื่อการพัฒนาศักยภาพ</title>
+    <title>Evolutionary Astrology Engine | โหราศาสตร์วิวัฒนาการ</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Marked.js สำหรับเรนเดอร์ Markdown เป็น HTML -->
+    <!-- Marked.js -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     
     <script>
@@ -18,104 +18,101 @@
                 extend: {
                     fontFamily: { sans: ['Sarabun', 'sans-serif'] },
                     colors: {
-                        cosmic: {
-                            900: '#0F0728', 800: '#1E1B4B', 700: '#2E1065',
-                            600: '#3B0764', 500: '#581C87', accent: '#7C3AED'
-                        },
-                        gold: { light: '#FDE047', DEFAULT: '#F59E0B', dark: '#D97706' }
+                        brand: {
+                            light: '#FAF5FF',
+                            DEFAULT: '#6B21A8',
+                            dark: '#3B0764',
+                            gold: '#D97706',
+                            goldlight: '#FDE047'
+                        }
                     }
                 }
             }
         }
     </script>
     <style>
-        body { background-color: #0F0728; color: #F3E8FF; }
-        .glass-panel { background: rgba(30, 27, 75, 0.8); backdrop-filter: blur(12px); border: 1px solid #3B0764; }
-        .gold-text { background: linear-gradient(135deg, #FDE047 0%, #D97706 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        body { background-color: #FAF5FF; color: #1E293B; }
         
-        /* Markdown Styles */
-        .prose h2 { color: #FDE047; font-weight: 700; font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.5rem; border-bottom: 1px solid #3B0764; padding-bottom: 0.25rem; }
-        .prose h3 { color: #A7F3D0; font-weight: 600; font-size: 1.1rem; margin-top: 1rem; }
-        .prose p { margin-bottom: 0.75rem; line-height: 1.6; color: #E9D5FF; }
-        .prose strong { color: #FDE047; font-weight: 600; }
-        .prose ul { list-style-type: disc; padding-left: 1.5rem; color: #D8B4FE; margin-bottom: 1rem; }
-        .prose li { margin-bottom: 0.25rem; }
-        
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0F0728; }
-        ::-webkit-scrollbar-thumb { background: #581C87; border-radius: 4px; }
+        /* Markdown Styles สำหรับกล่อง AI Output สีม่วงเข้ม */
+        .prose-ai { color: #F3E8FF; font-size: 0.95rem; line-height: 1.7; }
+        .prose-ai h2 { color: #C084FC; font-weight: 700; font-size: 1.25rem; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid #581C87; padding-bottom: 0.25rem; }
+        .prose-ai h3 { color: #FDE047; font-weight: 600; font-size: 1.1rem; margin-top: 1rem; }
+        .prose-ai p { margin-bottom: 1rem; }
+        .prose-ai strong { color: #FDE047; font-weight: 600; }
+        .prose-ai ul { list-style-type: disc; padding-left: 1.5rem; color: #D8B4FE; margin-bottom: 1rem; }
+        .prose-ai li { margin-bottom: 0.25rem; }
     </style>
 </head>
-<body class="min-h-screen font-sans antialiased bg-gradient-to-br from-cosmic-900 via-cosmic-800 to-cosmic-900 text-purple-100 p-4 md:p-6">
+<body class="min-h-screen font-sans antialiased p-4 md:p-6">
 
     <div class="max-w-7xl mx-auto space-y-6">
         
         <!-- Header -->
-        <header class="text-center pb-4 border-b border-cosmic-600">
-            <h1 class="text-3xl font-bold tracking-tight gold-text mb-1">EVOLUTIONARY ASTROLOGY</h1>
-            <p class="text-sm text-purple-300">วิเคราะห์ศักยภาพ ปมชีวิต และจังหวะเวลา (Transit) ด้วยโหราศาสตร์สากล</p>
+        <header class="text-center pb-4 border-b border-purple-200">
+            <h1 class="text-3xl font-bold tracking-tight text-brand-dark flex items-center justify-center gap-2">
+                <span class="text-brand-gold">☸</span> EVOLUTIONARY ASTROLOGY
+            </h1>
+            <p class="text-sm text-purple-700 font-medium mt-1">วิเคราะห์ศักยภาพ ปมชีวิต และจังหวะเวลา (Transit) ด้วยโหราศาสตร์สากล</p>
         </header>
 
         <!-- Main Layout -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
             <!-- Left Column: Input Form (4 cols) -->
-            <div class="lg:col-span-4 glass-panel rounded-2xl p-5 shadow-2xl h-fit">
-                <div class="flex items-center space-x-2 border-b border-cosmic-600 pb-3 mb-4">
-                    <span class="text-gold text-lg">⚙️</span>
-                    <h2 class="text-base font-bold text-white">ข้อมูลพื้นดวงและคำถาม</h2>
+            <div class="lg:col-span-4 bg-white rounded-2xl p-6 shadow-xl border border-purple-100 h-fit">
+                <div class="flex items-center space-x-2 border-b border-purple-100 pb-3 mb-4">
+                    <h2 class="text-base font-bold text-brand-dark">ข้อมูลพื้นดวงและคำถาม</h2>
                 </div>
 
                 <form id="astroForm" class="space-y-4">
                     <div>
-                        <label class="block text-xs font-semibold text-purple-300 mb-1">ชื่อผู้รับคำพยากรณ์</label>
-                        <input type="text" id="user_name" value="คุณผู้ใช้" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold">
+                        <label class="block text-xs font-bold text-purple-900 mb-1">ชื่อผู้รับคำพยากรณ์</label>
+                        <input type="text" id="user_name" value="คุณผู้ใช้" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-DEFAULT focus:ring-1 focus:ring-brand-DEFAULT">
                     </div>
 
                     <div class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-purple-300 mb-1">วันเกิด</label>
-                            <input type="number" id="day" value="1" min="1" max="31" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-gold">
+                            <label class="block text-xs font-bold text-purple-900 mb-1">วันเกิด</label>
+                            <input type="number" id="day" value="1" min="1" max="31" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 text-center focus:outline-none focus:border-brand-DEFAULT">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-purple-300 mb-1">เดือนเกิด</label>
-                            <input type="number" id="month" value="1" min="1" max="12" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-gold">
+                            <label class="block text-xs font-bold text-purple-900 mb-1">เดือน</label>
+                            <input type="number" id="month" value="1" min="1" max="12" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 text-center focus:outline-none focus:border-brand-DEFAULT">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-purple-300 mb-1">ปี (พ.ศ.)</label>
-                            <input type="number" id="year" value="2530" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-gold">
+                            <label class="block text-xs font-bold text-purple-900 mb-1">ปี (พ.ศ.)</label>
+                            <input type="number" id="year" value="2530" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 text-center focus:outline-none focus:border-brand-DEFAULT">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="block text-xs font-semibold text-purple-300 mb-1">เวลาเกิด (ชม.)</label>
-                            <input type="number" id="hour" value="12" min="0" max="23" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-gold">
+                            <label class="block text-xs font-bold text-purple-900 mb-1">เวลาเกิด (ชม.)</label>
+                            <input type="number" id="hour" value="12" min="0" max="23" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 text-center focus:outline-none focus:border-brand-DEFAULT">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-purple-300 mb-1">เวลาเกิด (นาที)</label>
-                            <input type="number" id="minute" value="0" min="0" max="59" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-gold">
+                            <label class="block text-xs font-bold text-purple-900 mb-1">เวลาเกิด (นาที)</label>
+                            <input type="number" id="minute" value="0" min="0" max="59" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 text-center focus:outline-none focus:border-brand-DEFAULT">
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-purple-300 mb-1">จังหวัดเกิด (ประเทศไทย)</label>
-                        <input type="text" id="location_name" value="กรุงเทพมหานคร" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-gold">
+                        <label class="block text-xs font-bold text-purple-900 mb-1">จังหวัดเกิด (ประเทศไทย)</label>
+                        <input type="text" id="location_name" value="กรุงเทพมหานคร" class="w-full bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-DEFAULT">
                     </div>
 
-                    <div class="pt-2 border-t border-cosmic-600">
-                        <label class="block text-xs font-semibold text-emerald-400 mb-1">คำถามเฉพาะเจาะจง (Transit Q&A)</label>
-                        <p class="text-[10px] text-purple-400 mb-2">หากต้องการดูพื้นดวง 7 หมวด ให้เว้นช่องนี้ไว้</p>
-                        <textarea id="question" rows="2" placeholder="เช่น จะได้งานเมื่อไหร่? ปัญหาหนี้สินแก้ยังไง?" class="w-full bg-cosmic-900 border border-cosmic-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-400"></textarea>
+                    <div class="pt-2 border-t border-purple-100">
+                        <label class="block text-xs font-bold text-brand-gold mb-1">คำถามเฉพาะเจาะจง (Transit Q&A)</label>
+                        <p class="text-[10px] text-slate-500 mb-2">หากต้องการดูพื้นดวง 7 หมวด ให้เว้นช่องนี้ไว้</p>
+                        <textarea id="question" rows="2" placeholder="เช่น จะได้งานเมื่อไหร่? ปัญหาที่กำลังเกิดจะแก้อย่างไร?" class="w-full bg-white border border-brand-gold/50 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-brand-gold focus:ring-1 focus:ring-brand-gold"></textarea>
                     </div>
 
                     <div class="pt-3 space-y-3">
-                        <button type="button" onclick="handleAnalysis('/analyze')" id="btnAnalyze" class="w-full bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-bold py-2.5 rounded-xl transition shadow-lg flex items-center justify-center space-x-2 border border-purple-500/50">
+                        <button type="button" onclick="handleAnalysis('/analyze')" id="btnAnalyze" class="w-full bg-brand-DEFAULT hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
                             <span>✨ วิเคราะห์พื้นดวง / คำถาม</span>
                         </button>
-                        <button type="button" onclick="handleAnalysis('/deep_report')" id="btnDeep" class="w-full bg-gradient-to-r from-amber-700 to-gold-dark hover:from-amber-600 hover:to-gold-dark text-white font-bold py-2 rounded-xl transition shadow-lg flex items-center justify-center space-x-2 border border-gold/30">
-                            <span class="text-sm">🔍 เจาะลึกปมจิตวิทยา 12 เรือน</span>
+                        <button type="button" onclick="handleAnalysis('/deep_report')" id="btnDeep" class="w-full bg-brand-gold hover:bg-yellow-600 text-white font-bold py-2.5 rounded-xl transition shadow-md flex items-center justify-center space-x-2">
+                            <span class="text-sm">🔍 ดูปมลึก 12 เรือนชะตา</span>
                         </button>
                     </div>
                 </form>
@@ -125,14 +122,14 @@
             <div class="lg:col-span-8 space-y-6">
                 
                 <!-- Chart & Degrees Visualizer -->
-                <div class="grid grid-cols-1 md:grid-cols-12 gap-5 glass-panel rounded-2xl p-5 shadow-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-5 bg-white rounded-2xl p-6 shadow-xl border border-purple-100">
                     
                     <!-- SVG Wheel -->
-                    <div class="md:col-span-5 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-cosmic-600 pb-4 md:pb-0 md:pr-4">
-                        <h3 class="text-xs font-bold text-gold tracking-widest uppercase mb-3">
+                    <div class="md:col-span-5 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-purple-100 pb-4 md:pb-0 md:pr-4">
+                        <h3 class="text-xs font-bold text-brand-dark tracking-widest uppercase mb-3">
                             🎡 BIRTH CHART WHEEL
                         </h3>
-                        <div id="chartSvgContainer" class="w-full max-w-[260px] aspect-square flex items-center justify-center bg-cosmic-900/80 rounded-full border border-cosmic-600 p-2">
+                        <div id="chartSvgContainer" class="w-full max-w-[260px] aspect-square flex items-center justify-center bg-brand-light rounded-full border border-purple-200 p-2 shadow-inner">
                             <span class="text-xs text-purple-400 text-center">รอรับคำสั่งประมวลผล...</span>
                         </div>
                     </div>
@@ -141,33 +138,33 @@
                     <div class="md:col-span-7 space-y-4">
                         <!-- Transit Real-time -->
                         <div>
-                            <h4 class="text-xs font-bold text-emerald-400 uppercase mb-2 flex items-center gap-1.5">
-                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Transit Real-time (ดาวจรปัจจุบัน)
+                            <h4 class="text-xs font-bold text-brand-gold uppercase mb-2 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-brand-gold animate-pulse"></span> Transit Real-time (ดาวจรปัจจุบัน)
                             </h4>
                             <div id="transitDegrees" class="flex flex-wrap gap-1.5 text-xs">
-                                <span class="text-purple-500">-</span>
+                                <span class="text-slate-400">-</span>
                             </div>
                         </div>
 
-                        <hr class="border-cosmic-600/50">
+                        <hr class="border-purple-100">
 
                         <!-- Natal Birth Chart -->
                         <div>
-                            <h4 class="text-xs font-bold text-gold uppercase mb-2 flex items-center gap-1.5">
+                            <h4 class="text-xs font-bold text-brand-DEFAULT uppercase mb-2 flex items-center gap-1.5">
                                 <span>📊</span> Birth Chart Degrees (ดาวกำเนิด)
                             </h4>
                             <div id="birthDegrees" class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                                <span class="text-purple-500 col-span-full">-</span>
+                                <span class="text-slate-400 col-span-full">-</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- AI Analysis Output -->
-                <div class="glass-panel rounded-2xl p-5 shadow-2xl flex flex-col min-h-[300px]">
-                    <div class="flex items-center justify-between border-b border-cosmic-600 pb-3 mb-4">
+                <!-- AI Analysis Output (กล่องสีม่วงเข้มตาม Reference) -->
+                <div class="bg-[#1a0b2e] rounded-2xl p-6 shadow-2xl flex flex-col min-h-[300px] border border-[#3B0764]">
+                    <div class="flex items-center justify-between border-b border-[#3B0764] pb-3 mb-4">
                         <div class="flex items-center space-x-2">
-                            <span class="text-gold text-lg">✦</span>
+                            <span class="text-brand-gold text-lg">✦</span>
                             <h3 class="text-lg font-bold text-white">INSIGHT ANALYTICS</h3>
                         </div>
                         <span id="statusBadge" class="px-3 py-1 rounded-full text-[10px] font-bold bg-purple-900/60 text-purple-300 border border-purple-500/30 uppercase tracking-wide">
@@ -176,10 +173,10 @@
                     </div>
 
                     <!-- Content -->
-                    <div id="aiReportContainer" class="prose max-w-none text-sm w-full flex-grow">
-                        <p class="text-purple-400 italic text-center mt-10">
+                    <div id="aiReportContainer" class="prose-ai w-full flex-grow">
+                        <p class="text-purple-400/70 italic text-center mt-10">
                             ระบุข้อมูลด้านซ้ายแล้วกดปุ่มวิเคราะห์<br>
-                            (AI อาจใช้เวลา 10-15 วินาทีในการประมวลผลเชิงลึก)
+                            (AI จะคำนวณพื้นดวง ทรานสิท และเจ้าเรือนตามหลักวิวัฒนาการ)
                         </p>
                     </div>
                 </div>
@@ -212,7 +209,7 @@
             if (state === 'loading') {
                 badge.innerText = 'Processing...';
                 badge.classList.add('bg-amber-900/60', 'text-amber-300', 'border-amber-500/50', 'animate-pulse');
-                container.innerHTML = `<div class="flex flex-col items-center justify-center mt-10 space-y-3"><div class="w-8 h-8 border-4 border-purple-500 border-t-gold rounded-full animate-spin"></div><p class="text-purple-300 font-mono text-xs">กำลังประมวลผลโครงสร้างดวงชะตา...</p></div>`;
+                container.innerHTML = `<div class="flex flex-col items-center justify-center mt-10 space-y-3"><div class="w-8 h-8 border-4 border-brand-DEFAULT border-t-brand-gold rounded-full animate-spin"></div><p class="text-purple-300 font-mono text-xs">กำลังประมวลผลดวงชะตาและคำทำนาย...</p></div>`;
             } else if (state === 'success') {
                 badge.innerText = 'Complete';
                 badge.classList.add('bg-emerald-900/60', 'text-emerald-300', 'border-emerald-500/50');
@@ -230,10 +227,10 @@
             for (const [key, val] of Object.entries(birth)) {
                 if(!val.formatted) continue;
                 bContainer.innerHTML += `
-                    <div class="bg-cosmic-900/60 border border-cosmic-500/30 rounded p-1.5 text-center">
-                        <div class="text-[9px] text-purple-400 font-bold uppercase">${key}</div>
-                        <div class="font-bold text-gold text-[11px]">${val.sign} ${val.degree_in_sign ? val.degree_in_sign.toFixed(1) + '°' : val.formatted}</div>
-                        <div class="text-[9px] text-purple-300">House ${val.house}</div>
+                    <div class="bg-purple-50 border border-purple-100 rounded p-1.5 text-center">
+                        <div class="text-[9px] text-brand-DEFAULT font-bold uppercase">${key}</div>
+                        <div class="font-bold text-slate-800 text-[11px]">${val.sign} ${val.degree_in_sign ? val.degree_in_sign.toFixed(1) + '°' : val.formatted}</div>
+                        <div class="text-[9px] text-purple-600">House ${val.house}</div>
                     </div>`;
             }
 
@@ -243,7 +240,7 @@
             for (const [key, val] of Object.entries(transit)) {
                 if(!val.formatted) continue;
                 tContainer.innerHTML += `
-                    <span class="bg-emerald-900/30 border border-emerald-500/30 text-emerald-200 px-1.5 py-0.5 rounded text-[10px] font-mono">
+                    <span class="bg-amber-50 border border-amber-200 text-amber-800 px-1.5 py-0.5 rounded text-[10px] font-mono">
                         ${key}: ${val.sign} ${val.degree_in_sign ? val.degree_in_sign.toFixed(1) + '°' : val.formatted} (H${val.house_in_natal})
                     </span>`;
             }
