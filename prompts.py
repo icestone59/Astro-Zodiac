@@ -72,8 +72,78 @@ Planet = WHAT / Sign = HOW / House = WHERE / Aspect = RELATIONSHIP / House Ruler
 ==================================================
 กฎเหล็กที่ 9: ที่มาของการวิเคราะห์
 ==================================================
-ทุกหมวดหมู่ต้องปิดท้ายด้วยบรรทัดสุดท้าย:
-**ที่มา:** [Evidence ที่ใช้จริง รวม House Ruler]
+1. ในเนื้อหาบรรยายของทุกหมวดหมู่ ต้องอธิบายความสัมพันธ์ของ "ดาวเจ้าเรือน (House Ruler)" ร่วมกับตำแหน่งดาวเสมอ
+2. ในบรรทัด **ที่มา:** ปิดท้ายย่อหน้า บังคับต้องระบุ House Ruler ลงไปด้วยทุกครั้ง ห้ามตัดออกเด็ดขาด
+
+การเชื่อมโยง House Ruler ประจำหมวดหมู่
+
+1. นิสัย บุคลิกภาพ
+   PRIMARY:
+   ASC + Sign ASC + House 1
+   + ASC Ruler + Sign/House/Aspect ของ ASC Ruler
+   + Planets in House 1
+   + Aspects to ASC
+   SUPPORTING:
+   Sun + Moon + Angular Planets
+
+2. การเงิน
+   PRIMARY:
+   Cusp House 2 + Sign House 2
+   + House 2 Ruler + Sign/House/Aspect ของ House 2 Ruler
+   + Planets in House 2
+   SUPPORTING:
+   Venus + Jupiter + Saturn
+   + House 8 + House 8 Ruler
+
+3. การงาน อาชีพ ที่ตรงกับดวง
+   PRIMARY:
+   MC + Sign MC + House 10
+   + House 10 Ruler + Sign/House/Aspect ของ House 10 Ruler
+   + Planets in House 10
+   SUPPORTING:
+   House 6 Ruler + Sign/House/Aspect ของ House 6 Ruler
+   + Sun + Saturn + Jupiter
+
+4. ความรัก
+   PRIMARY:
+   DSC + Sign DSC + House 7
+   + House 7 Ruler + Sign/House/Aspect ของ House 7 Ruler
+   + Planets in House 7
+   SUPPORTING:
+   Venus + Mars + Moon + Saturn
+   + Relevant Aspects
+
+5. จุดเด่น จุดด้อย และการแก้จุดด้อย
+   PRIMARY:
+   ASC + ASC Ruler + Sign/House/Aspect ของ ASC Ruler
+   + Sun + Moon + Saturn
+   + Major Aspects
+   SUPPORTING:
+   MC + MC Ruler + Sign/House/Aspect ของ MC Ruler
+   + Repeated Themes
+
+6. ศักยภาพที่มี และวิธีการพัฒนา
+   PRIMARY:
+   North Node + Sign/House/Aspect ของ North Node
+   + Jupiter + Sign/House/Aspect ของ Jupiter
+   + House 9 Ruler + Sign/House/Aspect ของ House 9 Ruler
+   + House 10 Ruler + Sign/House/Aspect ของ House 10 Ruler
+   SUPPORTING:
+   Sun + MC + Relevant Aspects
+   + Repeated Themes
+
+7. ปัญหาที่ต้องปรับปรุง เพื่อความก้าวหน้า
+   PRIMARY:
+   Chiron + Sign/House/Aspect ของ Chiron
+   + Saturn + Sign/House/Aspect ของ Saturn
+   + House 6 Ruler + Sign/House/Aspect ของ House 6 Ruler
+   + House 8 Ruler + Sign/House/Aspect ของ House 8 Ruler
+   + House 12 Ruler + Sign/House/Aspect ของ House 12 Ruler
+   SUPPORTING:
+   Hard Aspects
+   + Relevant Planets
+   + Repeated Themes
+
 
 ==================================================
 โครงสร้างการตอบ
