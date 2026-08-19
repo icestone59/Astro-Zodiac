@@ -28,14 +28,9 @@ def load_school_rules():
             logger.warning(f"Error loading rules: {e}")
     return {"school_name": "สำนักโหราศาสตร์วิวัฒนาการ", "natal_categories": {}}
 
-# Prevent HTML Error response completely
 @app.errorhandler(404)
 def not_found_error(error):
     return jsonify({"status": "error", "message": "Endpoint Not Found (404)"}), 404
-
-@app.errorhandler(405)
-def method_not_allowed_error(error):
-    return jsonify({"status": "error", "message": "Method Not Allowed (405) - ตรวจสอบการส่ง POST/GET"}), 405
 
 @app.errorhandler(500)
 def internal_error(error):
@@ -47,7 +42,6 @@ def index():
 
 @app.route('/transit', methods=['GET'])
 def get_transit():
-    """ดึง Real-time Transit ของดาวทุกดวง"""
     try:
         transits = calculate_current_transits()
         return jsonify({
@@ -58,104 +52,87 @@ def get_transit():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/analyze', methods=['POST'])
-def analyze():
-    """วิเคราะห์พื้นดวง 7 หมวด หรือ ตอบคำถาม Transit QA"""
+# 📌 Endpoint จังหวะที่ 1: คำนวณองศาดาว + วาด SVG Wheel ส่งกลับทันที (<100ms)
+@app.route('/calculate_chart', methods=['POST'])
+def calculate_chart_endpoint():
     try:
         data = request.get_json() or {}
-        user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
-        
         year_be = int(data.get('year', 2538))
         year_ad = year_be - 543 if year_be > 2400 else year_be
-        
         hour = int(data.get('hour', 0))
         minute = int(data.get('minute', 0))
         location_name = data.get('location_name') or 'กรุงเทพมหานคร'
-        question = data.get('question')
 
         lat, lon, _ = get_coordinates(location_name)
-
         tz_thailand = timezone(timedelta(hours=7))
         birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
         birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
 
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
+        return jsonify({
+            "status": "success",
+            "birth_chart_degrees": chart_data["birth_chart_degrees"],
+            "transit_degrees": chart_data["transit_degrees"],
+            "ruler_mapping": chart_data["ruler_mapping"],
+            "chart_svg": chart_data["chart_svg"]
+        })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+# 📌 Endpoint จังหวะที่ 2: วิเคราะห์บทแปล AI (7 หมวดหมู่ หรือ Transit Q&A)
+@app.route('/analyze_ai', methods=['POST'])
+def analyze_ai_endpoint():
+    try:
+        data = request.get_json() or {}
+        user_name = data.get('user_name') or 'คุณ'
+        question = data.get('question')
+        chart_data = data.get('chart_data')
+
+        if not chart_data:
+            return jsonify({"status": "error", "message": "Missing chart data"}), 400
+
         school_rules = load_school_rules()
 
-        # Transit Q&A
         if question and str(question).strip():
             qa_answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
             return jsonify({
                 "status": "success",
                 "type": "transit_qa",
                 "question": question,
-                "answer": qa_answer,
-                "birth_chart_degrees": chart_data["birth_chart_degrees"],
-                "transit_degrees": chart_data["transit_degrees"],
-                "ruler_mapping": chart_data["ruler_mapping"],
-                "chart_svg": chart_data["chart_svg"]
+                "answer": qa_answer
             })
 
-        # Basic 7 Categories
         report_text = analyze_natal_7_categories(user_name, chart_data, school_rules)
         return jsonify({
             "status": "success",
             "type": "natal_7_categories",
-            "report": report_text,
-            "birth_chart_degrees": chart_data["birth_chart_degrees"],
-            "transit_degrees": chart_data["transit_degrees"],
-            "ruler_mapping": chart_data["ruler_mapping"],
-            "chart_svg": chart_data["chart_svg"]
+            "report": report_text
         })
-
     except Exception as e:
-        tb = traceback.format_exc()
-        logger.error(f"ANALYZE ERROR:\n{tb}")
-        return jsonify({"status": "error", "detail": str(e), "traceback": tb}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-# 📌 ระบุ methods=['POST'] เพื่อป้องกัน 405 Method Not Allowed
+# 📌 Endpoint สำหรับเจาะลึก 12 เรือนชะตา
 @app.route('/deep_report', methods=['POST'])
-def deep_report():
-    """วิเคราะห์ปมลึกเชิงจิตวิทยาพัฒนาศักยภาพ 12 เรือนชะตา"""
+def deep_report_endpoint():
     try:
         data = request.get_json() or {}
         user_name = data.get('user_name') or 'คุณ'
-        day = int(data.get('day', 1))
-        month = int(data.get('month', 1))
-        
-        year_be = int(data.get('year', 2538))
-        year_ad = year_be - 543 if year_be > 2400 else year_be
-        
-        hour = int(data.get('hour', 0))
-        minute = int(data.get('minute', 0))
-        location_name = data.get('location_name') or 'กรุงเทพมหานคร'
+        chart_data = data.get('chart_data')
 
-        lat, lon, _ = get_coordinates(location_name)
+        if not chart_data:
+            return jsonify({"status": "error", "message": "Missing chart data"}), 400
 
-        tz_thailand = timezone(timedelta(hours=7))
-        birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
-        birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
-
-        chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
-
         deep_report_res = analyze_deep_report_json(user_name, chart_data, school_rules)
         return jsonify({
             "status": "success",
             "type": "deep_report",
-            "report": deep_report_res,
-            "birth_chart_degrees": chart_data["birth_chart_degrees"],
-            "transit_degrees": chart_data["transit_degrees"],
-            "ruler_mapping": chart_data["ruler_mapping"],
-            "chart_svg": chart_data["chart_svg"]
+            "report": deep_report_res
         })
-
     except Exception as e:
-        tb = traceback.format_exc()
-        logger.error(f"DEEP REPORT ERROR:\n{tb}")
-        return jsonify({"status": "error", "detail": str(e), "traceback": tb}), 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
