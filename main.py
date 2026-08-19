@@ -34,7 +34,6 @@ def admin():
 
 @app.route('/transit', methods=['GET'])
 def get_transit():
-    """ดึงข้อมูลดาวจร Real-time ล่าสุด"""
     try:
         transits = calculate_current_transits()
         return jsonify({"status": "success", "transits": transits})
@@ -48,7 +47,9 @@ def analyze():
         user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
-        year_ad = int(data.get('year', 1995))
+        year_be = int(data.get('year', 2538))
+        year_ad = year_be - 543 if year_be > 2400 else year_be
+        
         hour = int(data.get('hour', 0))
         minute = int(data.get('minute', 0))
         location_name = data.get('location_name') or 'กรุงเทพมหานคร'
@@ -56,10 +57,10 @@ def analyze():
 
         lat, lon, _ = get_coordinates(location_name)
 
-        # 📌 แก้ไขจุดนี้: กำหนดเป็นเวลาไทย (UTC+7) แล้วแปลงเป็น UTC อัตโนมัติ
+        # 📌 แปลงเวลาท้องถิ่นไทย (UTC+7) ให้เป็น UTC
         tz_thailand = timezone(timedelta(hours=7))
         birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
-        birth_dt_utc = birth_dt_local.astimezone(timezone.utc) # จะถูกปรับเป็น 03:51 UTC อัตโนมัติ
+        birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
 
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
@@ -88,51 +89,6 @@ def analyze():
         tb = traceback.format_exc()
         print(f"❌ ANALYZE ERROR:\n{tb}")
         return jsonify({"detail": str(e)}), 500
-
-@app.route('/generate-report', methods=['POST'])
-def generate_report():
-    """สร้างรายงาน Deep Report เจาะลึก 12 มิติ ใน Tab ใหม่"""
-    try:
-        data = request.get_json() or {}
-        user_name = data.get('user_name') or 'คุณไอซ์'
-        day = int(data.get('day', 1))
-        month = int(data.get('month', 1))
-        year_ad = int(data.get('year', 1995))
-        hour = int(data.get('hour', 0))
-        minute = int(data.get('minute', 0))
-        location_name = data.get('location_name') or 'กรุงเทพมหานคร'
-
-        lat, lon, _ = get_coordinates(location_name)
-        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
-        chart_data = calculate_chart(birth_dt_utc, lat, lon)
-        school_rules = load_school_rules()
-
-        deep_report = analyze_deep_report_json(user_name, chart_data, school_rules)
-
-        html_response = f"""
-        <!DOCTYPE html>
-        <html lang="th">
-        <head>
-            <meta charset="UTF-8">
-            <title>รายงานเจาะลึกปมชีวิต 12 มิติ - {user_name}</title>
-            <style>
-                body {{ font-family: sans-serif; background: #0f172a; color: #f8fafc; padding: 40px; line-height: 1.8; }}
-                .container {{ max-width: 900px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid #475569; }}
-                h1 {{ color: #c084fc; border-bottom: 2px solid #7c3aed; padding-bottom: 10px; }}
-                .content {{ white-space: pre-wrap; margin-top: 20px; font-size: 1rem; color: #e2e8f0; }}
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <h1>🔮 รายงานเจาะลึกปมชีวิตพัฒนาศักยภาพ: {user_name}</h1>
-                <div class="content">{deep_report}</div>
-            </div>
-        </body>
-        </html>
-        """
-        return html_response
-    except Exception as e:
-        return f"<h2>เกิดข้อผิดพลาดในการสร้างรายงาน: {str(e)}</h2>", 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
