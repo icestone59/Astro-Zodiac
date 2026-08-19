@@ -57,7 +57,7 @@ def analyze():
 
         lat, lon, _ = get_coordinates(location_name)
 
-        # 📌 แปลงเวลาท้องถิ่นไทย (UTC+7) ให้เป็น UTC
+        # แปลงเวลาท้องถิ่นไทย (UTC+7) ให้เป็น UTC ก่อนส่งคำนวณ
         tz_thailand = timezone(timedelta(hours=7))
         birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
         birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
