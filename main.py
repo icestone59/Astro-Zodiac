@@ -1,5 +1,6 @@
 import json
 import os
+import logging
 import traceback
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
@@ -12,6 +13,7 @@ from ai_service import (
 )
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+logging.basicConfig(level=logging.INFO)
 
 RULES_FILE = 'school_rules.json'
 
@@ -38,12 +40,16 @@ def get_transit():
         transits = calculate_current_transits()
         return jsonify({"status": "success", "transits": transits})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+        tb = traceback.format_exc()
+        app.logger.error(f"Transit Error: {tb}")
+        return jsonify({"status": "error", "detail": str(e), "traceback": tb}), 500
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
         data = request.get_json() or {}
+        app.logger.info(f"📥 Received Payload: {data}")
+
         user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
@@ -55,13 +61,15 @@ def analyze():
         location_name = data.get('location_name') or 'กรุงเทพมหานคร'
         question = data.get('question')
 
-        lat, lon, _ = get_coordinates(location_name)
+        lat, lon, clean_loc = get_coordinates(location_name)
+        app.logger.info(f"📍 Geocoded: {clean_loc} -> ({lat}, {lon})")
 
-        # แปลงเวลาท้องถิ่นไทย (UTC+7) ให้เป็น UTC ก่อนส่งคำนวณ
+        # แปลงเวลาไทย (UTC+7) เป็น UTC
         tz_thailand = timezone(timedelta(hours=7))
         birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
         birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
 
+        # คำนวณ Chart Data
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
 
@@ -87,8 +95,9 @@ def analyze():
 
     except Exception as e:
         tb = traceback.format_exc()
-        print(f"❌ ANALYZE ERROR:\n{tb}")
-        return jsonify({"detail": str(e)}), 500
+        app.logger.error(f"❌ Detailed Debug Traceback:\n{tb}")
+        # ส่งรายละเอียดบรรทัดที่ล่มกลับไปแสดงผลบนหน้าเว็บ
+        return jsonify({"detail": f"{type(e).__name__}: {str(e)}", "traceback": tb}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
