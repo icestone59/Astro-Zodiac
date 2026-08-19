@@ -64,7 +64,7 @@ def get_coordinates(location_name):
         lat, lon = THAI_PROVINCES[clean]
         return lat, lon, clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v11", timeout=5)
+        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v12", timeout=5)
         query = f"{clean}, Thailand" if "Thailand" not in clean else clean
         loc = geolocator.geocode(query)
         if loc:
@@ -74,22 +74,23 @@ def get_coordinates(location_name):
     return 13.7563, 100.5018, clean
 
 def format_degree(deg):
-    idx = int(deg // 30)
-    rem_deg = deg % 30
+    deg_norm = float(deg) % 360.0
+    idx = int(deg_norm // 30) % 12  # ป้องกัน Index Out of Range
+    rem_deg = deg_norm % 30
     d = int(rem_deg)
     m = int((rem_deg - d) * 60)
     return ZODIAC_NAMES[idx], f"{d}°{m:02d}'"
 
 def get_house_of_position(deg, house_cusps_12):
-    """house_cusps_12 ต้องมี 12 ธาตุ [Cusp1..Cusp12]"""
+    deg_norm = float(deg) % 360.0
     for i in range(12):
         c_start = house_cusps_12[i]
         c_end = house_cusps_12[(i + 1) % 12]
         if c_start < c_end:
-            if c_start <= deg < c_end:
+            if c_start <= deg_norm < c_end:
                 return i + 1
         else:
-            if deg >= c_start or deg < c_end:
+            if deg_norm >= c_start or deg_norm < c_end:
                 return i + 1
     return 1
 
@@ -121,11 +122,11 @@ def generate_chart_svg(birth_degrees):
 
 def calculate_natal_degrees(jul_day_natal, lat, lon):
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
-    # 📌 ตัด cusps[0] ออก เอาเฉพาะ Index 1..12 เป็นเรือนชะตาจริง
-    house_cusps_12 = list(cusps[1:])
+    # ดึงค่าเฉพาะ Cusp 1 ถึง 12 (ตัด Index 0 ออก)
+    house_cusps_12 = [float(c) % 360.0 for c in cusps[1:13]]
     
     degrees = {}
-    asc_deg, mc_deg = ascmc[0], ascmc[1]
+    asc_deg, mc_deg = ascmc[0] % 360.0, ascmc[1] % 360.0
     asc_sign, asc_fmt = format_degree(asc_deg)
     mc_sign, mc_fmt = format_degree(mc_deg)
     
@@ -138,7 +139,7 @@ def calculate_natal_degrees(jul_day_natal, lat, lon):
         except swe.Error:
             res, _ = swe.calc_ut(jul_day_natal, pid, swe.FLG_MOSEPH)
             
-        lon_deg = res[0]
+        lon_deg = res[0] % 360.0
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
         house = get_house_of_position(lon_deg, house_cusps_12)
@@ -162,7 +163,7 @@ def calculate_current_transits(house_cusps_12=None):
         except swe.Error:
             res, _ = swe.calc_ut(jul_day_transit, pid, swe.FLG_MOSEPH)
             
-        lon_deg = res[0]
+        lon_deg = res[0] % 360.0
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
         house = get_house_of_position(lon_deg, house_cusps_12) if house_cusps_12 else 1
@@ -192,7 +193,7 @@ def calculate_chart(birth_dt_utc, lat, lon):
         ruler_mapping[f"House_{h_num}"] = {
             "sign": h_sign,
             "ruler_planet": r_planet,
-            "ruler_pos": f"{r_planet} in {r_pos.get('sign')} {r_pos.get('formatted')} (House {r_pos.get('house')})" if r_pos else "N/A"
+            "ruler_pos": f"{r_planet} in {r_pos.get('sign', '')} {r_pos.get('formatted', '')} (House {r_pos.get('house', '')})" if r_pos else "N/A"
         }
 
     chart_svg = generate_chart_svg(birth_degrees)
