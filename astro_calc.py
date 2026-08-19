@@ -5,28 +5,22 @@ import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
 
-# 📌 1. จัดการโฟลเดอร์เก็บไฟล์ Swiss Ephemeris (.se1)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EPHE_DIR = os.path.join(BASE_DIR, 'ephe')
 os.makedirs(EPHE_DIR, exist_ok=True)
 
-# รายชื่อไฟล์ Ephemeris ที่จำเป็น ( seas_18.se1 = Chiron/Asteroids, sepl_18.se1 = Planets, semo_18.se1 = Moon )
 NEEDED_SE1_FILES = ['seas_18.se1', 'sepl_18.se1', 'semo_18.se1']
 ASTRO_FTP_URL = 'https://www.astro.com/ftp/swisseph/ephe/'
 
 def download_missing_ephe_files():
-    """ดาวน์โหลดไฟล์ .se1 เข้าโฟลเดอร์ ephe/ อัตโนมัติหากยังไม่มีในเครื่อง"""
     for fname in NEEDED_SE1_FILES:
         fpath = os.path.join(EPHE_DIR, fname)
         if not os.path.exists(fpath):
             try:
-                print(f"📥 Downloading SwissEph file: {fname}...")
                 urllib.request.urlretrieve(ASTRO_FTP_URL + fname, fpath)
-                print(f"✅ Downloaded {fname} successfully.")
-            except Exception as e:
-                print(f"⚠️ Failed to download {fname}: {e}")
+            except Exception:
+                pass
 
-# ดาวน์โหลดไฟล์ที่ขาดและกำหนด PATH ให้ swisseph
 download_missing_ephe_files()
 swe.set_ephe_path(EPHE_DIR)
 
@@ -70,7 +64,7 @@ def get_coordinates(location_name):
         lat, lon = THAI_PROVINCES[clean]
         return lat, lon, clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v10", timeout=5)
+        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v11", timeout=5)
         query = f"{clean}, Thailand" if "Thailand" not in clean else clean
         loc = geolocator.geocode(query)
         if loc:
@@ -86,10 +80,11 @@ def format_degree(deg):
     m = int((rem_deg - d) * 60)
     return ZODIAC_NAMES[idx], f"{d}°{m:02d}'"
 
-def get_house_of_position(deg, house_cusps):
+def get_house_of_position(deg, house_cusps_12):
+    """house_cusps_12 ต้องมี 12 ธาตุ [Cusp1..Cusp12]"""
     for i in range(12):
-        c_start = house_cusps[i]
-        c_end = house_cusps[(i + 1) % 12]
+        c_start = house_cusps_12[i]
+        c_end = house_cusps_12[(i + 1) % 12]
         if c_start < c_end:
             if c_start <= deg < c_end:
                 return i + 1
@@ -126,9 +121,10 @@ def generate_chart_svg(birth_degrees):
 
 def calculate_natal_degrees(jul_day_natal, lat, lon):
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
-    house_cusps = list(cusps)
-    degrees = {}
+    # 📌 ตัด cusps[0] ออก เอาเฉพาะ Index 1..12 เป็นเรือนชะตาจริง
+    house_cusps_12 = list(cusps[1:])
     
+    degrees = {}
     asc_deg, mc_deg = ascmc[0], ascmc[1]
     asc_sign, asc_fmt = format_degree(asc_deg)
     mc_sign, mc_fmt = format_degree(mc_deg)
@@ -136,13 +132,16 @@ def calculate_natal_degrees(jul_day_natal, lat, lon):
     degrees["ASC"] = {"sign": asc_sign, "formatted": asc_fmt, "degree_raw": asc_deg, "house": 1}
     degrees["MC"] = {"sign": mc_sign, "formatted": mc_fmt, "degree_raw": mc_deg, "house": 10}
 
-    # เมื่อมีไฟล์ .se1 ใน ephe/ แล้ว swe.calc_ut จะใช้ไฟล์ความแม่นยำสูงโดยไม่ Error
     for name, pid in PLANET_IDS.items():
-        res, _ = swe.calc_ut(jul_day_natal, pid, swe.FLG_SWIEPH)
+        try:
+            res, _ = swe.calc_ut(jul_day_natal, pid, swe.FLG_SWIEPH)
+        except swe.Error:
+            res, _ = swe.calc_ut(jul_day_natal, pid, swe.FLG_MOSEPH)
+            
         lon_deg = res[0]
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
-        house = get_house_of_position(lon_deg, house_cusps)
+        house = get_house_of_position(lon_deg, house_cusps_12)
         degrees[name] = {
             "sign": sign,
             "formatted": formatted,
@@ -151,18 +150,22 @@ def calculate_natal_degrees(jul_day_natal, lat, lon):
             "house": house
         }
 
-    return degrees, house_cusps
+    return degrees, house_cusps_12
 
-def calculate_current_transits(house_cusps=None):
+def calculate_current_transits(house_cusps_12=None):
     now = datetime.datetime.now(datetime.timezone.utc)
     jul_day_transit = swe.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0)
     transits = {}
     for name, pid in PLANET_IDS.items():
-        res, _ = swe.calc_ut(jul_day_transit, pid, swe.FLG_SWIEPH)
+        try:
+            res, _ = swe.calc_ut(jul_day_transit, pid, swe.FLG_SWIEPH)
+        except swe.Error:
+            res, _ = swe.calc_ut(jul_day_transit, pid, swe.FLG_MOSEPH)
+            
         lon_deg = res[0]
         is_retro = res[3] < 0
         sign, formatted = format_degree(lon_deg)
-        house = get_house_of_position(lon_deg, house_cusps) if house_cusps else 1
+        house = get_house_of_position(lon_deg, house_cusps_12) if house_cusps_12 else 1
         transits[name] = {
             "sign": sign,
             "formatted": formatted,
@@ -178,18 +181,18 @@ def calculate_chart(birth_dt_utc, lat, lon):
         birth_dt_utc.hour + birth_dt_utc.minute / 60.0 + birth_dt_utc.second / 3600.0
     )
 
-    birth_degrees, house_cusps = calculate_natal_degrees(jul_day_natal, lat, lon)
-    transit_degrees = calculate_current_transits(house_cusps)
+    birth_degrees, house_cusps_12 = calculate_natal_degrees(jul_day_natal, lat, lon)
+    transit_degrees = calculate_current_transits(house_cusps_12)
 
     ruler_mapping = {}
     for h_num in range(1, 13):
-        h_sign, _ = format_degree(house_cusps[h_num - 1])
+        h_sign, _ = format_degree(house_cusps_12[h_num - 1])
         r_planet = ZODIAC_RULERS[h_sign]
         r_pos = birth_degrees.get(r_planet, {})
         ruler_mapping[f"House_{h_num}"] = {
             "sign": h_sign,
             "ruler_planet": r_planet,
-            "ruler_pos": f"{r_planet} in {r_pos.get('sign')} {r_pos.get('formatted')} (House {r_pos.get('house')})"
+            "ruler_pos": f"{r_planet} in {r_pos.get('sign')} {r_pos.get('formatted')} (House {r_pos.get('house')})" if r_pos else "N/A"
         }
 
     chart_svg = generate_chart_svg(birth_degrees)
