@@ -356,6 +356,25 @@
             });
         }
 
+        async function getDeepReport() {
+    try {
+        const payload = getFormData(); // ดึงข้อมูล วัน/เดือน/ปี/เวลา เกิด
+        const response = await fetch('/deep_report', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (data.status === 'success') {
+            renderDeepReportUI(data.report);
+        } else {
+            alert('เกิดข้อผิดพลาด: ' + (data.detail || data.message));
+        }
+    } catch (err) {
+        console.error('Fetch Error:', err);
+    }
+}
         async function fetchInitialTransit() {
             try {
                 const res = await fetch('/transit');
