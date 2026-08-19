@@ -1,7 +1,7 @@
 import json
 import os
 import traceback
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 
 from astro_calc import get_coordinates, calculate_chart, calculate_current_transits
@@ -43,10 +43,9 @@ def get_transit():
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
-    """Endpoint หลักตรงตาม index.html รองรับทั้ง 7 หมวด และคำถามเจาะจง"""
     try:
         data = request.get_json() or {}
-        user_name = data.get('user_name') or 'คุณไอซ์'
+        user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
         year_ad = int(data.get('year', 1995))
@@ -55,13 +54,16 @@ def analyze():
         location_name = data.get('location_name') or 'กรุงเทพมหานคร'
         question = data.get('question')
 
-        lat, lon, clean_location = get_coordinates(location_name)
-        birth_dt_utc = datetime(year_ad, month, day, hour, minute, tzinfo=timezone.utc)
+        lat, lon, _ = get_coordinates(location_name)
+
+        # 📌 แก้ไขจุดนี้: กำหนดเป็นเวลาไทย (UTC+7) แล้วแปลงเป็น UTC อัตโนมัติ
+        tz_thailand = timezone(timedelta(hours=7))
+        birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
+        birth_dt_utc = birth_dt_local.astimezone(timezone.utc) # จะถูกปรับเป็น 03:51 UTC อัตโนมัติ
 
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
 
-        # กรณีระบุคำถามเจาะจง
         if question and str(question).strip():
             qa_answer = analyze_transit_qa(user_name, question, chart_data)
             return jsonify({
@@ -69,22 +71,23 @@ def analyze():
                 "question": question,
                 "answer": qa_answer,
                 "birth_chart_degrees": chart_data["birth_chart_degrees"],
-                "transit_degrees": chart_data["transit_degrees"]
+                "transit_degrees": chart_data["transit_degrees"],
+                "chart_svg": chart_data["chart_svg"]
             })
 
-        # กรณีวิเคราะห์พื้นดวง 7 หมวดหลัก
         report_text = analyze_natal_7_categories(user_name, chart_data, school_rules)
         return jsonify({
             "status": "success",
             "report": report_text,
             "birth_chart_degrees": chart_data["birth_chart_degrees"],
-            "transit_degrees": chart_data["transit_degrees"]
+            "transit_degrees": chart_data["transit_degrees"],
+            "chart_svg": chart_data["chart_svg"]
         })
 
     except Exception as e:
         tb = traceback.format_exc()
         print(f"❌ ANALYZE ERROR:\n{tb}")
-        return jsonify({"detail": str(e), "traceback": tb}), 500
+        return jsonify({"detail": str(e)}), 500
 
 @app.route('/generate-report', methods=['POST'])
 def generate_report():
