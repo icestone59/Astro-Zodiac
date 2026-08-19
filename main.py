@@ -12,12 +12,8 @@ from ai_service import (
     analyze_deep_report_json
 )
 
-# ตั้งค่า Logging ละเอียดระดับ DEBUG ลงระบบ Console ของ Render
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s'
-)
-logger = logging.getLogger("AstroApp")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("AstroBackend")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
@@ -29,52 +25,30 @@ def load_school_rules():
             with open(RULES_FILE, 'r', encoding='utf-8') as f:
                 return json.load(f)
         except Exception as e:
-            logger.warning(f"Failed to load school_rules.json: {e}")
+            logger.warning(f"Error loading rules: {e}")
     return {"school_name": "สำนักโหราศาสตร์วิวัฒนาการ", "natal_categories": {}}
 
-# ==========================================
-# JSON Error Handlers (ป้องกันเซิร์ฟเวอร์คายหน้า HTML)
-# ==========================================
+# Prevent HTML Error response completely
 @app.errorhandler(404)
 def not_found_error(error):
-    logger.error(f"404 Error: Path '{request.path}' not found.")
-    return jsonify({
-        "status": "error",
-        "message": f"Endpoint '{request.path}' ไม่พบในระบบ (404 Not Found)"
-    }), 404
+    return jsonify({"status": "error", "message": "Endpoint Not Found (404)"}), 404
+
+@app.errorhandler(405)
+def method_not_allowed_error(error):
+    return jsonify({"status": "error", "message": "Method Not Allowed (405) - ตรวจสอบการส่ง POST/GET"}), 405
 
 @app.errorhandler(500)
 def internal_error(error):
-    logger.error(f"500 Internal Error: {error}")
-    return jsonify({
-        "status": "error",
-        "message": "เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์ (500 Internal Error)"
-    }), 500
+    return jsonify({"status": "error", "message": "Internal Server Error (500)"}), 500
 
-@app.errorhandler(Exception)
-def handle_unexpected_error(error):
-    tb = traceback.format_exc()
-    logger.error(f"❌ UNHANDLED EXCEPTION:\n{tb}")
-    return jsonify({
-        "status": "error",
-        "error_type": type(error).__name__,
-        "detail": str(error),
-        "traceback": tb
-    }), 500
-
-
-# ==========================================
-# Routes & Endpoints
-# ==========================================
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
 
-
 @app.route('/transit', methods=['GET'])
 def get_transit():
+    """ดึง Real-time Transit ของดาวทุกดวง"""
     try:
-        logger.info("Fetching real-time transit data...")
         transits = calculate_current_transits()
         return jsonify({
             "status": "success",
@@ -82,41 +56,36 @@ def get_transit():
             "transits": transits
         })
     except Exception as e:
-        logger.error(f"Transit endpoint failed: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @app.route('/analyze', methods=['POST'])
 def analyze():
+    """วิเคราะห์พื้นดวง 7 หมวด หรือ ตอบคำถาม Transit QA"""
     try:
         data = request.get_json() or {}
-        logger.debug(f"Received /analyze Payload: {data}")
-
         user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
         
-        year_input = int(data.get('year', 2538))
-        year_ad = year_input - 543 if year_input > 2400 else year_input
+        year_be = int(data.get('year', 2538))
+        year_ad = year_be - 543 if year_be > 2400 else year_be
         
         hour = int(data.get('hour', 0))
         minute = int(data.get('minute', 0))
         location_name = data.get('location_name') or 'กรุงเทพมหานคร'
         question = data.get('question')
 
-        lat, lon, clean_loc = get_coordinates(location_name)
-        logger.info(f"Geocoded location: {clean_loc} -> Lat: {lat}, Lon: {lon}")
+        lat, lon, _ = get_coordinates(location_name)
 
         tz_thailand = timezone(timedelta(hours=7))
         birth_dt_local = datetime(year_ad, month, day, hour, minute, tzinfo=tz_thailand)
         birth_dt_utc = birth_dt_local.astimezone(timezone.utc)
-        logger.info(f"Local Birth Time: {birth_dt_local} | Converted UTC: {birth_dt_utc}")
 
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
 
+        # Transit Q&A
         if question and str(question).strip():
-            logger.info(f"Processing Transit QA for Question: {question}")
             qa_answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
             return jsonify({
                 "status": "success",
@@ -129,7 +98,7 @@ def analyze():
                 "chart_svg": chart_data["chart_svg"]
             })
 
-        logger.info("Processing Natal 7 Categories Analysis")
+        # Basic 7 Categories
         report_text = analyze_natal_7_categories(user_name, chart_data, school_rules)
         return jsonify({
             "status": "success",
@@ -143,27 +112,21 @@ def analyze():
 
     except Exception as e:
         tb = traceback.format_exc()
-        logger.error(f"❌ /analyze Execution Error:\n{tb}")
-        return jsonify({
-            "status": "error",
-            "error_type": type(e).__name__,
-            "detail": str(e),
-            "traceback": tb
-        }), 500
+        logger.error(f"ANALYZE ERROR:\n{tb}")
+        return jsonify({"status": "error", "detail": str(e), "traceback": tb}), 500
 
-
+# 📌 ระบุ methods=['POST'] เพื่อป้องกัน 405 Method Not Allowed
 @app.route('/deep_report', methods=['POST'])
 def deep_report():
+    """วิเคราะห์ปมลึกเชิงจิตวิทยาพัฒนาศักยภาพ 12 เรือนชะตา"""
     try:
         data = request.get_json() or {}
-        logger.debug(f"Received /deep_report Payload: {data}")
-
         user_name = data.get('user_name') or 'คุณ'
         day = int(data.get('day', 1))
         month = int(data.get('month', 1))
         
-        year_input = int(data.get('year', 2538))
-        year_ad = year_input - 543 if year_input > 2400 else year_input
+        year_be = int(data.get('year', 2538))
+        year_ad = year_be - 543 if year_be > 2400 else year_be
         
         hour = int(data.get('hour', 0))
         minute = int(data.get('minute', 0))
@@ -178,7 +141,6 @@ def deep_report():
         chart_data = calculate_chart(birth_dt_utc, lat, lon)
         school_rules = load_school_rules()
 
-        logger.info("Generating Deep Report Analysis...")
         deep_report_res = analyze_deep_report_json(user_name, chart_data, school_rules)
         return jsonify({
             "status": "success",
@@ -192,14 +154,8 @@ def deep_report():
 
     except Exception as e:
         tb = traceback.format_exc()
-        logger.error(f"❌ /deep_report Execution Error:\n{tb}")
-        return jsonify({
-            "status": "error",
-            "error_type": type(e).__name__,
-            "detail": str(e),
-            "traceback": tb
-        }), 500
-
+        logger.error(f"DEEP REPORT ERROR:\n{tb}")
+        return jsonify({"status": "error", "detail": str(e), "traceback": tb}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
