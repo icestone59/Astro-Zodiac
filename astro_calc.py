@@ -6,8 +6,7 @@ import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
 
-# ตั้งค่า Logging ระบบคำนวณทางดาราศาสตร์
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AstroEngine")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -22,10 +21,9 @@ def download_missing_ephe_files():
         fpath = os.path.join(EPHE_DIR, fname)
         if not os.path.exists(fpath):
             try:
-                logger.info(f"Downloading ephemeris file: {fname}")
                 urllib.request.urlretrieve(ASTRO_FTP_URL + fname, fpath)
             except Exception as e:
-                logger.warning(f"Could not download {fname}: {e}")
+                logger.warning(f"Failed to download {fname}: {e}")
 
 download_missing_ephe_files()
 swe.set_ephe_path(EPHE_DIR)
@@ -37,10 +35,7 @@ THAI_PROVINCES = {
     "นครปฐม": (13.8196, 100.0622), "อยุธยา": (14.3532, 100.5684),
     "เชียงใหม่": (18.7883, 98.9853), "เชียงราย": (19.9076, 99.8325),
     "ภูเก็ต": (7.8804, 98.3923), "ขอนแก่น": (16.4322, 102.8236),
-    "ชลบุรี": (13.3611, 100.9847), "สงขลา": (7.1988, 100.5951),
-    "หาดใหญ่": (7.0086, 100.4747), "สุราษฎร์ธานี": (9.1382, 99.3217),
-    "นครราชสีมา": (14.9799, 102.0978), "อุดรธานี": (17.4138, 102.7872),
-    "อุบลราชธานี": (15.2287, 104.8594)
+    "ชลบุรี": (13.3611, 100.9847), "สงขลา": (7.1988, 100.5951)
 }
 
 ZODIAC_RULERS = {
@@ -54,6 +49,15 @@ ZODIAC_NAMES = [
     "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
     "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
+
+ZODIAC_SYMBOLS = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
+
+PLANET_SYMBOLS = {
+    "Sun": "☉", "Moon": "☽", "Mercury": "☿", "Venus": "♀",
+    "Mars": "♂", "Jupiter": "♃", "Saturn": "♄", "Uranus": "♅",
+    "Neptune": "♆", "Pluto": "♇", "Chiron": "⚷", "North_Node": "☊",
+    "ASC": "ASC", "MC": "MC"
+}
 
 PLANET_IDS = {
     "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY,
@@ -70,20 +74,18 @@ def get_coordinates(location_name):
         lat, lon = THAI_PROVINCES[clean]
         return lat, lon, clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v13", timeout=5)
+        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v15", timeout=5)
         query = f"{clean}, Thailand" if "Thailand" not in clean else clean
         loc = geolocator.geocode(query)
         if loc:
             return loc.latitude, loc.longitude, clean
-    except Exception as e:
-        logger.warning(f"Geocoding exception for {clean}: {e}")
+    except Exception:
+        pass
     return 13.7563, 100.5018, clean
 
 def format_degree(deg):
     deg_norm = float(deg) % 360.0
-    idx = int(deg_norm // 30)
-    if idx >= 12:  # Safe Guard กัน Index Overflow
-        idx = 11
+    idx = int(deg_norm // 30) % 12
     rem_deg = deg_norm % 30
     d = int(rem_deg)
     m = int((rem_deg - d) * 60)
@@ -102,42 +104,92 @@ def get_house_of_position(deg, house_cusps_12):
                 return i + 1
     return 1
 
-def generate_chart_svg(birth_degrees):
-    svg = ['<svg viewBox="0 0 300 300" class="w-full h-full">']
-    svg.append('<circle cx="150" cy="150" r="140" fill="none" stroke="#6b21a8" stroke-width="2"/>')
-    svg.append('<circle cx="150" cy="150" r="100" fill="none" stroke="#c084fc" stroke-width="1" stroke-dasharray="2 2"/>')
-    svg.append('<circle cx="150" cy="150" r="60" fill="#f3e8ff" stroke="#a855f7" stroke-width="1"/>')
-    
-    for i in range(12):
-        angle = math.radians(i * 30)
-        x1 = 150 + 100 * math.cos(angle)
-        y1 = 150 + 100 * math.sin(angle)
-        x2 = 150 + 140 * math.cos(angle)
-        y2 = 150 + 140 * math.sin(angle)
-        svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="#e9d5ff" stroke-width="1.5"/>')
+def generate_chart_svg(birth_degrees, house_cusps_12):
+    """สร้าง SVG วงกลมดวงชะตา พร้อมอัลกอริทึมแก้ปัญหาข้อความซ้อนทับ"""
+    cx, cy = 200, 200
+    r_outer, r_zodiac, r_inner, r_core = 180, 155, 115, 60
+    asc_deg = birth_degrees.get("ASC", {}).get("degree_raw", 0.0)
 
+    svg = ['<svg viewBox="0 0 400 400" class="w-full h-full font-sans" xmlns="http://www.w3.org/2000/svg">']
+    svg.append('<defs><style>.astro-sym { font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif; }</style></defs>')
+    
+    # วงกลมฐาน
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_outer}" fill="#FAF5FF" stroke="#6B21A8" stroke-width="2"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_zodiac}" fill="#FFFFFF" stroke="#9333EA" stroke-width="1.5"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_inner}" fill="#FAF5FF" stroke="#C084FC" stroke-width="1"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_core}" fill="#F3E8FF" stroke="#A855F7" stroke-width="1.5"/>')
+
+    # วาดสัญลักษณ์ 12 ราศีตรงวงแหวนนอก (Zodiac Ring)
+    for i in range(12):
+        z_start_deg = i * 30.0
+        # ปรับมุมให้ ASC อยู่ทิศตะวันตก (9 o'clock / 180°)
+        angle_chart = (180.0 - (z_start_deg + 15.0 - asc_deg)) % 360.0
+        rad = math.radians(angle_chart)
+        zx = cx + (r_outer - 12.5) * math.cos(rad)
+        zy = cy - (r_outer - 12.5) * math.sin(rad)
+        svg.append(f'<text x="{zx}" y="{zy+5}" font-size="14" font-weight="bold" fill="#581C87" text-anchor="middle" class="astro-sym">{ZODIAC_SYMBOLS[i]}</text>')
+
+    # วาดเส้นแบ่งเรือนชะตา (House Cusps Lines)
+    for h_idx, c_deg in enumerate(house_cusps_12):
+        angle_chart = (180.0 - (c_deg - asc_deg)) % 360.0
+        rad = math.radians(angle_chart)
+        x1 = cx + r_core * math.cos(rad)
+        y1 = cy - r_core * math.sin(rad)
+        x2 = cx + r_zodiac * math.cos(rad)
+        y2 = cy - r_zodiac * math.sin(rad)
+        stroke_w = "2" if h_idx in [0, 3, 6, 9] else "0.8"
+        stroke_c = "#6B21A8" if h_idx in [0, 3, 6, 9] else "#E9D5FF"
+        svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke_c}" stroke-width="{stroke_w}"/>')
+
+    # จัดกลุ่มดาวเพื่อป้องกันการซ้อนทับ (Collision Detection & Offset)
+    planet_list = []
     for name, data in birth_degrees.items():
         if "degree_raw" in data:
             deg = data["degree_raw"]
-            rad = math.radians(deg - 90)
-            px = 150 + 120 * math.cos(rad)
-            py = 150 + 120 * math.sin(rad)
-            svg.append(f'<circle cx="{px}" cy="{py}" r="4" fill="#7e22ce"/>')
-            svg.append(f'<text x="{px}" y="{py-6}" font-size="8" font-weight="bold" fill="#3b0764" text-anchor="middle">{name[:2]}</text>')
+            angle_chart = (180.0 - (deg - asc_deg)) % 360.0
+            planet_list.append({
+                "name": name,
+                "degree": deg,
+                "angle_chart": angle_chart,
+                "formatted": data.get("formatted", ""),
+                "symbol": PLANET_SYMBOLS.get(name, name[:2])
+            })
+
+    # เรียงลำดับดาวตามมุมบน SVG
+    planet_list.sort(key=lambda p: p["angle_chart"])
+
+    # คำนวณระยะรัศมีสลับระดับ (Radial Staggering) เพื่อหลบดาวที่องศาใกล้กัน
+    radii_levels = [r_inner + 18, r_inner + 30, r_inner + 6]
+    for idx, p in enumerate(planet_list):
+        # สุ่ม/สลับระดับรัศมีหากดาวอยู่ใกล้กันน้อยกว่า 8 องศา
+        level = idx % len(radii_levels)
+        if idx > 0 and abs(p["angle_chart"] - planet_list[idx-1]["angle_chart"]) < 8.0:
+            level = (planet_list[idx-1]["level"] + 1) % len(radii_levels)
+        p["level"] = level
+        p["radius"] = radii_levels[level]
+
+    # วาดจุดและป้ายชื่อดาว
+    for p in planet_list:
+        rad = math.radians(p["angle_chart"])
+        # จุดพิกัดจริงบนเส้นวงกลม
+        px = cx + r_zodiac * math.cos(rad)
+        py = cy - r_zodiac * math.sin(rad)
+        # พิกัดป้ายข้อความที่ขยับรัศมีหลบ
+        tx = cx + p["radius"] * math.cos(rad)
+        ty = cy - p["radius"] * math.sin(rad)
+
+        svg.append(f'<circle cx="{px}" cy="{py}" r="2.5" fill="#7E22CE"/>')
+        svg.append(f'<line x1="{px}" y1="{py}" x2="{tx}" y2="{ty}" stroke="#C084FC" stroke-width="0.5" stroke-dasharray="1 1"/>')
+        
+        lbl_text = f'{p["symbol"]} {p["formatted"].split("°")[0]}°'
+        svg.append(f'<text x="{tx}" y="{ty+3}" font-size="9" font-weight="bold" fill="#3B0764" text-anchor="middle" class="astro-sym">{lbl_text}</text>')
 
     svg.append('</svg>')
     return "".join(svg)
 
 def calculate_natal_degrees(jul_day_natal, lat, lon):
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
-    
-    # 📌 Safe Guard: ตรวจสอบมิติความยาวของ cusps รองรับทุกเวอร์ชัน
-    if len(cusps) >= 13:
-        house_cusps_12 = [float(c) % 360.0 for c in cusps[1:13]]
-    else:
-        house_cusps_12 = [float(c) % 360.0 for c in cusps[:12]]
-
-    logger.info(f"Calculated 12 House Cusps: {house_cusps_12}")
+    house_cusps_12 = [float(c) % 360.0 for c in (cusps[1:13] if len(cusps) >= 13 else cusps[:12])]
 
     degrees = {}
     asc_deg, mc_deg = ascmc[0] % 360.0, ascmc[1] % 360.0
@@ -210,11 +262,9 @@ def calculate_chart(birth_dt_utc, lat, lon):
             "ruler_pos": f"{r_planet} in {r_pos.get('sign', '')} {r_pos.get('formatted', '')} (House {r_pos.get('house', '')})" if r_pos else "N/A"
         }
 
-    chart_svg = generate_chart_svg(birth_degrees)
-
     return {
         "birth_chart_degrees": birth_degrees,
         "transit_degrees": transit_degrees,
         "ruler_mapping": ruler_mapping,
-        "chart_svg": chart_svg
+        "chart_svg": generate_chart_svg(birth_degrees, house_cusps_12)
     }
