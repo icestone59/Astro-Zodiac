@@ -20,13 +20,13 @@ def analyze_natal_7_categories(user_name, chart_data):
             {"role": "system", "content": SYSTEM_PROMPT_NATAL_7},
             {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
         ],
-        temperature=0.1
+        temperature=0.15
     )
     return res.choices[0].message.content
 
 def analyze_transit_qa(user_name, question, chart_data):
     evidence_matrix = build_evidence_matrix(chart_data)
-    evidence_text = format_evidence_for_prompt(evidence_matrix, ["personality", "career", "finance", "love", "transits"])
+    evidence_text = format_evidence_for_prompt(evidence_matrix, ["personality", "career", "finance", "love", "shadow_wound", "transits"])
 
     res = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -34,7 +34,7 @@ def analyze_transit_qa(user_name, question, chart_data):
             {"role": "system", "content": SYSTEM_PROMPT_TRANSIT_QA},
             {"role": "user", "content": f"ผู้ถาม: {user_name}\nคำถาม: {question}\n\n{evidence_text}"}
         ],
-        temperature=0.1
+        temperature=0.15
     )
     return res.choices[0].message.content
 
@@ -48,6 +48,6 @@ def analyze_deep_report_json(user_name, chart_data):
             {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
             {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
         ],
-        temperature=0.1
+        temperature=0.15
     )
     return res.choices[0].message.content
