@@ -1,9 +1,14 @@
 import os
 import math
+import logging
 import urllib.request
 import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
+
+# ตั้งค่า Logging ระบบคำนวณทางดาราศาสตร์
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
+logger = logging.getLogger("AstroEngine")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EPHE_DIR = os.path.join(BASE_DIR, 'ephe')
@@ -17,9 +22,10 @@ def download_missing_ephe_files():
         fpath = os.path.join(EPHE_DIR, fname)
         if not os.path.exists(fpath):
             try:
+                logger.info(f"Downloading ephemeris file: {fname}")
                 urllib.request.urlretrieve(ASTRO_FTP_URL + fname, fpath)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Could not download {fname}: {e}")
 
 download_missing_ephe_files()
 swe.set_ephe_path(EPHE_DIR)
@@ -64,18 +70,20 @@ def get_coordinates(location_name):
         lat, lon = THAI_PROVINCES[clean]
         return lat, lon, clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v12", timeout=5)
+        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v13", timeout=5)
         query = f"{clean}, Thailand" if "Thailand" not in clean else clean
         loc = geolocator.geocode(query)
         if loc:
             return loc.latitude, loc.longitude, clean
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Geocoding exception for {clean}: {e}")
     return 13.7563, 100.5018, clean
 
 def format_degree(deg):
     deg_norm = float(deg) % 360.0
-    idx = int(deg_norm // 30) % 12  # ป้องกัน Index Out of Range
+    idx = int(deg_norm // 30)
+    if idx >= 12:  # Safe Guard กัน Index Overflow
+        idx = 11
     rem_deg = deg_norm % 30
     d = int(rem_deg)
     m = int((rem_deg - d) * 60)
@@ -122,9 +130,15 @@ def generate_chart_svg(birth_degrees):
 
 def calculate_natal_degrees(jul_day_natal, lat, lon):
     cusps, ascmc = swe.houses(jul_day_natal, lat, lon, b'P')
-    # ดึงค่าเฉพาะ Cusp 1 ถึง 12 (ตัด Index 0 ออก)
-    house_cusps_12 = [float(c) % 360.0 for c in cusps[1:13]]
     
+    # 📌 Safe Guard: ตรวจสอบมิติความยาวของ cusps รองรับทุกเวอร์ชัน
+    if len(cusps) >= 13:
+        house_cusps_12 = [float(c) % 360.0 for c in cusps[1:13]]
+    else:
+        house_cusps_12 = [float(c) % 360.0 for c in cusps[:12]]
+
+    logger.info(f"Calculated 12 House Cusps: {house_cusps_12}")
+
     degrees = {}
     asc_deg, mc_deg = ascmc[0] % 360.0, ascmc[1] % 360.0
     asc_sign, asc_fmt = format_degree(asc_deg)
