@@ -12,8 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f8f5ff; color: #1e293b; }
-        
-        /* Custom Prose Styles สำหรับกล่อง Insight Analytics */
         .prose-dark { color: #e2e8f0; font-size: 0.9rem; line-height: 1.7; }
         .prose-dark h1, .prose-dark h2 { color: #e9d5ff; font-weight: 700; font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid #4c1d95; padding-bottom: 0.25rem; }
         .prose-dark h3 { color: #fde047; font-weight: 600; font-size: 1rem; margin-top: 1rem; }
@@ -116,10 +114,10 @@
         <!-- ================= ฝั่งขวา (7 Columns) ================= -->
         <section class="lg:col-span-7 space-y-6">
             
-            <!-- 1. การ์ด INSIGHT ANALYTICS (ธีมม่วงเข้ม มีปุ่มกดดูปมลึกภายในการ์ด) -->
+            <!-- 1. การ์ด INSIGHT ANALYTICS -->
             <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[480px] shadow-2xl flex flex-col justify-between">
                 <div>
-                    <!-- Header INSIGHT ANALYTICS -->
+                    <!-- Header -->
                     <div class="border-b border-purple-800/60 pb-4 mb-5 flex justify-between items-center">
                         <div class="flex items-center gap-2.5">
                             <div class="w-7 h-7 rounded-lg bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-amber-300 text-xs">✦</div>
@@ -137,7 +135,7 @@
                     </div>
                 </div>
 
-                <!-- ปุ่มดูปมลึกของคุณ (อยู่ด้านขวาล่างของการ์ด Insight) -->
+                <!-- ปุ่มดูปมลึกของคุณ -->
                 <div class="pt-4 border-t border-purple-800/60 mt-4 flex justify-end">
                     <button onclick="handleDeepReport()" id="deepReportBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-amber-500/10 flex items-center gap-2">
                         <span>🔍 กดดูปมลึกของคุณ</span>
@@ -145,10 +143,9 @@
                 </div>
             </div>
 
-            <!-- 2. ตารางองศาดาวกำเนิด และ ดาวจร Real-time (อยู่ใต้ Insight Analytics) -->
+            <!-- 2. ตารางองศาดาวกำเนิด และ ดาวจร Real-time -->
             <div class="space-y-4">
                 
-                <!-- องศาดาวกำเนิดทั้งหมด (Accordion/Dropdown) -->
                 <details class="bg-white border border-purple-100 rounded-2xl shadow-md overflow-hidden group">
                     <summary class="flex justify-between items-center p-4 font-bold text-xs text-purple-950 cursor-pointer bg-purple-50/50 hover:bg-purple-100/50 transition">
                         <span class="flex items-center gap-2">
@@ -161,7 +158,6 @@
                     </div>
                 </details>
 
-                <!-- ตำแหน่งดาวจร Real-time (Transit Degrees) -->
                 <div class="bg-white border border-purple-100 rounded-2xl p-4 shadow-md">
                     <h3 class="text-xs font-bold text-purple-950 mb-2.5 flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -178,9 +174,10 @@
 
     </main>
 
-    <!-- JavaScript Logic -->
+    <!-- JavaScript Logic (2-Stage Decoupled Execution) -->
     <script>
-        // ดึงข้อมูลฟอร์ม
+        let cachedChartData = null;
+
         function getPayload() {
             const yearBE = parseInt(document.getElementById('year_be').value);
             const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
@@ -196,7 +193,7 @@
             };
         }
 
-        // ปุ่มคำนวณหลัก
+        // ปุ่มคำนวณหลัก (ประมวลผล 2 จังหวะ)
         document.getElementById('astroForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const submitBtn = document.getElementById('submitBtn');
@@ -207,37 +204,60 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<span>กำลังคำนวณตำแหน่งดาว...</span>`;
             statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
-            statusBadge.innerText = "Analyzing";
+            statusBadge.innerText = "Calculating Chart";
+
+            const payload = getPayload();
 
             try {
-                const res = await fetch('/analyze', {
+                // ⚡ จังหวะที่ 1: คำนวณดวงชะตาและวาดรูป SVG วงกลมทันที (<100ms)
+                const chartRes = await fetch('/calculate_chart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(getPayload())
+                    body: JSON.stringify(payload)
                 });
+                const chartResult = await chartRes.json();
+                if (!chartRes.ok || chartResult.status === 'error') throw new Error(chartResult.message);
 
-                const data = await res.json();
-                if (!res.ok || data.status === 'error') throw new Error(data.detail || data.message || 'เกิดข้อผิดพลาด');
+                cachedChartData = chartResult;
 
-                if (data.chart_svg) chartContainer.innerHTML = data.chart_svg;
+                // วาดรูปดวง + เติมตารางองศาดาวทันที!
+                if (chartResult.chart_svg) chartContainer.innerHTML = chartResult.chart_svg;
+                if (chartResult.birth_chart_degrees) renderBirthChartDegrees(chartResult.birth_chart_degrees);
+                if (chartResult.transit_degrees) renderTransitDegrees(chartResult.transit_degrees);
 
-                if (data.answer) {
+                // สลับสถานะให้เห็นว่ากำลังเจน AI Text
+                statusBadge.innerText = "Analyzing AI";
+                reportOutput.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-56 text-purple-300/60 text-center space-y-3">
+                        <div class="w-8 h-8 border-4 border-purple-500 border-t-amber-400 rounded-full animate-spin"></div>
+                        <p class="text-xs text-purple-200">กำลังประมวลผลบทพยากรณ์เชิงพัฒนาศักยภาพ...</p>
+                    </div>`;
+
+                // ⚡ จังหวะที่ 2: ดึงบทพยากรณ์ AI แบบ Async
+                const aiRes = await fetch('/analyze_ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_name: payload.user_name,
+                        question: payload.question,
+                        chart_data: cachedChartData
+                    })
+                });
+                const aiResult = await aiRes.json();
+                if (!aiRes.ok || aiResult.status === 'error') throw new Error(aiResult.message);
+
+                if (aiResult.answer) {
                     reportOutput.innerHTML = `
                         <div class="space-y-4">
                             <div class="bg-purple-900/40 border border-purple-700/50 p-3 rounded-xl">
                                 <h3 class="text-xs text-amber-300 font-bold uppercase tracking-wider mb-1">คำถามของคุณ</h3>
-                                <p class="text-sm text-white font-medium">"${data.question}"</p>
+                                <p class="text-sm text-white font-medium">"${aiResult.question}"</p>
                             </div>
-                            <div class="prose-dark max-w-none">
-                                ${marked.parse(data.answer)}
-                            </div>
+                            <div class="prose-dark max-w-none">${marked.parse(aiResult.answer)}</div>
                         </div>`;
-                } else if (data.report) {
-                    reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(data.report)}</div>`;
+                } else if (aiResult.report) {
+                    reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(aiResult.report)}</div>`;
                 }
-
-                if (data.birth_chart_degrees) renderBirthChartDegrees(data.birth_chart_degrees);
-                if (data.transit_degrees) renderTransitDegrees(data.transit_degrees);
 
                 statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
                 statusBadge.innerText = "Completed";
@@ -257,27 +277,47 @@
             const deepReportBtn = document.getElementById('deepReportBtn');
             const reportOutput = document.getElementById('reportOutput');
             const statusBadge = document.getElementById('statusBadge');
+            const payload = getPayload();
 
             deepReportBtn.disabled = true;
             statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
             statusBadge.innerText = "Deep Analyzing";
 
             try {
-                const res = await fetch('/deep_report', {
+                // หากยังไม่มีข้อมูลผูกดวง ให้ทำการคำนวณจังหวะแรกก่อน
+                if (!cachedChartData) {
+                    const chartRes = await fetch('/calculate_chart', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const chartResult = await chartRes.json();
+                    if (!chartRes.ok || chartResult.status === 'error') throw new Error(chartResult.message);
+                    cachedChartData = chartResult;
+
+                    if (chartResult.chart_svg) document.getElementById('chartContainer').innerHTML = chartResult.chart_svg;
+                    if (chartResult.birth_chart_degrees) renderBirthChartDegrees(chartResult.birth_chart_degrees);
+                    if (chartResult.transit_degrees) renderTransitDegrees(chartResult.transit_degrees);
+                }
+
+                reportOutput.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-56 text-purple-300/60 text-center space-y-3">
+                        <div class="w-8 h-8 border-4 border-amber-500 border-t-purple-400 rounded-full animate-spin"></div>
+                        <p class="text-xs text-purple-200">กำลังวิเคราะห์โครงสร้างปมจิตวิทยา 12 เรือนชะตา...</p>
+                    </div>`;
+
+                const deepRes = await fetch('/deep_report', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(getPayload())
+                    body: JSON.stringify({
+                        user_name: payload.user_name,
+                        chart_data: cachedChartData
+                    })
                 });
+                const deepResult = await deepRes.json();
+                if (!deepRes.ok || deepResult.status === 'error') throw new Error(deepResult.message);
 
-                const data = await res.json();
-                if (!res.ok || data.status === 'error') throw new Error(data.detail || data.message || 'เกิดข้อผิดพลาด');
-
-                reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(data.report)}</div>`;
-                
-                if (data.chart_svg) document.getElementById('chartContainer').innerHTML = data.chart_svg;
-                if (data.birth_chart_degrees) renderBirthChartDegrees(data.birth_chart_degrees);
-                if (data.transit_degrees) renderTransitDegrees(data.transit_degrees);
-
+                reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(deepResult.report)}</div>`;
                 statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
                 statusBadge.innerText = "Completed";
 
@@ -290,7 +330,6 @@
             }
         }
 
-        // แสดงองศาดาวกำเนิด
         function renderBirthChartDegrees(degrees) {
             const container = document.getElementById('birthChartDegreeBox');
             container.innerHTML = '';
@@ -307,7 +346,6 @@
             }
         }
 
-        // แสดงดาวจร Real-time
         function renderTransitDegrees(transits) {
             const container = document.getElementById('transitDegreeBox');
             container.innerHTML = '';
@@ -326,7 +364,6 @@
             });
         }
 
-        // ดึงดาวจรเมื่อโหลดหน้าเว็บ
         async function fetchInitialTransit() {
             try {
                 const res = await fetch('/transit');
