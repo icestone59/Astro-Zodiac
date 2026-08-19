@@ -29,13 +29,10 @@ download_missing_ephe_files()
 swe.set_ephe_path(EPHE_DIR)
 
 THAI_PROVINCES = {
-    "กรุงเทพมหานคร": (13.7563, 100.5018), "กรุงเทพ": (13.7563, 100.5018),
-    "นนทบุรี": (13.8591, 100.5217), "ปทุมธานี": (14.0208, 100.5250),
-    "สมุทรปราการ": (13.5991, 100.5968), "สมุทรสาคร": (13.5475, 100.2744),
-    "นครปฐม": (13.8196, 100.0622), "อยุธยา": (14.3532, 100.5684),
-    "เชียงใหม่": (18.7883, 98.9853), "เชียงราย": (19.9076, 99.8325),
-    "ภูเก็ต": (7.8804, 98.3923), "ขอนแก่น": (16.4322, 102.8236),
-    "ชลบุรี": (13.3611, 100.9847), "สงขลา": (7.1988, 100.5951)
+    "กรุงเทพมหานคร": (13.7563, 100.5018), "นนทบุรี": (13.8591, 100.5217), 
+    "ปทุมธานี": (14.0208, 100.5250), "สมุทรปราการ": (13.5991, 100.5968),
+    "เชียงใหม่": (18.7883, 98.9853), "ภูเก็ต": (7.8804, 98.3923),
+    "ขอนแก่น": (16.4322, 102.8236), "ชลบุรี": (13.3611, 100.9847)
 }
 
 ZODIAC_RULERS = {
@@ -45,11 +42,7 @@ ZODIAC_RULERS = {
     "Capricorn": "Saturn", "Aquarius": "Uranus", "Pisces": "Neptune"
 }
 
-ZODIAC_NAMES = [
-    "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-    "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
-]
-
+ZODIAC_NAMES = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 ZODIAC_SYMBOLS = ["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"]
 
 PLANET_SYMBOLS = {
@@ -71,12 +64,10 @@ def get_coordinates(location_name):
         return 13.7563, 100.5018, "กรุงเทพมหานคร"
     clean = str(location_name).strip()
     if clean in THAI_PROVINCES:
-        lat, lon = THAI_PROVINCES[clean]
-        return lat, lon, clean
+        return THAI_PROVINCES[clean][0], THAI_PROVINCES[clean][1], clean
     try:
-        geolocator = Nominatim(user_agent="evolutionary_astro_engine_v17", timeout=5)
-        query = f"{clean}, Thailand" if "Thailand" not in clean else clean
-        loc = geolocator.geocode(query)
+        geolocator = Nominatim(user_agent="evo_astro_light_theme", timeout=5)
+        loc = geolocator.geocode(f"{clean}, Thailand" if "Thailand" not in clean else clean)
         if loc:
             return loc.latitude, loc.longitude, clean
     except Exception:
@@ -95,31 +86,35 @@ def get_house_of_position(deg, house_cusps_12):
         c_start = house_cusps_12[i]
         c_end = house_cusps_12[(i + 1) % 12]
         if c_start < c_end:
-            if c_start <= deg_norm < c_end:
-                return i + 1
+            if c_start <= deg_norm < c_end: return i + 1
         else:
-            if deg_norm >= c_start or deg_norm < c_end:
-                return i + 1
+            if deg_norm >= c_start or deg_norm < c_end: return i + 1
     return 1
 
 def generate_chart_svg(birth_degrees, house_cusps_12):
+    """
+    Light Premium Purple-Gold Theme SVG Wheel
+    - พื้นหลังขาวสว่าง ตัดขอบสีทองสลับม่วงเข้ม
+    - 0° Aries อยู่ด้านบนเสมอ (ทิศเหนือ)
+    """
     cx, cy = 250, 250
     r_outer, r_zodiac, r_inner, r_core = 230, 195, 145, 75
 
     svg = ['<svg viewBox="0 0 500 500" class="w-full h-full font-sans" xmlns="http://www.w3.org/2000/svg">']
     svg.append('<defs>')
-    svg.append('<linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#FDE047"/><stop offset="100%" stop-color="#D97706"/></linearGradient>')
-    svg.append('<linearGradient id="purpleBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2E1065"/><stop offset="100%" stop-color="#1E1B4B"/></linearGradient>')
+    # กราเดียนต์สำหรับโหมดสว่าง (Light Theme)
+    svg.append('<linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#F59E0B"/><stop offset="100%" stop-color="#B45309"/></linearGradient>')
+    svg.append('<linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6B21A8"/><stop offset="100%" stop-color="#3B0764"/></linearGradient>')
     svg.append('<style>.astro-text { font-family: system-ui, -apple-system, sans-serif; paint-order: stroke fill; stroke-linecap: round; stroke-linejoin: round; }</style>')
     svg.append('</defs>')
 
-    # วงกลมพื้นหลังและโครงสร้างดวง
-    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_outer}" fill="url(#purpleBg)" stroke="url(#goldGrad)" stroke-width="3"/>')
-    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_zodiac}" fill="#3B0764" stroke="#7C3AED" stroke-width="2"/>')
-    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_inner}" fill="#2E1065" stroke="url(#goldGrad)" stroke-width="1.5"/>')
-    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_core}" fill="#1E1B4B" stroke="#7C3AED" stroke-width="2"/>')
+    # วงกลมพื้นหลัง (Light Theme)
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_outer}" fill="#FFFFFF" stroke="url(#goldGrad)" stroke-width="2.5"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_zodiac}" fill="#FAF5FF" stroke="#6B21A8" stroke-width="1.5"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_inner}" fill="#FFFFFF" stroke="url(#goldGrad)" stroke-width="1.5"/>')
+    svg.append(f'<circle cx="{cx}" cy="{cy}" r="{r_core}" fill="#F3E8FF" stroke="#6B21A8" stroke-width="1.5"/>')
 
-    # 📌 คำนวณให้ 0° ราศีเมษ (Aries) ตั้งตรงที่ทิศเหนือ (12 o'clock / 270° SVG)
+    # ล็อค 0° Aries ให้ตั้งตรงที่ 12 นาฬิกา (270° ใน SVG)
     def deg_to_svg_angle(deg):
         return (270.0 - deg) % 360.0
 
@@ -128,21 +123,21 @@ def generate_chart_svg(birth_degrees, house_cusps_12):
         z_start = i * 30.0
         z_mid = z_start + 15.0
         
-        # เส้นแบ่งราศี
+        # เส้นขีดแบ่งราศี
         l_rad = math.radians(deg_to_svg_angle(z_start))
         lx1 = cx + r_zodiac * math.cos(l_rad)
         ly1 = cy + r_zodiac * math.sin(l_rad)
         lx2 = cx + r_outer * math.cos(l_rad)
         ly2 = cy + r_outer * math.sin(l_rad)
-        svg.append(f'<line x1="{lx1}" y1="{ly1}" x2="{lx2}" y2="{ly2}" stroke="url(#goldGrad)" stroke-width="1.5"/>')
+        svg.append(f'<line x1="{lx1}" y1="{ly1}" x2="{lx2}" y2="{ly2}" stroke="#D97706" stroke-width="1"/>')
 
-        # สัญลักษณ์ราศี
+        # ตัวอักษรสัญลักษณ์ราศี (สีม่วงเข้ม)
         s_rad = math.radians(deg_to_svg_angle(z_mid))
         zx = cx + (r_outer - 17.5) * math.cos(s_rad)
         zy = cy + (r_outer - 17.5) * math.sin(s_rad)
-        svg.append(f'<text x="{zx}" y="{zy+6}" font-size="18" font-weight="bold" fill="url(#goldGrad)" text-anchor="middle" class="astro-text">{ZODIAC_SYMBOLS[i]}</text>')
+        svg.append(f'<text x="{zx}" y="{zy+6}" font-size="20" font-weight="bold" fill="url(#purpleGrad)" text-anchor="middle" class="astro-text">{ZODIAC_SYMBOLS[i]}</text>')
 
-    # วาดเส้นแบ่งเรือนชะตาและป้าย H1-H12
+    # วาดเส้นแบ่งเรือนชะตา (House Cusps) และตัวเลขเรือน 1-12
     for h_idx in range(12):
         c_deg = house_cusps_12[h_idx]
         next_c_deg = house_cusps_12[(h_idx + 1) % 12]
@@ -154,19 +149,19 @@ def generate_chart_svg(birth_degrees, house_cusps_12):
         y2 = cy + r_zodiac * math.sin(rad)
         
         is_cardinal = h_idx in [0, 3, 6, 9]
-        stroke_c = "url(#goldGrad)" if is_cardinal else "#8B5CF6"
-        stroke_w = "2.5" if is_cardinal else "1"
+        stroke_c = "url(#goldGrad)" if is_cardinal else "#C084FC"
+        stroke_w = "2" if is_cardinal else "1"
         svg.append(f'<line x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}" stroke="{stroke_c}" stroke-width="{stroke_w}"/>')
 
-        # กำกับเลขเรือนชะตา (H1-H12)
+        # กำกับเลขเรือนชะตา (สีทองเข้ม)
         diff = (next_c_deg - c_deg) % 360.0
         h_mid_deg = (c_deg + diff / 2.0) % 360.0
         h_rad = math.radians(deg_to_svg_angle(h_mid_deg))
         hx = cx + (r_core + 22) * math.cos(h_rad)
         hy = cy + (r_core + 22) * math.sin(h_rad)
-        svg.append(f'<text x="{hx}" y="{hy+4}" font-size="11" font-weight="bold" fill="#A7F3D0" stroke="#064E3B" stroke-width="3" text-anchor="middle" class="astro-text">H{h_idx+1}</text>')
+        svg.append(f'<text x="{hx}" y="{hy+4}" font-size="12" font-weight="bold" fill="#B45309" stroke="#FFFFFF" stroke-width="2" text-anchor="middle" class="astro-text">H{h_idx+1}</text>')
 
-    # คำนวณพิกัดดาว + กระจายรัศมีลดการซ้อนทับ
+    # คำนวณพิกัดดาว + กระจายรัศมีป้องกันข้อความทับซ้อน (Collision Detection)
     planet_list = []
     for name, data in birth_degrees.items():
         if "degree_raw" in data:
@@ -174,11 +169,8 @@ def generate_chart_svg(birth_degrees, house_cusps_12):
             deg_in_sign = data.get("degree_in_sign", deg % 30.0)
             angle_svg = deg_to_svg_angle(deg)
             planet_list.append({
-                "name": name,
-                "degree_raw": deg,
-                "deg_in_sign": deg_in_sign,
-                "angle_svg": angle_svg,
-                "symbol": PLANET_SYMBOLS.get(name, name[:2])
+                "name": name, "degree_raw": deg, "deg_in_sign": deg_in_sign,
+                "angle_svg": angle_svg, "symbol": PLANET_SYMBOLS.get(name, name[:2])
             })
 
     planet_list.sort(key=lambda p: p["angle_svg"])
@@ -192,7 +184,7 @@ def generate_chart_svg(birth_degrees, house_cusps_12):
         p["level"] = level
         p["radius"] = radii_levels[level]
 
-    # วาดหมุดดาวและป้ายข้อความคมชัดสูง
+    # วาดหมุดดาวและป้ายข้อความ
     for p in planet_list:
         rad = math.radians(p["angle_svg"])
         px = cx + r_zodiac * math.cos(rad)
@@ -201,15 +193,15 @@ def generate_chart_svg(birth_degrees, house_cusps_12):
         ty = cy + p["radius"] * math.sin(rad)
 
         # หมุดดาวทองคำ
-        svg.append(f'<circle cx="{px}" cy="{py}" r="3.5" fill="#FDE047" stroke="#1E1B4B" stroke-width="1"/>')
+        svg.append(f'<circle cx="{px}" cy="{py}" r="3.5" fill="#D97706" stroke="#FFFFFF" stroke-width="1.5"/>')
         
-        # เส้นประทองคำโยงตำแหน่งดาว
+        # เส้นประโยงตำแหน่งดาว
         if abs(p["radius"] - r_zodiac) > 5:
-            svg.append(f'<line x1="{px}" y1="{py}" x2="{tx}" y2="{ty}" stroke="#FDE047" stroke-width="1" stroke-dasharray="2 2"/>')
+            svg.append(f'<line x1="{px}" y1="{py}" x2="{tx}" y2="{ty}" stroke="#D97706" stroke-width="1" stroke-dasharray="2 2"/>')
         
-        # ป้ายข้อความดาวพร้อม Stroke ขอบดำอ่านง่าย
+        # ป้ายข้อความ (ตัวหนังสือสีม่วงเข้ม ขอบขาวหนา เพื่อความคมชัดบนพื้นสว่าง)
         lbl_text = f'{p["symbol"]} {p["deg_in_sign"]:.1f}°'
-        svg.append(f'<text x="{tx}" y="{ty+4}" font-size="12" font-weight="bold" fill="#FFFFFF" stroke="#0F172A" stroke-width="3.5" text-anchor="middle" class="astro-text">{lbl_text}</text>')
+        svg.append(f'<text x="{tx}" y="{ty+4}" font-size="12" font-weight="bold" fill="#3B0764" stroke="#FFFFFF" stroke-width="3" text-anchor="middle" class="astro-text">{lbl_text}</text>')
 
     svg.append('</svg>')
     return "".join(svg)
@@ -237,12 +229,8 @@ def calculate_natal_degrees(jul_day_natal, lat, lon):
         sign, formatted, deg_in_sign = format_degree(lon_deg)
         house = get_house_of_position(lon_deg, house_cusps_12)
         degrees[name] = {
-            "sign": sign,
-            "formatted": formatted,
-            "degree_raw": lon_deg,
-            "degree_in_sign": deg_in_sign,
-            "is_retrograde": is_retro,
-            "house": house
+            "sign": sign, "formatted": formatted, "degree_raw": lon_deg,
+            "degree_in_sign": deg_in_sign, "is_retrograde": is_retro, "house": house
         }
 
     return degrees, house_cusps_12
@@ -262,12 +250,8 @@ def calculate_current_transits(house_cusps_12=None):
         sign, formatted, deg_in_sign = format_degree(lon_deg)
         house = get_house_of_position(lon_deg, house_cusps_12) if house_cusps_12 else 1
         transits[name] = {
-            "sign": sign,
-            "formatted": formatted,
-            "degree_raw": lon_deg,
-            "degree_in_sign": deg_in_sign,
-            "is_retrograde": is_retro,
-            "house_in_natal": house
+            "sign": sign, "formatted": formatted, "degree_raw": lon_deg,
+            "degree_in_sign": deg_in_sign, "is_retrograde": is_retro, "house_in_natal": house
         }
     return transits
 
@@ -286,9 +270,8 @@ def calculate_chart(birth_dt_utc, lat, lon):
         r_planet = ZODIAC_RULERS[h_sign]
         r_pos = birth_degrees.get(r_planet, {})
         ruler_mapping[f"House_{h_num}"] = {
-            "sign": h_sign,
-            "ruler_planet": r_planet,
-            "ruler_pos": f"{r_planet} in {r_pos.get('sign', '')} {r_pos.get('formatted', '')} (House {r_pos.get('house', '')})" if r_pos else "N/A"
+            "sign": h_sign, "ruler_planet": r_planet,
+            "ruler_pos": f"{r_planet} in {r_pos.get('sign', '')} (H{r_pos.get('house', '')})" if r_pos else "N/A"
         }
 
     return {
