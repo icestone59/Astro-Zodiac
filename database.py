@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import hashlib
 
 DB_NAME = "astro_cache.db"
 
@@ -39,6 +40,33 @@ def init_db():
         )
     ''')
     
+    conn.commit()
+    conn.close()
+
+def generate_chart_hash(chart_data):
+    """สร้าง Hash แบบไม่ซ้ำจากข้อมูลองศาดาวกำเนิด เพื่อใช้เป็น Key"""
+    birth_data = chart_data.get("birth_chart_degrees", {})
+    # เรียง key ก่อนแปลงเป็น string เพื่อให้ hash ตรงกันเสมอ
+    data_str = json.dumps(birth_data, sort_keys=True)
+    return hashlib.md5(data_str.encode()).hexdigest()
+
+def get_cached_ai_report(user_key, report_type):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT content FROM ai_reports WHERE user_key = ? AND report_type = ?", (user_key, report_type))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        return json.loads(row[0])
+    return None
+
+def save_cached_ai_report(user_key, report_type, content_dict):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR REPLACE INTO ai_reports (user_key, report_type, content)
+        VALUES (?, ?, ?)
+    ''', (user_key, report_type, json.dumps(content_dict)))
     conn.commit()
     conn.close()
 
