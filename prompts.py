@@ -393,9 +393,9 @@ POTENTIAL:
 [
   {
     "name": "...",
-    "potential": 0-100,
-    "activation": 0-100,
-    "block": 0-100,
+    "potential": 0,
+    "activation": 0,
+    "block": 0,
     "evidence": ["..."],
     "reason": "..."
   }
