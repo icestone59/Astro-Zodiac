@@ -12,38 +12,22 @@ from evidence_engine import build_evidence_matrix, format_evidence_for_prompt
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def extract_json_block(text, marker):
-    """สกัด JSON Array ด้วยการนับวงเล็บ (Bracket Matching) ป้องกัน JSON ขาดแหว่ง"""
-    marker_str = f"{marker}:"
-    start_idx = text.find(marker_str)
-    if start_idx == -1:
-        return None, text
-        
-    array_start = text.find("[", start_idx)
-    if array_start == -1:
-        return None, text
-        
-    bracket_count = 0
-    array_end = -1
-    for i in range(array_start, len(text)):
-        if text[i] == '[':
-            bracket_count += 1
-        elif text[i] == ']':
-            bracket_count -= 1
-            
-        if bracket_count == 0:
-            array_end = i + 1
-            break
-            
-    if array_end != -1:
-        json_str = text[array_start:array_end]
+def extract_and_clean_json(text, marker):
+    """สกัด JSON Array และลบก้อนข้อมูลนั้นออกจาก Text หลัก"""
+    # ใช้ Regex ค้นหา marker ตามด้วยอะไรก็ได้ จนกว่าจะเจอวงเล็บ [ ... ]
+    pattern = rf"{marker}.*?(\[.*?\])"
+    match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    
+    if match:
+        json_str = match.group(1)
         try:
-            parsed_json = json.loads(json_str)
-            text_to_remove = text[start_idx:array_end]
-            clean_text = text.replace(text_to_remove, "")
-            return parsed_json, clean_text
-        except Exception as e:
-            print(f"JSON Parse Error for {marker}: {e}\nRaw String: {json_str}")
+            parsed_data = json.loads(json_str)
+            # ลบก้อนที่หาเจอออกจากข้อความหลัก เพื่อไม่ให้ไปโผล่ในหน้าเว็บ
+            clean_text = text.replace(match.group(0), "")
+            return parsed_data, clean_text
+        except json.JSONDecodeError as e:
+            print(f"JSON Parse Error for {marker}: {e}\nString: {json_str}")
+            return None, text
             
     return None, text
 
@@ -81,7 +65,7 @@ def analyze_transit_qa(user_name, question, chart_data):
     return res.choices[0].message.content
 
 def analyze_deep_report(user_name, chart_data):
-    """3. วิเคราะห์ Dark Uranian Deep Report 12 หัวข้อ พร้อม Graph Data"""
+    """วิเคราะห์ Deep Report และแยก Data Graph ออกมา"""
     evidence_matrix = build_evidence_matrix(chart_data)
     evidence_text = format_evidence_for_prompt(evidence_matrix)
 
@@ -96,13 +80,17 @@ def analyze_deep_report(user_name, chart_data):
     
     full_text = res.choices[0].message.content
     
-    radar_data, full_text = extract_json_block(full_text, "RADAR_DATA")
-    bar_data, full_text = extract_json_block(full_text, "POTENTIAL_BAR_DATA")
-    potential_data, full_text = extract_json_block(full_text, "POTENTIAL")
+    # 1. สกัด Data Graph ออกมา
+    radar_data, full_text = extract_and_clean_json(full_text, "RADAR_DATA")
+    bar_data, full_text = extract_and_clean_json(full_text, "POTENTIAL_BAR_DATA")
+    _, full_text = extract_and_clean_json(full_text, "POTENTIAL") # ลบก้อน POTENTIAL ทิ้ง
     
-    full_text = re.sub(r'6\. GRAPH DATA\n+', '', full_text, flags=re.IGNORECASE)
-    full_text = re.sub(r'A\. POTENTIAL RADAR\n+', '', full_text, flags=re.IGNORECASE)
-    full_text = re.sub(r'B\. POTENTIAL vs ACTIVATION vs BLOCK\n+', '', full_text, flags=re.IGNORECASE)
+    # 2. คลีนหัวข้อที่ AI ชอบแถมมาทิ้งไปให้หมด
+    full_text = re.sub(r'={3,}.*?5\. DARK URANIAN POTENTIAL MAP.*?={3,}', '', full_text, flags=re.DOTALL | re.IGNORECASE)
+    full_text = re.sub(r'={3,}.*?6\. GRAPH DATA.*?={3,}', '', full_text, flags=re.DOTALL | re.IGNORECASE)
+    full_text = re.sub(r'A\. POTENTIAL RADAR\n*', '', full_text, flags=re.IGNORECASE)
+    full_text = re.sub(r'B\. POTENTIAL vs ACTIVATION vs BLOCK\n*', '', full_text, flags=re.IGNORECASE)
+    full_text = re.sub(r'GRAPH DATA\n*', '', full_text, flags=re.IGNORECASE)
     
     return {
         "report": full_text.strip(),
