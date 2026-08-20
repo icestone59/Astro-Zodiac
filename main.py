@@ -73,7 +73,7 @@ def calculate_chart_endpoint():
 def analyze_ai_endpoint():
     data = request.get_json() or {}
     user_name = data.get('user_name') or 'คุณ'
-    question = data.get('question')
+    report_type = data.get('report_type') or 'natal_7' # ต้องส่งจาก Frontend
     chart_data = data.get('chart_data')
 
     if not chart_data:
@@ -83,8 +83,20 @@ def analyze_ai_endpoint():
         qa_answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
         return jsonify({"status": "success", "type": "transit_qa", "question": question, "answer": qa_answer})
 
+    # กรณี Deep Report แบบใหม่
+    if report_type == 'deep_report':
+        result = analyze_deep_report(user_name, chart_data)
+        return jsonify({
+            "status": "success", 
+            "type": "deep_report", 
+            "report": result["report"],
+            "radar_data": result["radar_data"],
+            "bar_data": result["bar_data"]
+        })
+
     report_text = analyze_natal_7_categories(user_name, chart_data)
     return jsonify({"status": "success", "type": "natal_7_categories", "report": report_text})
+
 
 @app.route('/deep_report', methods=['POST'])
 def deep_report_endpoint():
