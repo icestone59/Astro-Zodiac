@@ -236,28 +236,29 @@
             question: document.getElementById("question").value
         };
 
-        try {
-            const data = await safeFetchJson('/analyze_ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+try {
+    const data = await safeFetchJson('/analyze_ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
 
-            // ตรวจสอบว่าเป็นการตอบกลับแบบ Deep Report ที่มีกราฟหรือไม่
-            if (reportType === 'deep_report' && data.radar_data) {
-                renderCharts(data.radar_data, data.bar_data);
-                document.getElementById("charts-wrapper").style.display = "flex";
-            }
+    // 1. นำ Report ไปเรนเดอร์เป็น Markdown
+    let reportText = data.report || data.answer;
+    document.getElementById("report-content").innerHTML = marked.parse(reportText);
 
-            // แปลง Text ตอบกลับเป็น Markdown HTML
-            let reportText = data.report || data.answer;
-            document.getElementById("report-content").innerHTML = marked.parse(reportText);
-            
-            showStatus("วิเคราะห์เสร็จสมบูรณ์!");
-        } catch (error) {
-            showStatus(`Error: ${error.message}`, true);
-        }
+    // 2. ถ้ามีข้อมูลกราฟ ให้แสดงคอนเทนเนอร์และวาดกราฟ
+    if (reportType === 'deep_report' && data.radar_data && data.radar_data.length > 0) {
+        document.getElementById("charts-wrapper").style.display = "flex";
+        renderCharts(data.radar_data, data.bar_data);
+    } else {
+        document.getElementById("charts-wrapper").style.display = "none";
     }
+    
+    showStatus("วิเคราะห์เสร็จสมบูรณ์!");
+} catch (error) {
+    showStatus(`Error: ${error.message}`, true);
+}
 
     // 4. ระบบวาดกราฟ Dark Uranian Potential Map (Chart.js)
     function renderCharts(radarData, barData) {
