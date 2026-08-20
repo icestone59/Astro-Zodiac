@@ -3,412 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evolutionary Astrology Engine</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Marked.js -->
+    <title>Dark Uranian - Evolutionary Astrology</title>
+
+    <!-- ไลบรารีสำหรับแสดงผลข้อความ Markdown และสร้างกราฟ -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- CSS: คงโครงสร้าง Layout แนว Dark Theme (สามารถใช้ร่วมกับคลาสเดิมของคุณได้) -->
     <style>
-        body { font-family: 'Sarabun', sans-serif; background-color: #f8f5ff; color: #1e293b; }
-        .prose-dark { color: #e2e8f0; font-size: 0.9rem; line-height: 1.7; }
-        .prose-dark h1, .prose-dark h2 { color: #e9d5ff; font-weight: 700; font-size: 1.15rem; margin-top: 1.25rem; margin-bottom: 0.5rem; border-bottom: 1px solid #4c1d95; padding-bottom: 0.25rem; }
-        .prose-dark h3 { color: #fde047; font-weight: 600; font-size: 1rem; margin-top: 1rem; }
-        .prose-dark p { margin-bottom: 0.75rem; }
-        .prose-dark strong { color: #fde047; font-weight: 600; }
-        .prose-dark ul { list-style-type: disc; padding-left: 1.25rem; color: #cbd5e1; margin-bottom: 0.75rem; }
-        .prose-dark li { margin-bottom: 0.25rem; }
+        :root {
+            --bg-dark: #0b0f19;
+            --panel-bg: #151b2b;
+            --text-light: #e2e8f0;
+            --accent: #6b4ce6;
+            --accent-hover: #5a3bc2;
+            --border: #2d3748;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Sarabun', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 20px; line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .panel {
+            background: var(--panel-bg);
+            padding: 25px; border-radius: 12px;
+            margin-bottom: 25px; border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+        }
+        h1, h2, h3 { color: var(--accent); margin-top: 0; }
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+        .form-group { flex: 1; min-width: 120px; }
+        label { display: block; margin-bottom: 5px; font-size: 0.9em; color: #a0aec0; }
+        input, select, textarea {
+            width: 100%; padding: 10px;
+            background: var(--bg-dark); color: white;
+            border: 1px solid var(--border); border-radius: 6px;
+            box-sizing: border-box; font-family: inherit;
+        }
+        button {
+            background: var(--accent); color: white;
+            border: none; padding: 12px 20px; border-radius: 6px;
+            cursor: pointer; font-size: 16px; font-weight: bold;
+            transition: 0.2s; margin-right: 10px; margin-bottom: 10px;
+        }
+        button:hover { background: var(--accent-hover); }
+        button:disabled { background: #4a5568; cursor: not-allowed; }
+        
+        /* Layout สำหรับกราฟ */
+        .charts-container {
+            display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;
+            margin-top: 20px; margin-bottom: 20px;
+        }
+        .chart-box {
+            flex: 1; min-width: 300px; max-width: 400px;
+            background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;
+        }
+        
+        /* สถานะโหลดข้อมูล */
+        #status-message {
+            color: #38b2ac; font-weight: bold; margin-bottom: 15px; display: none;
+        }
+        .error-text { color: #fc8181 !important; }
+        #report-content { margin-top: 20px; }
+        #report-content h3 { border-bottom: 1px solid var(--border); padding-bottom: 10px; }
     </style>
 </head>
-<body class="min-h-screen">
+<body>
 
-    <!-- Header -->
-    <header class="border-b border-purple-100 bg-white/90 backdrop-blur sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white font-bold text-xs shadow-md shadow-purple-200">🔮</div>
-                <div>
-                    <h1 class="text-base font-bold text-purple-950 tracking-tight">EVOLUTIONARY ASTROLOGY ENGINE</h1>
-                    <p class="text-[10px] text-purple-600 font-medium">โหราศาสตร์สากลเชิงพัฒนาศักยภาพ</p>
-                </div>
+<div class="container">
+    
+    <!-- ส่วนที่ 1: ข้อมูลบุคคล (Birth Data) -->
+    <div class="panel">
+        <h2>ข้อมูลดวงชะตากำเนิด (Birth Chart)</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>ชื่อ-นามแฝง</label>
+                <input type="text" id="user_name" placeholder="ชื่อของคุณ" value="คุณไอซ์">
             </div>
-            <a href="/admin" class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold px-3 py-1.5 rounded-lg transition">⚙️ ตั้งค่าคลังหลักการ</a>
+            <div class="form-group">
+                <label>สถานที่เกิด (จังหวัด)</label>
+                <input type="text" id="location_name" placeholder="เช่น กรุงเทพมหานคร" value="กรุงเทพมหานคร">
+            </div>
         </div>
-    </header>
-
-    <!-- Main Grid Layout -->
-    <main class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-
-        <!-- ================= ฝั่งซ้าย (5 Columns) ================= -->
-        <section class="lg:col-span-5 space-y-6">
-            
-            <!-- 1. การ์ดข้อมูลวันเวลาและสถานที่เกิด -->
-            <div class="bg-white border border-purple-100 rounded-2xl p-6 shadow-xl shadow-purple-950/5">
-                <div class="flex items-center gap-2 mb-5 pb-3 border-b border-purple-50">
-                    <span class="text-purple-600">✨</span>
-                    <h2 class="text-base font-bold text-purple-950">ข้อมูลวันเวลาและสถานที่เกิด</h2>
-                </div>
-                
-                <form id="astroForm" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">ชื่อผู้ใช้</label>
-                        <input type="text" id="user_name" value="คุณไอซ์" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">วันเกิด</label>
-                            <input type="number" id="day" value="15" min="1" max="31" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">เดือนเกิด</label>
-                            <input type="number" id="month" value="8" min="1" max="12" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">ปีเกิด (พ.ศ.)</label>
-                            <input type="number" id="year_be" value="2538" min="2400" max="2600" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">เวลาเกิด (ชั่วโมง 0-23)</label>
-                            <input type="number" id="hour" value="14" min="0" max="23" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">นาทีเกิด (0-59)</label>
-                            <input type="number" id="minute" value="30" min="0" max="59" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">จังหวัดที่เกิด (ประเทศไทย)</label>
-                        <input type="text" id="location_name" value="กรุงเทพมหานคร" required class="w-full bg-purple-50/30 border border-purple-200 rounded-xl px-3 py-2 text-sm text-purple-950 font-medium focus:border-purple-600 focus:bg-white focus:outline-none transition">
-                    </div>
-
-                    <div class="pt-2">
-                        <label class="block text-xs font-bold text-purple-800 mb-1">คำถามเฉพาะเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
-                        <input type="text" id="question" class="w-full bg-purple-50/50 border border-purple-300 rounded-xl px-3 py-2 text-sm text-purple-950 placeholder-purple-400 focus:border-purple-600 focus:bg-white focus:outline-none transition" placeholder="เช่น ผมจะได้งานเมื่อไหร่">
-                    </div>
-
-                    <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-purple-700 to-indigo-800 hover:from-purple-800 hover:to-indigo-900 text-white font-bold py-3 rounded-xl transition duration-200 shadow-md shadow-purple-900/20 text-sm flex justify-center items-center gap-2 mt-4">
-                        <span>คำนวณตำแหน่งดาวและวิเคราะห์</span>
-                    </button>
-                </form>
+        <div class="form-row">
+            <div class="form-group">
+                <label>วันที่เกิด</label>
+                <input type="number" id="day" min="1" max="31" value="1">
             </div>
-
-            <!-- 2. การ์ด BIRTH CHART WHEEL (อยู่ฝั่งซ้ายล่าง) -->
-            <div class="bg-white border border-purple-100 rounded-2xl p-5 shadow-xl shadow-purple-950/5 flex flex-col items-center">
-                <h3 class="text-xs font-bold text-purple-900 mb-4 self-start flex items-center gap-2">
-                    <span class="text-purple-600">⚛️</span> BIRTH CHART WHEEL
-                </h3>
-                <div id="chartContainer" class="w-full max-w-[340px] aspect-square flex items-center justify-center border border-purple-100 rounded-full p-2 bg-purple-50/30">
-                    <div class="text-purple-400 text-xs text-center font-medium">ระบุวันเวลาเกิดและกดทำนายเพื่อสร้างรูปดวงชะตา</div>
-                </div>
+            <div class="form-group">
+                <label>เดือนที่เกิด</label>
+                <input type="number" id="month" min="1" max="12" value="1">
             </div>
-
-        </section>
-
-
-        <!-- ================= ฝั่งขวา (7 Columns) ================= -->
-        <section class="lg:col-span-7 space-y-6">
-            
-            <!-- 1. การ์ด INSIGHT ANALYTICS -->
-            <div class="bg-gradient-to-br from-slate-950 via-purple-950 to-slate-900 text-slate-100 border border-purple-800/40 rounded-2xl p-6 min-h-[480px] shadow-2xl flex flex-col justify-between">
-                <div>
-                    <!-- Header -->
-                    <div class="border-b border-purple-800/60 pb-4 mb-5 flex justify-between items-center">
-                        <div class="flex items-center gap-2.5">
-                            <div class="w-7 h-7 rounded-lg bg-purple-600/30 border border-purple-400/30 flex items-center justify-center text-amber-300 text-xs">✦</div>
-                            <h2 class="text-base font-bold text-white tracking-wide">INSIGHT ANALYTICS</h2>
-                        </div>
-                        <span id="statusBadge" class="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-medium">Ready</span>
-                    </div>
-
-                    <!-- Output Area -->
-                    <div id="reportOutput" class="prose-dark max-w-none">
-                        <div class="flex flex-col items-center justify-center h-56 text-purple-300/60 text-center space-y-4">
-                            <div class="w-12 h-14 rounded-full bg-purple-900/40 border border-purple-700/40 flex items-center justify-center text-xl text-amber-400 animate-pulse">🌟</div>
-                            <p class="text-xs font-medium max-w-xs">ระบบพร้อมประมวลผลคำทำนาย 7 หมวดหมู่ โดยแสดงสัญลักษณ์ (i) เฉพาะส่วนที่แปลจาก AI</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ปุ่มดูปมลึกของคุณ -->
-                <div class="pt-4 border-t border-purple-800/60 mt-4 flex justify-end">
-                    <button onclick="handleDeepReport()" id="deepReportBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs transition shadow-lg shadow-amber-500/10 flex items-center gap-2">
-                        <span>🔍 กดดูปมลึกของคุณ</span>
-                    </button>
-                </div>
+            <div class="form-group">
+                <label>ปีที่เกิด (พ.ศ.)</label>
+                <input type="number" id="year" value="2538">
             </div>
-
-            <!-- 2. ตารางองศาดาวกำเนิด และ ดาวจร Real-time -->
-            <div class="space-y-4">
-                
-                <details class="bg-white border border-purple-100 rounded-2xl shadow-md overflow-hidden group">
-                    <summary class="flex justify-between items-center p-4 font-bold text-xs text-purple-950 cursor-pointer bg-purple-50/50 hover:bg-purple-100/50 transition">
-                        <span class="flex items-center gap-2">
-                            <span>📊</span> องศาดาวกำเนิดทั้งหมด (Birth Chart Degrees)
-                        </span>
-                        <span class="text-purple-600 transition group-open:rotate-180">▼</span>
-                    </summary>
-                    <div id="birthChartDegreeBox" class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs text-slate-700 border-t border-purple-100 bg-white">
-                        <span class="text-slate-400 col-span-full text-center py-2">คำนวณดวงชะตาก่อนเพื่อดูองศาดาวกำเนิด</span>
-                    </div>
-                </details>
-
-                <div class="bg-white border border-purple-100 rounded-2xl p-4 shadow-md">
-                    <h3 class="text-xs font-bold text-purple-950 mb-2.5 flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        ตำแหน่งดาวจร Real-time (Transit Degrees)
-                    </h3>
-                    <div id="transitDegreeBox" class="flex flex-wrap gap-2 text-xs">
-                        <span class="text-slate-400">กำลังโหลดตำแหน่งดาวจร...</span>
-                    </div>
-                </div>
-
+            <div class="form-group">
+                <label>เวลาเกิด (ชั่วโมง)</label>
+                <input type="number" id="hour" min="0" max="23" value="12">
             </div>
+            <div class="form-group">
+                <label>เวลาเกิด (นาที)</label>
+                <input type="number" id="minute" min="0" max="59" value="0">
+            </div>
+        </div>
+        <button id="btn-calculate" onclick="calculateChart()">1. คำนวณองศาดาว (Calculate Chart)</button>
+    </div>
 
-        </section>
+    <!-- ส่วนที่ 2: เครื่องมือวิเคราะห์ (Analysis Tools) -->
+    <div class="panel">
+        <h2>คำทำนายเชิงพัฒนาศักยภาพ</h2>
+        
+        <!-- ถาม-ตอบ Transit -->
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label>คำถามเฉพาะเจาะจง (Transit Q&A)</label>
+            <textarea id="question" rows="2" placeholder="เช่น ผมจะได้งานเมื่อไหร่? หรือ ปัญหาที่กำลังเกิดจะแก้อย่างไร?"></textarea>
+        </div>
 
-    </main>
+        <div>
+            <button id="btn-natal7" onclick="analyzeAI('natal_7')" disabled>วิเคราะห์พื้นดวง 7 หมวด</button>
+            <button id="btn-deep" onclick="analyzeAI('deep_report')" disabled>วิเคราะห์ Deep Report + กราฟ</button>
+            <button id="btn-transit" onclick="analyzeAI('transit_qa')" disabled>ถาม-ตอบ (Transit)</button>
+        </div>
 
-    <!-- JavaScript Logic (2-Stage Decoupled Execution) -->
-    <script>
-        let cachedChartData = null;
+        <div id="status-message">กำลังประมวลผล... โปรดรอสักครู่</div>
+    </div>
 
-        function getPayload() {
-            const yearBE = parseInt(document.getElementById('year_be').value);
-            const yearAD = yearBE > 2400 ? yearBE - 543 : yearBE;
-            return {
-                user_name: document.getElementById('user_name').value.trim() || "คุณ",
-                day: parseInt(document.getElementById('day').value),
-                month: parseInt(document.getElementById('month').value),
-                year: yearAD,
-                hour: parseInt(document.getElementById('hour').value),
-                minute: parseInt(document.getElementById('minute').value),
-                location_name: document.getElementById('location_name').value.trim(),
-                question: document.getElementById('question').value.trim() || null
-            };
+    <!-- ส่วนที่ 3: แสดงผลลัพธ์และการฟ (Results & Charts) -->
+    <div class="panel" id="result-panel" style="display: none;">
+        <h2>ผลการวิเคราะห์</h2>
+        
+        <!-- พื้นที่สำหรับแสดงกราฟ (ซ่อนไว้ก่อนจนกว่าจะเรียก Deep Report) -->
+        <div class="charts-container" id="charts-wrapper" style="display: none;">
+            <div class="chart-box">
+                <canvas id="potentialRadarChart"></canvas>
+            </div>
+            <div class="chart-box">
+                <canvas id="potentialBarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- พื้นที่แสดงข้อความ (Markdown) -->
+        <div id="report-content"></div>
+    </div>
+
+</div>
+
+<!-- JavaScript Logic (Core Engine) -->
+<script>
+    let currentChartData = null;
+    let radarChartInstance = null;
+    let barChartInstance = null;
+
+    // 1. ฟังก์ชันป้องกัน Error Unexpected token '<' จาก Backend HTML Response
+    async function safeFetchJson(url, options) {
+        const res = await fetch(url, options);
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!contentType.includes("application/json")) {
+            const errorHtml = await res.text();
+            console.error("RAW SERVER ERROR HTML:", errorHtml);
+            throw new Error(`เซิร์ฟเวอร์ขัดข้อง (HTTP ${res.status}): โปรดตรวจสอบ Logs ฝั่ง Render`);
         }
 
-        // ปุ่มคำนวณหลัก (ประมวลผล 2 จังหวะ)
-        document.getElementById('astroForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            const statusBadge = document.getElementById('statusBadge');
-            const reportOutput = document.getElementById('reportOutput');
-            const chartContainer = document.getElementById('chartContainer');
-
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span>กำลังคำนวณตำแหน่งดาว...</span>`;
-            statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
-            statusBadge.innerText = "Calculating Chart";
-
-            const payload = getPayload();
-
-            try {
-                // ⚡ จังหวะที่ 1: คำนวณดวงชะตาและวาดรูป SVG วงกลมทันที (<100ms)
-                const chartRes = await fetch('/calculate_chart', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const chartResult = await chartRes.json();
-                if (!chartRes.ok || chartResult.status === 'error') throw new Error(chartResult.message);
-
-                cachedChartData = chartResult;
-
-                // วาดรูปดวง + เติมตารางองศาดาวทันที!
-                if (chartResult.chart_svg) chartContainer.innerHTML = chartResult.chart_svg;
-                if (chartResult.birth_chart_degrees) renderBirthChartDegrees(chartResult.birth_chart_degrees);
-                if (chartResult.transit_degrees) renderTransitDegrees(chartResult.transit_degrees);
-
-                // สลับสถานะให้เห็นว่ากำลังเจน AI Text
-                statusBadge.innerText = "Analyzing AI";
-                reportOutput.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-56 text-purple-300/60 text-center space-y-3">
-                        <div class="w-8 h-8 border-4 border-purple-500 border-t-amber-400 rounded-full animate-spin"></div>
-                        <p class="text-xs text-purple-200">กำลังประมวลผลบทพยากรณ์เชิงพัฒนาศักยภาพ...</p>
-                    </div>`;
-
-                // ⚡ จังหวะที่ 2: ดึงบทพยากรณ์ AI แบบ Async
-                const aiRes = await fetch('/analyze_ai', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_name: payload.user_name,
-                        question: payload.question,
-                        chart_data: cachedChartData
-                    })
-                });
-                const aiResult = await aiRes.json();
-                if (!aiRes.ok || aiResult.status === 'error') throw new Error(aiResult.message);
-
-                if (aiResult.answer) {
-                    reportOutput.innerHTML = `
-                        <div class="space-y-4">
-                            <div class="bg-purple-900/40 border border-purple-700/50 p-3 rounded-xl">
-                                <h3 class="text-xs text-amber-300 font-bold uppercase tracking-wider mb-1">คำถามของคุณ</h3>
-                                <p class="text-sm text-white font-medium">"${aiResult.question}"</p>
-                            </div>
-                            <div class="prose-dark max-w-none">${marked.parse(aiResult.answer)}</div>
-                        </div>`;
-                } else if (aiResult.report) {
-                    reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(aiResult.report)}</div>`;
-                }
-
-                statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
-                statusBadge.innerText = "Completed";
-
-            } catch (err) {
-                reportOutput.innerHTML = `<div class="p-4 bg-rose-950/60 border border-rose-800 rounded-xl text-rose-200 text-sm">❌ ${err.message}</div>`;
-                statusBadge.className = "text-[10px] bg-rose-950 text-rose-300 border border-rose-700/60 px-3 py-1 rounded-full";
-                statusBadge.innerText = "Error";
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = `<span>คำนวณตำแหน่งดาวและวิเคราะห์</span>`;
-            }
-        });
-
-        // ปุ่มกดดูปมลึก 12 เรือนชะตา
-        async function safeFetchJson(url, options) {
-    const res = await fetch(url, options);
-    const contentType = res.headers.get("content-type") || "";
-
-    // ป้องกันการเรียก .json() ถ้า Backend ส่งกลับมาเป็น HTML Error Page
-    if (!contentType.includes("application/json")) {
-        const rawText = await res.text();
-        console.error("Server HTML Response:", rawText);
-        throw new Error(`เซิร์ฟเวอร์ตอบกลับผิดปกติ (HTTP Status: ${res.status}) - โปรดตรวจสอบ Backend Log`);
+        const data = await res.json();
+        if (!res.ok || data.status === "error") {
+            throw new Error(data.message || "เกิดข้อผิดพลาดในการประมวลผล");
+        }
+        return data;
     }
 
-    const data = await res.json();
-    if (!res.ok || data.status === "error") {
-        throw new Error(data.message || "เกิดข้อผิดพลาดในการประมวลผล");
+    function showStatus(message, isError = false) {
+        const statusEl = document.getElementById("status-message");
+        statusEl.style.display = "block";
+        statusEl.textContent = message;
+        statusEl.className = isError ? "error-text" : "";
     }
-    return data;
-}
-        async function handleDeepReport() {
-            const deepReportBtn = document.getElementById('deepReportBtn');
-            const reportOutput = document.getElementById('reportOutput');
-            const statusBadge = document.getElementById('statusBadge');
-            const payload = getPayload();
 
-            deepReportBtn.disabled = true;
-            statusBadge.className = "text-[10px] bg-amber-950 text-amber-300 border border-amber-700/60 px-3 py-1 rounded-full animate-pulse";
-            statusBadge.innerText = "Deep Analyzing";
+    // 2. คำนวณองศาดาวและดึง Transit (ขั้นตอนแรกสุด)
+    async function calculateChart() {
+        showStatus("กำลังคำนวณองศาดาวกำเนิดและดาวจร Real-time...");
+        document.getElementById("btn-calculate").disabled = true;
 
-            try {
-                // หากยังไม่มีข้อมูลผูกดวง ให้ทำการคำนวณจังหวะแรกก่อน
-                if (!cachedChartData) {
-                    const chartRes = await fetch('/calculate_chart', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    const chartResult = await chartRes.json();
-                    if (!chartRes.ok || chartResult.status === 'error') throw new Error(chartResult.message);
-                    cachedChartData = chartResult;
+        const payload = {
+            day: parseInt(document.getElementById("day").value),
+            month: parseInt(document.getElementById("month").value),
+            year: parseInt(document.getElementById("year").value),
+            hour: parseInt(document.getElementById("hour").value),
+            minute: parseInt(document.getElementById("minute").value),
+            location_name: document.getElementById("location_name").value
+        };
 
-                    if (chartResult.chart_svg) document.getElementById('chartContainer').innerHTML = chartResult.chart_svg;
-                    if (chartResult.birth_chart_degrees) renderBirthChartDegrees(chartResult.birth_chart_degrees);
-                    if (chartResult.transit_degrees) renderTransitDegrees(chartResult.transit_degrees);
-                }
+        try {
+            const data = await safeFetchJson('/calculate_chart', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-                reportOutput.innerHTML = `
-                    <div class="flex flex-col items-center justify-center h-56 text-purple-300/60 text-center space-y-3">
-                        <div class="w-8 h-8 border-4 border-amber-500 border-t-purple-400 rounded-full animate-spin"></div>
-                        <p class="text-xs text-purple-200">กำลังวิเคราะห์โครงสร้างปมจิตวิทยา 12 เรือนชะตา...</p>
-                    </div>`;
+            currentChartData = data;
+            showStatus("คำนวณดวงชะตาสำเร็จ! กรุณาเลือกโหมดการวิเคราะห์ด้านล่าง");
+            
+            // เปิดใช้งานปุ่มวิเคราะห์ AI
+            document.getElementById("btn-natal7").disabled = false;
+            document.getElementById("btn-deep").disabled = false;
+            document.getElementById("btn-transit").disabled = false;
+        } catch (error) {
+            showStatus(`Error: ${error.message}`, true);
+        } finally {
+            document.getElementById("btn-calculate").disabled = false;
+        }
+    }
 
-                const deepRes = await fetch('/deep_report', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_name: payload.user_name,
-                        chart_data: cachedChartData
-                    })
-                });
-                const deepResult = await deepRes.json();
-                if (!deepRes.ok || deepResult.status === 'error') throw new Error(deepResult.message);
-
-                reportOutput.innerHTML = `<div class="prose-dark max-w-none">${marked.parse(deepResult.report)}</div>`;
-                statusBadge.className = "text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full";
-                statusBadge.innerText = "Completed";
-
-            } catch (err) {
-                reportOutput.innerHTML = `<div class="p-4 bg-rose-950/60 border border-rose-800 rounded-xl text-rose-200 text-sm">❌ ${err.message}</div>`;
-                statusBadge.className = "text-[10px] bg-rose-950 text-rose-300 border border-rose-700/60 px-3 py-1 rounded-full";
-                statusBadge.innerText = "Error";
-            } finally {
-                deepReportBtn.disabled = false;
-            }
+    // 3. ส่งข้อมูลดวงให้ AI วิเคราะห์ตามประเภทที่เลือก
+    async function analyzeAI(reportType) {
+        if (!currentChartData) {
+            alert("กรุณากดคำนวณองศาดาวก่อนวิเคราะห์");
+            return;
         }
 
-        function renderBirthChartDegrees(degrees) {
-            const container = document.getElementById('birthChartDegreeBox');
-            container.innerHTML = '';
-            for (const [key, val] of Object.entries(degrees)) {
-                const sign = (val?.sign || '').toUpperCase();
-                const deg = val?.formatted || '';
-                const house = val?.house ? `(H${val.house})` : '';
-                const retro = val?.is_retrograde ? ' Rx' : '';
-                container.innerHTML += `
-                    <div class="bg-purple-50/70 p-2 rounded-lg border border-purple-100 flex justify-between items-center">
-                        <span class="font-bold text-purple-950 text-[11px]">${key}:</span>
-                        <span class="font-mono text-purple-700 font-medium text-[11px]">${sign} ${deg}${retro} ${house}</span>
-                    </div>`;
-            }
-        }
+        showStatus("AI กำลังวิเคราะห์เจาะลึก... (อาจใช้เวลา 20-30 วินาที)");
+        document.getElementById("result-panel").style.display = "block";
+        document.getElementById("report-content").innerHTML = "";
+        document.getElementById("charts-wrapper").style.display = "none";
 
-        function renderTransitDegrees(transits) {
-            const container = document.getElementById('transitDegreeBox');
-            container.innerHTML = '';
-            const mainPlanets = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'North_Node', 'Chiron'];
-            mainPlanets.forEach(p => {
-                const info = transits[p];
-                if (info) {
-                    const sign = (info?.sign || '').toUpperCase();
-                    const deg = info?.formatted || '';
-                    const retro = info?.is_retrograde ? ' Rx' : '';
-                    container.innerHTML += `
-                        <span class="bg-purple-50 border border-purple-200 text-purple-950 px-2.5 py-1 rounded-md font-medium">
-                            <strong class="text-purple-700">${p}:</strong> ${sign} ${deg}${retro}
-                        </span>`;
+        const payload = {
+            user_name: document.getElementById("user_name").value,
+            chart_data: currentChartData,
+            report_type: reportType,
+            question: document.getElementById("question").value
+        };
+
+        try {
+            const data = await safeFetchJson('/analyze_ai', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            // ตรวจสอบว่าเป็นการตอบกลับแบบ Deep Report ที่มีกราฟหรือไม่
+            if (reportType === 'deep_report' && data.radar_data) {
+                renderCharts(data.radar_data, data.bar_data);
+                document.getElementById("charts-wrapper").style.display = "flex";
+            }
+
+            // แปลง Text ตอบกลับเป็น Markdown HTML
+            let reportText = data.report || data.answer;
+            document.getElementById("report-content").innerHTML = marked.parse(reportText);
+            
+            showStatus("วิเคราะห์เสร็จสมบูรณ์!");
+        } catch (error) {
+            showStatus(`Error: ${error.message}`, true);
+        }
+    }
+
+    // 4. ระบบวาดกราฟ Dark Uranian Potential Map (Chart.js)
+    function renderCharts(radarData, barData) {
+        // เคลียร์กราฟเก่าทิ้งถ้ามี
+        if (radarChartInstance) radarChartInstance.destroy();
+        if (barChartInstance) barChartInstance.destroy();
+
+        if (radarData && radarData.length > 0) {
+            const ctxRadar = document.getElementById('potentialRadarChart').getContext('2d');
+            radarChartInstance = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: radarData.map(item => item.name),
+                    datasets: [{
+                        label: 'Astrological Potential',
+                        data: radarData.map(item => item.score),
+                        backgroundColor: 'rgba(107, 76, 230, 0.3)',
+                        borderColor: 'rgba(107, 76, 230, 1)',
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: 'rgba(107, 76, 230, 1)'
+                    }]
+                },
+                options: {
+                    scales: { r: { min: 0, max: 100, ticks: { color: '#a0aec0', backdropColor: 'transparent' }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#e2e8f0' } } },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
                 }
             });
         }
-async function safeFetchJson(url, options) {
-    const res = await fetch(url, options);
-    const contentType = res.headers.get("content-type") || "";
 
-    if (!contentType.includes("application/json")) {
-        const errorHtml = await res.text();
-        console.error("RAW SERVER ERROR HTML:", errorHtml);
-        throw new Error(`Server Error (${res.status}): ดูรายละเอียดใน F12 Console หรือ Render Logs`);
-    }
-
-    const data = await res.json();
-    if (!res.ok || data.status === "error") {
-        throw new Error(data.message || "เกิดข้อผิดพลาดในการประมวลผล");
-    }
-    return data;
-}
-
-        
-        async function fetchInitialTransit() {
-            try {
-                const res = await fetch('/transit');
-                const data = await res.json();
-                if (data?.transits) renderTransitDegrees(data.transits);
-            } catch (err) {
-                console.error("Transit Fetch Error:", err);
-            }
+        if (barData && barData.length > 0) {
+            const ctxBar = document.getElementById('potentialBarChart').getContext('2d');
+            barChartInstance = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: barData.map(item => item.name),
+                    datasets: [
+                        { label: 'Potential', data: barData.map(item => item.potential), backgroundColor: '#3182ce' },
+                        { label: 'Activation', data: barData.map(item => item.activation), backgroundColor: '#38a169' },
+                        { label: 'Block (แรงต้าน)', data: barData.map(item => item.block), backgroundColor: '#e53e3e' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#a0aec0' } },
+                        x: { grid: { display: false }, ticks: { color: '#a0aec0' } }
+                    },
+                    plugins: { legend: { labels: { color: '#e2e8f0' } } }
+                }
+            });
         }
+    }
+</script>
 
-        fetchInitialTransit();
-    </script>
 </body>
 </html>
