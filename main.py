@@ -2,6 +2,7 @@
 import os
 import logging
 logging.basicConfig(level=logging.INFO)
+from database import get_cached_chart, save_chart_cache, generate_chart_hash, get_cached_ai_report, save_cached_ai_report
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 
@@ -73,29 +74,53 @@ def calculate_chart_endpoint():
 def analyze_ai_endpoint():
     data = request.get_json() or {}
     user_name = data.get('user_name') or 'คุณ'
-    report_type = data.get('report_type') or 'natal_7' # ต้องส่งจาก Frontend
+    report_type = data.get('report_type') or 'natal_7'
     chart_data = data.get('chart_data')
+    question = data.get('question')
 
     if not chart_data:
         return jsonify({"status": "error", "message": "Missing chart data"}), 400
 
-    if question and str(question).strip():
-        qa_answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
-        return jsonify({"status": "success", "type": "transit_qa", "question": question, "answer": qa_answer})
+    # 1. สร้าง Cache Key จากโครงสร้างดวง
+    chart_hash = generate_chart_hash(chart_data)
+    
+    # 2. จัดการ Cache Key ตามประเภทการวิเคราะห์
+    if report_type == 'transit_qa':
+        # Transit เปลี่ยนทุกวัน และคำถามต่างกัน ต้องเอา วันที่ + คำถาม มาผสมใน Key
+        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+        cache_key = f"{chart_hash}_{today_str}_{question}"
+    else:
+        # พื้นดวง (Natal / Deep Report) ดวงเดิมคำแปลเดิมเสมอ
+        cache_key = f"{chart_hash}_{report_type}"
 
-    # กรณี Deep Report แบบใหม่
-    if report_type == 'deep_report':
+    # 3. เช็ก Database ว่าเคยแปล AI ดวงนี้หรือยัง
+    cached_response = get_cached_ai_report(cache_key, report_type)
+    if cached_response:
+        return jsonify(cached_response)
+
+    # 4. ถ้ายังไม่เคยแปล ค่อยส่งเรียก OpenAI (AI Service)
+    if report_type == 'transit_qa':
+        answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
+        response_data = {"status": "success", "type": "transit_qa", "question": question, "answer": answer}
+    
+    elif report_type == 'deep_report':
         result = analyze_deep_report(user_name, chart_data)
-        return jsonify({
+        response_data = {
             "status": "success", 
             "type": "deep_report", 
             "report": result["report"],
             "radar_data": result["radar_data"],
             "bar_data": result["bar_data"]
-        })
+        }
+    
+    else: # natal_7
+        report_text = analyze_natal_7_categories(user_name, chart_data)
+        response_data = {"status": "success", "type": "natal_7", "report": report_text}
 
-    report_text = analyze_natal_7_categories(user_name, chart_data)
-    return jsonify({"status": "success", "type": "natal_7_categories", "report": report_text})
+    # 5. บันทึกคำแปล AI ลง Database เพื่อใช้ครั้งต่อไป
+    save_cached_ai_report(cache_key, report_type, response_data)
+
+    return jsonify(response_data)
 
 
 @app.route('/deep_report', methods=['POST'])
