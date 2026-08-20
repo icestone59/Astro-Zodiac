@@ -20,7 +20,7 @@ def analyze_natal_7_categories(user_name, chart_data):
             {"role": "system", "content": SYSTEM_PROMPT_NATAL_7},
             {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
         ],
-        temperature=0.15
+        temperature=0.1
     )
     return res.choices[0].message.content
 
@@ -48,6 +48,6 @@ def analyze_deep_report_json(user_name, chart_data):
             {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
             {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
         ],
-        temperature=0.15
+        temperature=0.1
     )
     return res.choices[0].message.content
