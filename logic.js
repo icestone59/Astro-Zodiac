@@ -4,7 +4,7 @@ let currentChartData = null;
 let radarChartInstance = null;
 let barChartInstance = null;
 
-// 1. ฟังก์ชันเชื่อมต่อ Backend แบบป้องกัน Error ข้ามโดเมน/เซิร์ฟเวอร์ล่ม
+// 1. ฟังก์ชันเชื่อมต่อ Backend แบบป้องกัน Error
 async function safeFetchJson(url, options) {
     const res = await fetch(url, options);
     const contentType = res.headers.get("content-type") || "";
@@ -16,7 +16,7 @@ async function safeFetchJson(url, options) {
     return data;
 }
 
-// 2. ฟังก์ชันอัปเดตข้อความสถานะบนหน้าจอ (ให้ตรงกับ Theme ปัจจุบัน)
+// 2. ฟังก์ชันอัปเดตข้อความสถานะบนหน้าจอ (UI State)
 function showStatus(message, state = "loading") {
     const statusText = document.getElementById("status-text");
     const statusPill = document.getElementById("status-pill");
@@ -26,22 +26,22 @@ function showStatus(message, state = "loading") {
     if (statusPill) {
         if (state === "loading") {
             statusPill.textContent = "Processing...";
-            statusPill.style.color = "#f59e0b"; // สีส้ม
+            statusPill.style.color = "#f59e0b";
         } else if (state === "error") {
             statusPill.textContent = "Error";
-            statusPill.style.color = "#ef4444"; // สีแดง
+            statusPill.style.color = "#ef4444";
             if (statusText) statusText.style.color = "#ef4444";
         } else if (state === "success") {
             statusPill.textContent = "Ready";
-            statusPill.style.color = "#10b981"; // สีเขียว
-            if (statusText) statusText.style.color = "#c084fc"; // กลับเป็นสีม่วง
+            statusPill.style.color = "#10b981";
+            if (statusText) statusText.style.color = "#c084fc";
         }
     }
 }
 
-// 3. ฟังก์ชันคำนวณองศาดาว (ผูกกับปุ่ม "คำนวณตำแหน่งดาวและวิเคราะห์")
+// 3. ฟังก์ชันคำนวณและวิเคราะห์อัตโนมัติ (Intelligent Flow)
 async function calculateChart() {
-    showStatus("กำลังคำนวณองศาดาวกำเนิดและดาวจร (Real-time)...", "loading");
+    showStatus("กำลังดึงตำแหน่งดาวกำเนิดและดาวจร (Real-time)...", "loading");
     const btn = document.getElementById("btn-calculate");
     if (btn) btn.disabled = true;
 
@@ -55,14 +55,26 @@ async function calculateChart() {
             location_name: document.getElementById("location_name").value
         };
 
-        // ยิง API ไปที่ Flask Backend
+        // 3.1 คำนวณองศาดาว
         currentChartData = await safeFetchJson('/calculate_chart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        showStatus("ผูกดวงชะตาสำเร็จ! กรุณากดปุ่ม 'กดดูชะตาของคุณ' ด้านล่าง", "success");
+        // 3.2 ตรวจสอบว่ามีคำถาม Transit หรือไม่
+        const questionEl = document.getElementById("question");
+        const question = questionEl ? questionEl.value.trim() : "";
+
+        // 3.3 สั่งรัน AI ทันทีตามเงื่อนไข (ไม่ต้องรอให้ผู้ใช้กดปุ่มซ้ำ)
+        if (question !== "") {
+            showStatus("กำลังวิเคราะห์คำถามเจาะจงผ่านดาวจร (Transit)...", "loading");
+            await analyzeAI('transit_qa');
+        } else {
+            showStatus("กำลังวิเคราะห์พื้นดวงชะตา 7 หมวดหมู่...", "loading");
+            await analyzeAI('natal_7');
+        }
+
     } catch (error) {
         showStatus(error.message, "error");
     } finally {
@@ -70,16 +82,17 @@ async function calculateChart() {
     }
 }
 
-// 4. ฟังก์ชันเรียก AI วิเคราะห์ (Deep Report หรือ Transit)
+// 4. ฟังก์ชันส่งข้อมูลให้ AI วิเคราะห์
 async function analyzeAI(reportType) {
     if (!currentChartData) {
-        alert("กรุณากด 'คำนวณตำแหน่งดาวและวิเคราะห์' ก่อนครับ");
+        alert("ข้อมูลดวงชะตายังไม่ถูกคำนวณ กรุณากดคำนวณตำแหน่งดาวก่อน");
         return;
     }
 
-    showStatus("AI กำลังวิเคราะห์รากฐานดวงชะตา... (อาจใช้เวลา 15-30 วินาที)", "loading");
+    if (reportType === 'deep_report') {
+        showStatus("กำลังสกัดโครงสร้างจิตวิทยาระดับลึก (Deep Report)...", "loading");
+    }
     
-    // ซ่อนไอคอน Default และเตรียมพื้นที่แสดงผล
     if(document.getElementById("default-message")) document.getElementById("default-message").style.display = "none";
     document.getElementById("report-content").innerHTML = "";
     document.getElementById("charts-wrapper").style.display = "none";
@@ -98,28 +111,28 @@ async function analyzeAI(reportType) {
             body: JSON.stringify(payload)
         });
 
-        // หากเป็น Deep Report ให้แสดงกราฟ
+        // สร้างกราฟเฉพาะเมื่อเป็น Deep Report
         if (reportType === 'deep_report' && data.radar_data) {
             document.getElementById("charts-wrapper").style.display = "flex";
             renderCharts(data.radar_data, data.bar_data);
         }
 
-        // แปลงข้อความจาก AI เป็น HTML
+        // แสดงผลลัพธ์
         let reportText = data.report || data.answer;
         document.getElementById("report-content").innerHTML = marked.parse(reportText);
-        showStatus("การวิเคราะห์เสร็จสมบูรณ์!", "success");
+        showStatus("การประมวลผลเสร็จสมบูรณ์", "success");
     } catch (error) {
         showStatus(error.message, "error");
     }
 }
 
-// 5. ระบบวาดกราฟ Chart.js (ปรับสีให้เข้ากับ Theme สีม่วง)
+// 5. ระบบวาดกราฟศักยภาพ (Dark Uranian Style)
 function renderCharts(radarData, barData) {
     if (radarChartInstance) radarChartInstance.destroy();
     if (barChartInstance) barChartInstance.destroy();
 
     const chartConfig = {
-        color: '#e2e8f0', // Text color
+        color: '#e2e8f0', 
         gridColor: 'rgba(255, 255, 255, 0.05)',
         primary: '#a78bfa',
         primaryBg: 'rgba(167, 139, 250, 0.2)'
