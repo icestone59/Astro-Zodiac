@@ -1,6 +1,7 @@
 # main.py
 import os
 import logging
+logging.basicConfig(level=logging.INFO)
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 
@@ -13,6 +14,14 @@ from ai_service import (
 
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__, static_folder='.', static_url_path='')
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    app.logger.error(f"Server Error: {str(e)}")
+    return jsonify({
+        "status": "error",
+        "message": f"Python Exception: {str(e)}"
+    }), 500
 
 @app.errorhandler(404)
 def handle_404(e):
