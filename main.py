@@ -102,16 +102,16 @@ def analyze_ai_endpoint():
     if report_type == 'transit_qa':
         answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
         response_data = {"status": "success", "type": "transit_qa", "question": question, "answer": answer}
-    
-    elif report_type == 'deep_report':
+        
+  if report_type == 'deep_report':
         result = analyze_deep_report(user_name, chart_data)
-        response_data = {
+        return jsonify({
             "status": "success", 
             "type": "deep_report", 
             "report": result["report"],
-            "radar_data": result["radar_data"],
-            "bar_data": result["bar_data"]
-        }
+            "radar_data": result["radar_data"], # ต้องมีบรรทัดนี้
+            "bar_data": result["bar_data"]      # ต้องมีบรรทัดนี้
+        })
     
     else: # natal_7
         report_text = analyze_natal_7_categories(user_name, chart_data)
