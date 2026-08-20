@@ -380,7 +380,24 @@
                 }
             });
         }
+async function safeFetchJson(url, options) {
+    const res = await fetch(url, options);
+    const contentType = res.headers.get("content-type") || "";
 
+    if (!contentType.includes("application/json")) {
+        const errorHtml = await res.text();
+        console.error("RAW SERVER ERROR HTML:", errorHtml);
+        throw new Error(`Server Error (${res.status}): ดูรายละเอียดใน F12 Console หรือ Render Logs`);
+    }
+
+    const data = await res.json();
+    if (!res.ok || data.status === "error") {
+        throw new Error(data.message || "เกิดข้อผิดพลาดในการประมวลผล");
+    }
+    return data;
+}
+
+        
         async function fetchInitialTransit() {
             try {
                 const res = await fetch('/transit');
