@@ -13,8 +13,7 @@ from evidence_engine import build_evidence_matrix, format_evidence_for_prompt
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def extract_and_clean_json(text, marker):
-    """สกัด JSON Array และลบก้อนข้อมูลดิบออกจากข้อความรายงาน"""
-    pattern = rf"{marker}.*?(\[.*?\])"
+    pattern = rf"{marker}\s*:\s*(\[.*?\])"
     match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
     
     if match:
@@ -23,11 +22,42 @@ def extract_and_clean_json(text, marker):
             parsed_data = json.loads(json_str)
             clean_text = text.replace(match.group(0), "")
             return parsed_data, clean_text
-        except json.JSONDecodeError as e:
-            print(f"JSON Parse Error for {marker}: {e}\nRaw String: {json_str}")
+        except json.JSONDecodeError:
             return None, text
             
     return None, text
+
+def analyze_deep_report(user_name, chart_data):
+    evidence_matrix = build_evidence_matrix(chart_data)
+    evidence_text = format_evidence_for_prompt(evidence_matrix)
+
+    res = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
+            {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
+        ],
+        temperature=0.1
+    )
+    
+    full_text = res.choices[0].message.content
+    
+    # 1. สกัด Data สำหรับกราฟ
+    radar_data, full_text = extract_and_clean_json(full_text, "RADAR_DATA")
+    bar_data, full_text = extract_and_clean_json(full_text, "POTENTIAL_BAR_DATA")
+    
+    # 2. กวาดล้างคราบ JSON ดิบที่หลุดบนหน้าจอทั้งหมด
+    full_text = re.sub(r'POTENTIAL\s*:\s*\[.*?\]', '', full_text, flags=re.DOTALL | re.IGNORECASE)
+    full_text = re.sub(r'DARK URANIAN POTENTIAL MAP\n*', '', full_text, flags=re.IGNORECASE)
+    full_text = re.sub(r'GRAPH DATA\n*', '', full_text, flags=re.IGNORECASE)
+    full_text = re.sub(r'A\. POTENTIAL RADAR\n*', '', full_text, flags=re.IGNORECASE)
+    full_text = re.sub(r'B\. POTENTIAL vs ACTIVATION vs BLOCK\n*', '', full_text, flags=re.IGNORECASE)
+    
+    return {
+        "report": full_text.strip(),
+        "radar_data": radar_data,
+        "bar_data": bar_data
+    }
 
 def analyze_natal_7_categories(user_name, chart_data):
     evidence_matrix = build_evidence_matrix(chart_data)
