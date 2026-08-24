@@ -1,10 +1,13 @@
-# main.py
 import os
 import logging
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 
-from astro_calc import get_coordinates, calculate_chart, calculate_current_transits
+from astro_calc import (
+    get_coordinates, 
+    calculate_chart, 
+    calculate_current_transits
+)
 from database import (
     get_cached_chart, 
     save_chart_cache, 
@@ -15,10 +18,12 @@ from database import (
 from ai_service import (
     analyze_natal_7_categories,
     analyze_transit_qa,
-    analyze_deep_report  # แก้ไขชื่อให้ตรงตาม ai_service.py
+    analyze_deep_report
 )
 
 logging.basicConfig(level=logging.INFO)
+
+# กำหนด Folder หน้าเว็บเป็น Root เพื่อเรียกใช้ index.html และ deepreport.html ได้โดยตรง
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 @app.errorhandler(Exception)
@@ -26,9 +31,20 @@ def handle_all_exceptions(e):
     app.logger.error(f"Server Error: {str(e)}")
     return jsonify({"status": "error", "message": f"Python Exception: {str(e)}"}), 500
 
+# ------------------------------------------------------------------
+# Page Routes
+# ------------------------------------------------------------------
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+@app.route('/deepreport')
+def deep_report_page():
+    return app.send_static_file('deepreport.html')
+
+# ------------------------------------------------------------------
+# API Endpoints
+# ------------------------------------------------------------------
 
 # 1. Real-time Transits Endpoint
 @app.route('/transit', methods=['GET'])
@@ -110,7 +126,7 @@ def analyze_ai_endpoint():
             "bar_data": result["bar_data"]
         }
     
-    else: # natal_7
+    else: # natal_7 (พื้นดวง 7 หมวดหมู่)
         report_text = analyze_natal_7_categories(user_name, chart_data)
         response_data = {"status": "success", "type": "natal_7", "report": report_text}
 
