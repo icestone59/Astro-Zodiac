@@ -27,31 +27,27 @@ def extract_and_clean_json(text, marker):
             
     return None, text
 
+# ai_service.py
+
 def analyze_deep_report(user_name, chart_data):
     evidence_matrix = build_evidence_matrix(chart_data)
     evidence_text = format_evidence_for_prompt(evidence_matrix)
 
     res = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4o",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
             {"role": "user", "content": f"ผู้รับคำทำนาย: {user_name}\n\n{evidence_text}"}
         ],
-        temperature=0.1
+        temperature=0.55,  # ปรับเพิ่มจาก 0.1 เป็น 0.55 เพื่อให้เขียนภาษานุ่มนวล ลึกซึ้ง และไม่ย่อสั้น
+        max_tokens=3500     # ขยายพื้นที่ Token เพื่อให้เขียนครบทั้ง 12 หัวข้อ
     )
     
     full_text = res.choices[0].message.content
     
-    # 1. สกัด Data สำหรับกราฟ
+    # สกัดข้อมูล JSON สำหรับวาดกราฟ
     radar_data, full_text = extract_and_clean_json(full_text, "RADAR_DATA")
     bar_data, full_text = extract_and_clean_json(full_text, "POTENTIAL_BAR_DATA")
-    
-    # 2. กวาดล้างคราบ JSON ดิบที่หลุดบนหน้าจอทั้งหมด
-    full_text = re.sub(r'POTENTIAL\s*:\s*\[.*?\]', '', full_text, flags=re.DOTALL | re.IGNORECASE)
-    full_text = re.sub(r'DARK URANIAN POTENTIAL MAP\n*', '', full_text, flags=re.IGNORECASE)
-    full_text = re.sub(r'GRAPH DATA\n*', '', full_text, flags=re.IGNORECASE)
-    full_text = re.sub(r'A\. POTENTIAL RADAR\n*', '', full_text, flags=re.IGNORECASE)
-    full_text = re.sub(r'B\. POTENTIAL vs ACTIVATION vs BLOCK\n*', '', full_text, flags=re.IGNORECASE)
     
     return {
         "report": full_text.strip(),
