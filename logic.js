@@ -131,40 +131,93 @@ function renderCharts(radarData, barData) {
     if (radarChartInstance) radarChartInstance.destroy();
     if (barChartInstance) barChartInstance.destroy();
 
-    const chartConfig = {
-        color: '#e2e8f0', 
-        gridColor: 'rgba(255, 255, 255, 0.05)',
-        primary: '#a78bfa',
-        primaryBg: 'rgba(167, 139, 250, 0.2)'
+    const chartStyle = {
+        textColor: '#cbd5e1',
+        gridColor: 'rgba(255, 255, 255, 0.08)',
+        accentPurple: '#a855f7',
+        accentBg: 'rgba(168, 85, 247, 0.25)',
+        blue: '#3b82f6',
+        green: '#10b981',
+        red: '#f43f5e'
     };
 
-    if (radarData && radarData.length > 0) {
+    // 1. Radar Chart (ศักยภาพมิติรวม)
+    if (radarData && radarData.length > 0 && document.getElementById('potentialRadarChart')) {
         const ctxRadar = document.getElementById('potentialRadarChart').getContext('2d');
         radarChartInstance = new Chart(ctxRadar, {
             type: 'radar',
             data: {
                 labels: radarData.map(item => item.name),
                 datasets: [{
-                    label: 'Potential Map',
+                    label: 'Potential Score',
                     data: radarData.map(item => item.score),
-                    backgroundColor: chartConfig.primaryBg,
-                    borderColor: chartConfig.primary,
-                    pointBackgroundColor: chartConfig.primary
+                    backgroundColor: chartStyle.accentBg,
+                    borderColor: chartStyle.accentPurple,
+                    borderWidth: 2,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: chartStyle.accentPurple,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
-                scales: { 
-                    r: { 
-                        min: 0, max: 100, 
-                        grid: { color: chartConfig.gridColor }, 
-                        ticks: { display: false }, 
-                        pointLabels: { color: chartConfig.color, font: { family: 'Sarabun' } } 
-                    } 
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        min: 0, max: 100,
+                        angleLines: { color: chartStyle.gridColor },
+                        grid: { color: chartStyle.gridColor },
+                        ticks: { display: false },
+                        pointLabels: {
+                            color: chartStyle.textColor,
+                            font: { family: 'Sarabun', size: 12, weight: '600' }
+                        }
+                    }
                 },
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: { display: false }
+                }
             }
         });
     }
+
+    // 2. Bar Chart (Potential vs Activation vs Block)
+    if (barData && barData.length > 0 && document.getElementById('potentialBarChart')) {
+        const ctxBar = document.getElementById('potentialBarChart').getContext('2d');
+        barChartInstance = new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: barData.map(item => item.name),
+                datasets: [
+                    { label: 'ศักยภาพแฝง', data: barData.map(item => item.potential), backgroundColor: chartStyle.blue, borderRadius: 4 },
+                    { label: 'ดึงมาใช้แล้ว', data: barData.map(item => item.activation), backgroundColor: chartStyle.green, borderRadius: 4 },
+                    { label: 'แรงต้าน (Block)', data: barData.map(item => item.block), backgroundColor: chartStyle.red, borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        min: 0, max: 100,
+                        grid: { color: chartStyle.gridColor },
+                        ticks: { color: chartStyle.textColor, font: { family: 'Sarabun', size: 11 } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: chartStyle.textColor, font: { family: 'Sarabun', size: 11, weight: '500' } }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { color: chartStyle.textColor, font: { family: 'Sarabun', size: 12 } }
+                    }
+                }
+            }
+        });
+    }
+}
 
     if (barData && barData.length > 0) {
         const ctxBar = document.getElementById('potentialBarChart').getContext('2d');
