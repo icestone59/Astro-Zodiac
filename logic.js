@@ -141,6 +141,26 @@ function renderCharts(radarData, barData) {
         red: '#f43f5e'
     };
 
+    // logic.js - ฟังก์ชันเปิดหน้า deepreport.html แยกระบบ
+function openDeepReportPage() {
+    if (!currentChartData) {
+        alert("กรุณากด 'คำนวณตำแหน่งดาวและวิเคราะห์' ก่อนเปิดดูรายงานปมลึกครับ");
+        return;
+    }
+
+    const payload = {
+        user_name: document.getElementById("user_name").value,
+        chart_data: currentChartData,
+        question: document.getElementById("question") ? document.getElementById("question").value : ""
+    };
+
+    // บันทึก payload ลง localStorage เพื่อให้หน้า deepreport.html ดึงไปใช้
+    localStorage.setItem("deep_report_payload", JSON.stringify(payload));
+
+    // เปิดหน้า deepreport.html ขึ้นมาในแท็บใหม่
+    window.open('/deepreport', '_blank');
+}
+
     // 1. Radar Chart (ศักยภาพมิติรวม)
     if (radarData && radarData.length > 0 && document.getElementById('potentialRadarChart')) {
         const ctxRadar = document.getElementById('potentialRadarChart').getContext('2d');
