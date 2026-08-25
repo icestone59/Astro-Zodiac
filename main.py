@@ -87,6 +87,8 @@ def calculate_chart_endpoint():
     return jsonify({"status": "success", **chart_data})
 
 # 3. AI Analysis & Cache Dispatcher Endpoint
+# main.py (ส่วนปรับปรุง analyze_ai_endpoint)
+
 @app.route('/analyze_ai', methods=['POST'])
 def analyze_ai_endpoint():
     data = request.get_json() or {}
@@ -98,33 +100,42 @@ def analyze_ai_endpoint():
     if not chart_data:
         return jsonify({"status": "error", "message": "Missing chart data"}), 400
 
-    # สร้าง Cache Key
-    chart_hash = generate_chart_hash(chart_data)
+    # 1. แยกสร้าง Birth Key จากองศาดวงกำเนิดเท่านั้น (ไม่รวม transit_degrees)
+    birth_degrees = chart_data.get("birth_chart_degrees", {})
+    birth_key_raw = f"{birth_degrees.get('ASC', {}).get('degree_raw')}_{birth_degrees.get('Sun', {}).get('degree_raw')}"
+    chart_hash = generate_chart_hash({"birth": birth_key_raw})
+
+    # 2. กำหนด Cache Key
     if report_type == 'transit_qa':
         today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
-        cache_key = f"{chart_hash}_{today_str}_{question}"
+        cache_key = f"{chart_hash}_{today_str}_{str(question).strip()}"
     else:
         cache_key = f"{chart_hash}_{report_type}"
 
-    # ดึงผลวิเคราะห์จาก Cache ถ้ามีอยู่แล้ว
+    # 3. ดึงจาก Cache (ถ้ามีจะตอบกลับทันทีใน 0.05 วินาที)
     cached_response = get_cached_ai_report(cache_key, report_type)
     if cached_response:
+        app.logger.info(f"[CACHE HIT]: {cache_key}")
         return jsonify(cached_response)
 
-    # ประมวลผลผ่าน AI Service หากยังไม่มี Cache
+    app.logger.info(f"[CACHE MISS]: Calling OpenAI API for {cache_key}")
+
+    # 4. ประมวลผล OpenAI หากไม่พบ Cache
     if report_type == 'transit_qa':
         answer = analyze_transit_qa(user_name, str(question).strip(), chart_data)
         response_data = {"status": "success", "type": "transit_qa", "question": question, "answer": answer}
-    
     elif report_type == 'deep_report':
         result = analyze_deep_report(user_name, chart_data)
         response_data = {
-            "status": "success", 
-            "type": "deep_report", 
-            "report": result["report"],
-            "radar_data": result["radar_data"],
-            "bar_data": result["bar_data"]
+            "status": "success", "type": "deep_report", 
+            "report": result["report"], "radar_data": result["radar_data"], "bar_data": result["bar_data"]
         }
+    else:
+        report_text = analyze_natal_7_categories(user_name, chart_data)
+        response_data = {"status": "success", "type": "natal_7", "report": report_text}
+
+    save_cached_ai_report(cache_key, report_type, response_data)
+    return jsonify(response_data)
     
     else: # natal_7 (พื้นดวง 7 หมวดหมู่)
         report_text = analyze_natal_7_categories(user_name, chart_data)
