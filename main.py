@@ -23,6 +23,16 @@ from ai_service import (
 
 logging.basicConfig(level=logging.INFO)
 
+<!-- MODE TOGGLE SWITCH -->
+<div class="mode-toggle-card">
+    <span class="toggle-label" id="label-client">👤 เวอร์ชั่นลูกค้า (อ่านง่าย)</span>
+    <label class="switch">
+        <input type="checkbox" id="mode-toggle" onchange="handleModeToggle()">
+        <span class="slider round"></span>
+    </label>
+    <span class="toggle-label" id="label-astrologer">🔮 เวอร์ชั่นโหร (Technical)</span>
+</div>
+
 # กำหนด Folder หน้าเว็บเป็น Root เพื่อเรียกใช้ index.html และ deepreport.html ได้โดยตรง
 app = Flask(__name__, static_folder='.', static_url_path='')
 
