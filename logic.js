@@ -1,6 +1,89 @@
 // logic.js - Evolutionary Astrology Engine Bridge
 
 let currentChartData = null;
+let currentReportType = 'natal_7';
+
+// คลังเก็บ Memory Cache ฝั่ง Frontend (ป้องกันการยิง API ซ้ำ)
+const reportCache = {
+    client: null,
+    astrologer: null
+};
+
+// ดึงโหมดปัจจุบันจาก Toggle
+function getSelectedMode() {
+    const toggle = document.getElementById("mode-toggle");
+    return (toggle && toggle.checked) ? "astrologer" : "client";
+}
+
+// ฟังก์ชันสลับโหมดทันที (0 วินาที ไม่ยิง API หากมี Cache อยู่แล้ว)
+async function handleModeToggle() {
+    const mode = getSelectedMode();
+    const outputTarget = document.getElementById("natal-report-content") || document.getElementById("report-content");
+
+    // 1. เช็ก Memory Cache ฝั่ง Frontend ก่อน
+    if (reportCache[mode]) {
+        console.log(`[FRONTEND CACHE HIT]: Switching to ${mode} mode instantly.`);
+        if (outputTarget) outputTarget.innerHTML = marked.parse(reportCache[mode]);
+        return;
+    }
+
+    // 2. ถ้าใน Frontend Memory ยังไม่มี ให้เรียกประมวลผล (ซึ่ง Backend จะไปเช็ก DB Cache ต่อ)
+    if (currentChartData) {
+        await analyzeAI(currentReportType);
+    }
+}
+
+// ฟังก์ชันเรียกประมวลผล AI พร้อมส่ง Mode
+async function analyzeAI(reportType) {
+    if (!currentChartData) {
+        alert("กรุณากรอกข้อมูลวันเวลาเกิดแล้วกดคำนวณก่อนครับ");
+        return;
+    }
+
+    currentReportType = reportType;
+    const mode = getSelectedMode();
+    const outputTarget = document.getElementById("natal-report-content") || document.getElementById("report-content");
+
+    if (outputTarget) {
+        outputTarget.innerHTML = `<p style="color:#a78bfa;">กำลังประมวลผลคำทำนาย (${mode === 'client' ? 'เวอร์ชั่นลูกค้า' : 'เวอร์ชั่นโหร'})...</p>`;
+    }
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณ",
+        chart_data: currentChartData,
+        report_type: reportType,
+        mode: mode, // ส่ง 'client' หรือ 'astrologer'
+        question: document.getElementById("question")?.value || ""
+    };
+
+    try {
+        const res = await fetch('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.status === "error") throw new Error(data.message);
+
+        const reportText = data.report || data.answer;
+
+        // บันทึกเข้า Memory Cache ของโหมดนั้นๆ
+        reportCache[mode] = reportText;
+
+        // แสดงผล
+        if (outputTarget) outputTarget.innerHTML = marked.parse(reportText);
+
+    } catch (error) {
+        console.error("Analysis Error:", error);
+    }
+}
+
+// เมื่อกดคำนวณดวงใหม่ ให้ล้าง Memory Cache เก่าทิ้ง
+function resetReportCache() {
+    reportCache.client = null;
+    reportCache.astrologer = null;
+}
 
 // 1. ฟังก์ชันคำนวณองศาดาวกำเนิด และ ดาวจร Real-time
 async function calculateChart() {
