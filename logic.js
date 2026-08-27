@@ -98,6 +98,8 @@ async function calculateChart() {
 
 // logic.js - Debug & Error Handler Fix
 
+// logic.js - Catch & Display Full Error Detail
+
 async function analyzeAI(reportType) {
     const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
     const statusPill = document.getElementById("status-pill");
@@ -123,9 +125,9 @@ async function analyzeAI(reportType) {
 
         const data = await res.json();
 
-        // หาก Backend ส่ง error กลับมา
+        // เช็กสถานะข้อผิดพลาดจาก Backend
         if (!res.ok || data.status === "error") {
-            throw new Error(data.message || `HTTP Server Error ${res.status}`);
+            throw new Error(data.message || `HTTP ${res.status}: เกิดข้อผิดพลาดไม่ทราบสาเหตุจากเซิร์ฟเวอร์`);
         }
 
         if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
@@ -139,15 +141,15 @@ async function analyzeAI(reportType) {
         }
 
     } catch (error) {
+        // หยุดคำคมเมื่อเกิด Error
         if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
 
-        // แสดงข้อความ Error ละเอียดบนหน้าจอ
+        // เขียนรายละเอียด Error ลงกล่องหลักทันที
         if (target) {
             target.innerHTML = `
                 <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                    <h4 style="color: #ef4444; margin-top: 0;">⚠️ ระบบประมวลผลขัดข้อง</h4>
-                    <p style="color: #f87171; font-size: 14px; font-family: monospace;">${error.message}</p>
-                    <p style="color: #94a3b8; font-size: 12px;">กรุณาเช็ก OPENAI_API_KEY หรือ Log ใน Render Dashboard</p>
+                    <h4 style="color: #ef4444; margin: 0 0 8px 0; font-size: 16px;">⚠️ ระบบประมวลผลขัดข้อง (Debug Detail)</h4>
+                    <p style="color: #f87171; font-size: 13px; font-family: monospace; white-space: pre-wrap; margin: 0;">${error.message}</p>
                 </div>
             `;
         }
