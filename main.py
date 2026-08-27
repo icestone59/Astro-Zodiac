@@ -1,7 +1,7 @@
-# main.py - Evolutionary & Uranian Astrology Engine Server
+# main.py - Evolutionary Astrology Engine Server
 import os
-import traceback
 import logging
+import traceback
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
 
@@ -25,30 +25,19 @@ from ai_service import (
 
 logging.basicConfig(level=logging.INFO)
 
+# 1. กำหนด App Instance ไว้ด้านบนสุด ก่อนเรียกใช้ Decorator ทุกชนิด
+app = Flask(__name__, static_folder='.', static_url_path='')
+
+# 2. Global Exception Handler & Terminal Debug Logger
 @app.errorhandler(Exception)
 def handle_all_exceptions(e):
-    # ดึง Traceback จาก Python
     tb_str = traceback.format_exc()
     app.logger.error(f"[SYSTEM EXCEPTION]:\n{tb_str}")
-    
     return jsonify({
         "status": "error",
         "error_type": type(e).__name__,
         "message": str(e),
         "traceback": tb_str
-    }), 500
-
-app = Flask(__name__, static_folder='.', static_url_path='')
-
-# main.py - Global Exception Handler
-
-@app.errorhandler(Exception)
-def handle_all_exceptions(e):
-    app.logger.error(f"Server Error Exception: {str(e)}")
-    # ส่งข้อความ Error ชัดเจนกลับไปที่ Frontend
-    return jsonify({
-        "status": "error", 
-        "message": f"Python Backend Exception: {str(e)}"
     }), 500
 
 # ------------------------------------------------------------------
@@ -106,7 +95,7 @@ def calculate_chart_endpoint():
     
     return jsonify({"status": "success", **chart_data})
 
-# 3. AI Analysis & Cache Dispatcher Endpoint (แยก Cache ตาม Mode)
+# 3. AI Analysis & Cache Dispatcher Endpoint
 @app.route('/analyze_ai', methods=['POST'])
 def analyze_ai_endpoint():
     data = request.get_json() or {}
@@ -119,7 +108,7 @@ def analyze_ai_endpoint():
     if not chart_data:
         return jsonify({"status": "error", "message": "Missing chart data"}), 400
 
-    # สร้าง Cache Key จากองศาดวงกำเนิด (ไม่รวม Real-time Transit เพื่อให้ Cache ทำงานได้จริง)
+    # สร้าง Cache Key จากองศาดวงกำเนิด (แยกออกจาก Real-time Transits เพื่อประสิทธิภาพ Caching)
     birth_degrees = chart_data.get("birth_chart_degrees", {})
     birth_key_raw = f"{birth_degrees.get('ASC', {}).get('degree_raw')}_{birth_degrees.get('Sun', {}).get('degree_raw')}"
     chart_hash = generate_chart_hash({"birth": birth_key_raw})
@@ -130,15 +119,13 @@ def analyze_ai_endpoint():
     else:
         cache_key = f"{chart_hash}_{report_type}_{mode}"
 
-    # ดึง DB Cache ก่อนเสมอ
     cached_response = get_cached_ai_report(cache_key, report_type)
     if cached_response:
         app.logger.info(f"[DB CACHE HIT]: {cache_key}")
         return jsonify(cached_response)
 
-    app.logger.info(f"[DB CACHE MISS]: Executing OpenAI for {cache_key}")
+    app.logger.info(f"[DB CACHE MISS]: Executing OpenAI API for {cache_key}")
 
-    # กรณีไม่มี Cache ให้เรียก OpenAI ประมวลผล
     if report_type == 'transit_qa':
         answer = analyze_transit_qa(user_name, str(question).strip(), chart_data, mode=mode)
         response_data = {"status": "success", "type": "transit_qa", "question": question, "answer": answer}
