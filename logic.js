@@ -33,6 +33,104 @@ async function handleModeToggle() {
     }
 }
 
+// logic.js - Async Request with Explicit Timeout & Fallback
+
+async function fetchWithTimeout(resource, options = {}) {
+    const { timeout = 25000 } = options; // ล็อค Timeout ไว้ที่ 25 วินาที
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+}
+
+async function calculateChart() {
+    const btn = document.getElementById("btn-calculate");
+    if (btn) btn.disabled = true;
+
+    try {
+        const payload = {
+            day: parseInt(document.getElementById("day").value),
+            month: parseInt(document.getElementById("month").value),
+            year: parseInt(document.getElementById("year").value),
+            hour: parseInt(document.getElementById("hour").value),
+            minute: parseInt(document.getElementById("minute").value),
+            location_name: document.getElementById("location_name").value
+        };
+
+        const res = await fetchWithTimeout('/calculate_chart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            timeout: 10000
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.status === "error") throw new Error(data.message || "คำนวณตำแหน่งดาวไม่สำเร็จ");
+
+        currentChartData = data;
+
+        // เช็กว่ามีคำถาม Transit Q&A หรือไม่
+        const questionInput = document.getElementById("question");
+        const userQuestion = questionInput ? questionInput.value.trim() : "";
+
+        await analyzeAI(userQuestion !== "" ? 'transit_qa' : 'natal_7');
+
+    } catch (error) {
+        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+        const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
+        if (target) {
+            target.innerHTML = `<div style="color:#ef4444; padding:20px;">⚠️ เกิดข้อผิดพลาด: ${error.name === 'AbortError' ? 'การเชื่อมต่อใช้เวลานานเกินกำหนด (Timeout)' : error.message}</div>`;
+        }
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function analyzeAI(reportType) {
+    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
+    if (typeof startQuoteRotator === 'function' && target) startQuoteRotator(target.id);
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณ",
+        chart_data: currentChartData,
+        report_type: reportType,
+        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
+        question: document.getElementById("question")?.value || ""
+    };
+
+    try {
+        const res = await fetchWithTimeout('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            timeout: 30000
+        });
+
+        const data = await res.json();
+        if (!res.ok || data.status === "error") throw new Error(data.message);
+
+        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+        
+        const reportText = data.report || data.answer;
+        if (target) target.innerHTML = marked.parse(reportText);
+
+    } catch (error) {
+        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+        if (target) {
+            target.innerHTML = `<div style="color:#ef4444; padding:20px;">⚠️ เกิดข้อผิดพลาดในการดึงข้อมูล: ${error.message}</div>`;
+        }
+    }
+}
 // ฟังก์ชันเรียกประมวลผล AI พร้อมส่ง Mode
 async function analyzeAI(reportType) {
     if (!currentChartData) return;
