@@ -12,6 +12,24 @@ from evidence_engine import build_evidence_matrix, format_evidence_for_prompt
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# ai_service.py (ส่วนปรับการส่ง Prompt)
+
+CLIENT_MODE_DIRECTIVE = """
+[MODE: CLIENT VERSION]
+- เขียนด้วยภาษาจิตวิทยาพัฒนาตนเองที่สละสลวย อ่านง่าย ให้กำลังใจ และนำไปปฏิบัติได้ทันที
+- ห้ามใส่ชื่อดาว องศา DMS หรือศัพท์เทคนิคโหราศาสตร์ไว้ในเนื้อหาบรรยายหลักเด็ดขาด
+- ให้สรุปตำแหน่งดาวที่ใช้คำนวณไว้สั้นๆ ในบรรทัด "ที่มา:" ท้ายย่อหน้าเท่านั้น
+"""
+
+ASTROLOGER_MODE_DIRECTIVE = """
+[MODE: ASTROLOGER TECHNICAL VERSION]
+- เขียนด้วยภาษาโหราศาสตร์วิชาการเชิงลึก สำหรับนักโหราศาสตร์และผู้ทดสอบระบบ
+- ระบุชื่อดาว, ราศี, เรือนชะตา, องศา DMS, มุมสัมพันธ์ (Aspect Orbs), และ House Ruler Chain แทรกในเนื้อหาบรรยายอย่างละเอียด
+"""
+
+def get_mode_prompt(mode):
+    return ASTROLOGER_MODE_DIRECTIVE if mode == 'astrologer' else CLIENT_MODE_DIRECTIVE
+
 def extract_and_clean_json(text, marker):
     pattern = rf"{marker}\s*:\s*(\[.*?\])"
     match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
