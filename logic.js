@@ -9,6 +9,91 @@ const reportCache = {
     astrologer: null
 };
 
+// logic.js - Interactive Terminal Debug Error Renderer
+
+// ฟังก์ชันสำหรับวาด Terminal Debug Log บน UI
+function renderErrorLog(endpoint, errorData) {
+    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
+    const statusPill = document.getElementById("status-pill");
+
+    if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+
+    if (statusPill) {
+        statusPill.textContent = "Error";
+        statusPill.style.color = "#ef4444";
+    }
+
+    if (target) {
+        target.innerHTML = `
+            <div style="background: #090d16; border: 1px solid #f43f5e; border-radius: 12px; padding: 20px; font-family: 'Courier New', monospace; margin: 16px 0; box-shadow: 0 4px 20px rgba(244, 63, 94, 0.15);">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(244, 63, 94, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
+                    <span style="color: #f43f5e; font-weight: bold; font-size: 14px;">🚨 SYSTEM DEBUG LOG</span>
+                    <span style="background: rgba(244, 63, 94, 0.2); color: #fda4af; font-size: 11px; padding: 2px 8px; border-radius: 4px;">ENDPOINT: ${endpoint}</span>
+                </div>
+                
+                <div style="color: #cbd5e1; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all;">
+<span style="color: #fbbf24;">[TIMESTAMP]</span> : ${new Date().toISOString()}
+<span style="color: #fbbf24;">[ERROR TYPE]</span>: ${errorData.error_type || errorData.name || 'Client/Network Error'}
+<span style="color: #f43f5e; font-weight: bold;">[MESSAGE]</span>   : ${errorData.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'}
+
+<span style="color: #94a3b8;">--------------------------------------------------------------------------------</span>
+<span style="color: #fbbf24;">[TRACEBACK / DIAGNOSTIC DETAILS]</span>:
+${errorData.traceback || errorData.stack || 'ไม่พบข้อมูล Traceback ฝั่ง Client (เช็กการเชื่อมต่อ Network หรือ CORS)'}
+                </div>
+            </div>
+        `;
+    }
+}
+
+// อัปเดตฟังก์ชัน analyzeAI ให้เรียกใช้ renderErrorLog
+async function analyzeAI(reportType) {
+    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
+    if (typeof startQuoteRotator === 'function' && target) startQuoteRotator(target.id);
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณ",
+        chart_data: currentChartData,
+        report_type: reportType,
+        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
+        question: document.getElementById("question")?.value || ""
+    };
+
+    try {
+        const res = await fetch('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || data.status === "error") {
+            // ส่งข้อมูล Error ไปพ่นลง Terminal Log บนหน้าจอ
+            renderErrorLog('/analyze_ai', data);
+            return;
+        }
+
+        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+        
+        const reportText = data.report || data.answer;
+        if (target) target.innerHTML = marked.parse(reportText);
+
+        const statusPill = document.getElementById("status-pill");
+        if (statusPill) {
+            statusPill.textContent = "Ready";
+            statusPill.style.color = "#10b981";
+        }
+
+    } catch (error) {
+        renderErrorLog('/analyze_ai', {
+            error_type: error.name,
+            message: error.message,
+            stack: error.stack
+        });
+    }
+}
+
+
 // ดึงโหมดปัจจุบันจาก Toggle
 function getSelectedMode() {
     const toggle = document.getElementById("mode-toggle");
