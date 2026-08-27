@@ -1,9 +1,9 @@
-# main.py - Evolutionary Astrology Engine Server
+# main.py - Evolutionary & Uranian Astrology Engine Server
 import os
 import logging
 import traceback
 from datetime import datetime, timezone, timedelta
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 
 from astro_calc import (
     get_coordinates, 
@@ -25,31 +25,36 @@ from ai_service import (
 
 logging.basicConfig(level=logging.INFO)
 
-# 1. กำหนด App Instance ไว้ด้านบนสุด ก่อนเรียกใช้ Decorator ทุกชนิด
-app = Flask(__name__, static_folder='.', static_url_path='')
+# กำหนด Root Directory สำหรับ Static Files ให้รัดกุม
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
 
-# 2. Global Exception Handler & Terminal Debug Logger
+# ------------------------------------------------------------------
+# Page & Static Routes (ป้องกัน 404 Not Found)
+# ------------------------------------------------------------------
+@app.route('/')
+def index():
+    return send_from_directory(BASE_DIR, 'index.html')
+
+@app.route('/deepreport')
+def deep_report_page():
+    return send_from_directory(BASE_DIR, 'deepreport.html')
+
+# ------------------------------------------------------------------
+# Global Error Handler & Terminal Debug Logger
+# ------------------------------------------------------------------
 @app.errorhandler(Exception)
 def handle_all_exceptions(e):
     tb_str = traceback.format_exc()
     app.logger.error(f"[SYSTEM EXCEPTION]:\n{tb_str}")
+    
+    # ส่งรายละเอียด Error ออกเป็น JSON เพื่อให้ Frontend แสดง Terminal Debug Log
     return jsonify({
         "status": "error",
         "error_type": type(e).__name__,
         "message": str(e),
         "traceback": tb_str
     }), 500
-
-# ------------------------------------------------------------------
-# Page Routes
-# ------------------------------------------------------------------
-@app.route('/')
-def index():
-    return app.send_static_file('index.html')
-
-@app.route('/deepreport')
-def deep_report_page():
-    return app.send_static_file('deepreport.html')
 
 # ------------------------------------------------------------------
 # API Endpoints
@@ -106,9 +111,9 @@ def analyze_ai_endpoint():
     mode = data.get('mode') or 'client'
 
     if not chart_data:
-        return jsonify({"status": "error", "message": "Missing chart data"}), 400
+        return jsonify({"status": "error", "message": "ไม่พบข้อมูลดวงชะตา (Missing chart_data)"}), 400
 
-    # สร้าง Cache Key จากองศาดวงกำเนิด (แยกออกจาก Real-time Transits เพื่อประสิทธิภาพ Caching)
+    # สร้าง Cache Key จากองศาดวงกำเนิดหลัก
     birth_degrees = chart_data.get("birth_chart_degrees", {})
     birth_key_raw = f"{birth_degrees.get('ASC', {}).get('degree_raw')}_{birth_degrees.get('Sun', {}).get('degree_raw')}"
     chart_hash = generate_chart_hash({"birth": birth_key_raw})
@@ -124,7 +129,7 @@ def analyze_ai_endpoint():
         app.logger.info(f"[DB CACHE HIT]: {cache_key}")
         return jsonify(cached_response)
 
-    app.logger.info(f"[DB CACHE MISS]: Executing OpenAI API for {cache_key}")
+    app.logger.info(f"[DB CACHE MISS]: Calling OpenAI API for {cache_key}")
 
     if report_type == 'transit_qa':
         answer = analyze_transit_qa(user_name, str(question).strip(), chart_data, mode=mode)
