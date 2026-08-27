@@ -26,10 +26,16 @@ logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
+# main.py - Global Exception Handler
+
 @app.errorhandler(Exception)
 def handle_all_exceptions(e):
-    app.logger.error(f"Server Error: {str(e)}")
-    return jsonify({"status": "error", "message": f"Python Exception: {str(e)}"}), 500
+    app.logger.error(f"Server Error Exception: {str(e)}")
+    # ส่งข้อความ Error ชัดเจนกลับไปที่ Frontend
+    return jsonify({
+        "status": "error", 
+        "message": f"Python Backend Exception: {str(e)}"
+    }), 500
 
 # ------------------------------------------------------------------
 # Page Routes
