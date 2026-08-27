@@ -1,5 +1,6 @@
 # main.py - Evolutionary & Uranian Astrology Engine Server
 import os
+import traceback
 import logging
 from datetime import datetime, timezone, timedelta
 from flask import Flask, request, jsonify
@@ -23,6 +24,19 @@ from ai_service import (
 )
 
 logging.basicConfig(level=logging.INFO)
+
+@app.errorhandler(Exception)
+def handle_all_exceptions(e):
+    # ดึง Traceback จาก Python
+    tb_str = traceback.format_exc()
+    app.logger.error(f"[SYSTEM EXCEPTION]:\n{tb_str}")
+    
+    return jsonify({
+        "status": "error",
+        "error_type": type(e).__name__,
+        "message": str(e),
+        "traceback": tb_str
+    }), 500
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
