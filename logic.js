@@ -96,9 +96,15 @@ async function calculateChart() {
     }
 }
 
+// logic.js - Debug & Error Handler Fix
+
 async function analyzeAI(reportType) {
     const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
-    if (typeof startQuoteRotator === 'function' && target) startQuoteRotator(target.id);
+    const statusPill = document.getElementById("status-pill");
+
+    if (typeof startQuoteRotator === 'function' && target) {
+        startQuoteRotator(target.id);
+    }
 
     const payload = {
         user_name: document.getElementById("user_name")?.value || "คุณ",
@@ -109,25 +115,46 @@ async function analyzeAI(reportType) {
     };
 
     try {
-        const res = await fetchWithTimeout('/analyze_ai', {
+        const res = await fetch('/analyze_ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            timeout: 30000
+            body: JSON.stringify(payload)
         });
 
         const data = await res.json();
-        if (!res.ok || data.status === "error") throw new Error(data.message);
+
+        // หาก Backend ส่ง error กลับมา
+        if (!res.ok || data.status === "error") {
+            throw new Error(data.message || `HTTP Server Error ${res.status}`);
+        }
 
         if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
         
         const reportText = data.report || data.answer;
         if (target) target.innerHTML = marked.parse(reportText);
 
+        if (statusPill) {
+            statusPill.textContent = "Ready";
+            statusPill.style.color = "#10b981";
+        }
+
     } catch (error) {
         if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
+
+        // แสดงข้อความ Error ละเอียดบนหน้าจอ
         if (target) {
-            target.innerHTML = `<div style="color:#ef4444; padding:20px;">⚠️ เกิดข้อผิดพลาดในการดึงข้อมูล: ${error.message}</div>`;
+            target.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; padding: 20px; margin: 20px 0;">
+                    <h4 style="color: #ef4444; margin-top: 0;">⚠️ ระบบประมวลผลขัดข้อง</h4>
+                    <p style="color: #f87171; font-size: 14px; font-family: monospace;">${error.message}</p>
+                    <p style="color: #94a3b8; font-size: 12px;">กรุณาเช็ก OPENAI_API_KEY หรือ Log ใน Render Dashboard</p>
+                </div>
+            `;
+        }
+
+        if (statusPill) {
+            statusPill.textContent = "Error";
+            statusPill.style.color = "#ef4444";
         }
     }
 }
