@@ -35,24 +35,18 @@ async function handleModeToggle() {
 
 // ฟังก์ชันเรียกประมวลผล AI พร้อมส่ง Mode
 async function analyzeAI(reportType) {
-    if (!currentChartData) {
-        alert("กรุณากรอกข้อมูลวันเวลาเกิดแล้วกดคำนวณก่อนครับ");
-        return;
-    }
+    if (!currentChartData) return;
 
-    currentReportType = reportType;
-    const mode = getSelectedMode();
     const outputTarget = document.getElementById("natal-report-content") || document.getElementById("report-content");
 
-    if (outputTarget) {
-        outputTarget.innerHTML = `<p style="color:#a78bfa;">กำลังประมวลผลคำทำนาย (${mode === 'client' ? 'เวอร์ชั่นลูกค้า' : 'เวอร์ชั่นโหร'})...</p>`;
-    }
+    // 1. เริ่มแสดงคำคมวนสลับทุก 3 วินาที
+    startQuoteRotator(outputTarget.id);
 
     const payload = {
         user_name: document.getElementById("user_name")?.value || "คุณ",
         chart_data: currentChartData,
         report_type: reportType,
-        mode: mode, // ส่ง 'client' หรือ 'astrologer'
+        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
         question: document.getElementById("question")?.value || ""
     };
 
@@ -66,16 +60,15 @@ async function analyzeAI(reportType) {
         const data = await res.json();
         if (!res.ok || data.status === "error") throw new Error(data.message);
 
+        // 2. หยุดการแสดงคำคมเมื่อประมวลผลเสร็จสิ้น
+        stopQuoteRotator();
+
         const reportText = data.report || data.answer;
-
-        // บันทึกเข้า Memory Cache ของโหมดนั้นๆ
-        reportCache[mode] = reportText;
-
-        // แสดงผล
-        if (outputTarget) outputTarget.innerHTML = marked.parse(reportText);
+        outputTarget.innerHTML = marked.parse(reportText);
 
     } catch (error) {
-        console.error("Analysis Error:", error);
+        stopQuoteRotator();
+        outputTarget.innerHTML = `<p style="color:#ef4444;">เกิดข้อผิดพลาด: ${error.message}</p>`;
     }
 }
 
