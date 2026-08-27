@@ -12,6 +12,13 @@ from evidence_engine import build_evidence_matrix, format_evidence_for_prompt
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# กำหนด Timeout สูงสุด 20 วินาทีสำหรับ OpenAI API Call
+client = OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY"),
+    timeout=20.0,
+    max_retries=1
+)
+
 # ai_service.py (ส่วนปรับการส่ง Prompt)
 
 CLIENT_MODE_DIRECTIVE = """
