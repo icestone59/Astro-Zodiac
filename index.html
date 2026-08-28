@@ -282,10 +282,16 @@
         ระบบวิเคราะห์ดวงชะตาเชิงพัฒนาศักยภาพ
     </p>
     
-    <div class="form-group">
-        <label>ชื่อผู้ใช้</label>
-        <input type="text" id="user_name" value="คุณไอซ์">
+<!-- index.html (ส่วน form-group ของคำถามเจาะจง) -->
+<div class="form-group">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+        <label style="margin-bottom: 0;">คำถามเจาะจง (Transit vs Natal)</label>
+        <span id="quota-badge" style="font-size: 11px; background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
+            โควตาคงเหลือ: 3/3 คำถาม
+        </span>
     </div>
+    <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่">
+</div>
 
     <div class="form-group">
         <label>วัน / เดือน / ปีเกิด (พ.ศ.)</label>
