@@ -2,6 +2,56 @@
 
 window.currentChartData = null;
 let quoteIntervalId = null;
+// logic.js - เพิ่มระบบจัดการโควตา Package 2
+let pkg2Quota = 3; // กำหนดโควตาตั้งต้น 3 คำถาม
+
+function updateQuotaDisplay() {
+    const quotaBadge = document.getElementById("quota-badge");
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+
+    if (!quotaBadge) return;
+
+    if (selectedPkg === "pkg2") {
+        quotaBadge.style.display = "inline-block";
+        quotaBadge.textContent = `โควตาคงเหลือ: ${pkg2Quota}/3 คำถาม`;
+        if (pkg2Quota <= 0) {
+            quotaBadge.style.color = "#ef4444";
+            quotaBadge.style.borderColor = "#ef4444";
+        }
+    } else {
+        quotaBadge.style.display = "none";
+    }
+}
+
+// ปรับปรุงฟังก์ชันสั่งวิเคราะห์ AI ให้ตัดโควตา
+async function calculateAIAnalysis() {
+    if (!window.currentChartData) return;
+
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+    const questionText = document.getElementById("question")?.value?.trim() || "";
+
+    // เช็กโควตาสำหรับ Package 2 เมื่อมีการถามคำถาม
+    if (selectedPkg === "pkg2" && questionText.length > 0) {
+        if (pkg2Quota <= 0) {
+            alert("❌ คุณใช้โควตาคำถามของ Package 2 ครบแล้ว (3/3 คำถาม)");
+            return;
+        }
+    }
+
+    // [โค้ดส่วนยิง Fetch API เดิม...]
+
+    // เมื่อยิงสำเร็จให้ลดจำนวนโควตาลง 1
+    if (selectedPkg === "pkg2" && questionText.length > 0) {
+        pkg2Quota -= 1;
+        updateQuotaDisplay();
+    }
+}
+
+// ผูกให้ทำงานเมื่อเปลี่ยน Package
+function handlePackageChange() {
+    // [โค้ดสลับ Package เดิม...]
+    updateQuotaDisplay();
+}
 
 const LOADING_QUOTES = [
     "“ดวงชะตาคือพิมพ์เขียว แต่การตัดสินใจของคุณคือผู้เขียนสคริปต์จริง”",
