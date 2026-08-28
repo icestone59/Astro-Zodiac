@@ -439,22 +439,20 @@ function updateStatus(message, isError = false) {
         statusPill.style.color = isError ? "#ef4444" : "#10b981";
     }
     // logic.js (เพิ่มฟังก์ชันจัดการเมื่อสลับ Package)
+// วางไว้ท้ายไฟล์ logic.js
 function handlePackageChange() {
     const selectedPkg = document.getElementById("dev-pkg-select")?.value;
     
-    // 1. จัดการการล็อก/เปิด ปุ่มสแกนปมลึก
+    // ปรับความโปร่งใสปุ่มสแกนปมลึกตามสิทธิ์ Package[cite: 1]
     const btnDeep = document.getElementById("btn-deep-report");
     if (btnDeep) {
-        if (selectedPkg === "pkg1" || selectedPkg === "pkg2") {
-            btnDeep.style.opacity = "0.6";
-        } else {
-            btnDeep.style.opacity = "1";
-        }
+        btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
     }
 
-    // 2. หากมีข้อมูลดวงชะตาคำนวณไว้อยู่แล้ว ให้สั่งยิงวิเคราะห์ตามสิทธิ์แพ็กเกจใหม่ทันที
+    // สั่งยิงวิเคราะห์ซ้ำตาม Package ใหม่ทันทีถ้ามีข้อมูลอยู่แล้ว
     if (window.currentChartData) {
-        calculateAIAnalysis(); // เรียกฟังก์ชันยิงวิเคราะห์ซ้ำ (ถ้ามีใน Cache จะขึ้นทันที ไม่เสีย API)
+        calculateAIAnalysis();
     }
 }
+
 }
