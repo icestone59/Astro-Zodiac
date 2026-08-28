@@ -224,7 +224,22 @@
         </div>
 
         <button class="btn-submit" id="btn-calculate" onclick="calculateChart()">คำนวณตำแหน่งดาวและวิเคราะห์</button>
-        <button class="btn-deep-report" onclick="openDeepReportPage()">🔍 กดดูชะตาของคุณ (ปมลึก)</button>
+   <!-- แทนที่ปุ่มเดิมใน index.html -->
+<button class="btn-deep-report" id="btn-deep-report" onclick="handleDeepReportClick()">
+    🧬 สแกนโครงสร้างจิตวิทยา & ศักยภาพซ่อนเร้น
+</button>
+
+<!-- วางไว้ท้ายไฟล์ก่อนปิด </body> : Modal แจ้งเตือนสิทธิ์ Package -->
+<div id="pkg-hint-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#130a2a; border:1px solid #f59e0b; border-radius:16px; padding:28px; max-width:400px; width:90%; text-align:center; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="font-size:36px; margin-bottom:12px;">🔒</div>
+        <h3 style="color:#fbbf24; margin:0 0 10px 0; font-size:18px;">เฉพาะสมาชิก Package 3 ขึ้นไป</h3>
+        <p style="font-size:14px; color:#cbd5e1; line-height:1.6; margin-bottom:24px;">
+            รายงานวิเคราะห์ปมจิตวิทยาเชิงลึก (Deep Report) และ Radar Chart สงวนสิทธิ์สำหรับสมาชิก <strong>Package 3: Deep Action Report (599.-)</strong> เป็นต้นไป
+        </p>
+        <button onclick="closePkgModal()" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px;">ตกลง</button>
+    </div>
+</div>
     </div>
 
     <!-- RIGHT PANEL: DISPLAY REPORT & QUOTES -->
