@@ -22,6 +22,46 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* การ์ดแสดงผลฝั่งขวา (Insight Analytics Panel) */
+.panel:nth-child(2) {
+    background: #130a2a !important; /* สีม่วงน้ำเงินเข้มลึก ลึกลับลักชัวรี */
+    border: 1px solid rgba(245, 158, 11, 0.3) !important; /* เส้นขอบทองบางเบา */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* หัวข้อบทวิเคราะห์ (1. นิสัย บุคลิกภาพ, 2. การเงิน ฯลฯ) */
+.report-content-area h1, 
+.report-content-area h2, 
+.report-content-area h3, 
+.report-content-area h4,
+.report-content-area strong {
+    color: #fbbf24 !important; /* สีเหลืองทองสว่าง (Amber Gold) */
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* เนื้อหาบทบรรยายหลัก */
+.report-content-area p,
+.report-content-area li {
+    color: #f8fafc !important; /* สีขาวบริสุทธิ์ อ่านชัดเจนบนพื้นหลังมืด */
+    font-size: 15px;
+    line-height: 1.8;
+    margin-bottom: 16px;
+}
+
+/* บรรทัด "ที่มา:" สำหรับเวอร์ชั่นโหร */
+.report-content-area em,
+.report-content-area blockquote {
+    color: #cbd5e1 !important; /* สีเทาสว่างนุ่มตา */
+    border-left: 3px solid #f59e0b;
+    padding-left: 12px;
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    font-size: 13px;
+}
+
+
         body {
             background-color: var(--bg-main);
             color: var(--text-main);
