@@ -8,125 +8,96 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
-
-        <!-- 1. วาง CSS ชุดนี้ในแท็ก <style> เพื่อล็อคขนาดไม่ให้กล่องขยายดันหน้าจอพัง -->
-    .dev-floating-bar {
-        position: fixed !important;
-        top: 12px !important;
-        left: 12px !important;
-        z-index: 99999 !important;
-        background: #1e1b4b !important;
-        border: 1px solid #8b5cf6 !important;
-        border-radius: 8px !important;
-        padding: 6px 12px !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        font-size: 12px !important;
-        color: #f8fafc !important;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
-        width: auto !important;
-        max-width: 320px !important;
-    }
-
-    .dev-floating-bar select {
-        background: #0f172a !important;
-        color: #f8fafc !important;
-        border: 1px solid #475569 !important;
-        border-radius: 6px !important;
-        padding: 4px 8px !important;
-        font-size: 12px !important;
-        width: 180px !important;
-        max-width: 180px !important;
-        cursor: pointer !important;
-    }
-
-    .dev-floating-bar label {
-        display: flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-        margin: 0 !important;
-        font-size: 11px !important;
-        color: #cbd5e1 !important;
-        cursor: pointer !important;
-    }
-
-<!-- 2. วางโครงสร้าง HTML นี้ไว้บรรทัดแรกหลังแท็ก <body> -->
-<div class="dev-floating-bar">
-    <strong style="color: #c084fc;">🛠 Dev:</strong>
-    <select id="dev-pkg-select" onchange="handlePackageChange()">
-        <option value="pkg1">Package 1: Free</option>
-        <option value="pkg2" selected>Package 2: Standard 99.-</option>
-        <option value="pkg3">Package 3: Deep Action 599.-</option>
-        <option value="pkg4">Package 4: VIP 1,999.-</option>
-    </select>
-    <label>
-        <input type="checkbox" id="bypass-cache"> 🔄 Bypass
-    </label>
-</div>
-  /* การ์ดแสดงผลฝั่งขวา (Insight Analytics Panel) */
-.panel:nth-child(2) {
-    background: #130a2a !important; /* สีม่วงน้ำเงินเข้มลึก ลึกลับลักชัวรี */
-    border: 1px solid rgba(245, 158, 11, 0.3) !important; /* เส้นขอบทองบางเบา */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-/* หัวข้อบทวิเคราะห์ (1. นิสัย บุคลิกภาพ, 2. การเงิน ฯลฯ) */
-.report-content-area h1, 
-.report-content-area h2, 
-.report-content-area h3, 
-.report-content-area h4,
-.report-content-area strong {
-    color: #fbbf24 !important; /* สีเหลืองทองสว่าง (Amber Gold) */
-    font-weight: 700;
-    letter-spacing: 0.3px;
-}
-
-/* เนื้อหาบทบรรยายหลัก */
-.report-content-area p,
-.report-content-area li {
-    color: #f8fafc !important; /* สีขาวบริสุทธิ์ อ่านชัดเจนบนพื้นหลังมืด */
-    font-size: 15px;
-    line-height: 1.8;
-    margin-bottom: 16px;
-}
-
-/* บรรทัด "ที่มา:" สำหรับเวอร์ชั่นโหร */
-.report-content-area em,
-.report-content-area blockquote {
-    color: #cbd5e1 !important; /* สีเทาสว่างนุ่มตา */
-    border-left: 3px solid #f59e0b;
-    padding-left: 12px;
-    display: block;
-    margin-top: 8px;
-    font-style: normal;
-    font-size: 13px;
-}
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            font-family: 'Sarabun', sans-serif;
-            margin: 0;
-            padding: 24px;
-            display: flex;
-            justify-content: center;
+        :root {
+            --bg-main: #090514;
+            --panel-left: rgba(255, 255, 255, 0.03);
+            --panel-right: #130a2a;
+            --border-purple: rgba(167, 139, 250, 0.2);
+            --border-gold: rgba(245, 158, 11, 0.3);
+            --accent-purple: #c084fc;
+            --accent-gold: #fbbf24;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
         }
 
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Sarabun', sans-serif;
+            padding: 60px 24px 24px 24px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* FLOATING DEV BAR (LOCKED BOUNDS) */
+        .dev-floating-bar {
+            position: fixed !important;
+            top: 12px !important;
+            left: 12px !important;
+            z-index: 99999 !important;
+            background: #0f172a !important;
+            border: 1px solid #8b5cf6 !important;
+            border-radius: 8px !important;
+            padding: 6px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            font-size: 12px !important;
+            color: #f8fafc !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
+            width: auto !important;
+            max-width: 360px !important;
+        }
+
+        .dev-floating-bar select {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border: 1px solid #475569 !important;
+            border-radius: 6px !important;
+            padding: 4px 8px !important;
+            font-size: 12px !important;
+            width: 190px !important;
+            max-width: 190px !important;
+            cursor: pointer !important;
+        }
+
+        .dev-floating-bar label {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            font-size: 11px !important;
+            color: #cbd5e1 !important;
+            cursor: pointer !important;
+        }
+
+        /* MAIN TWO-COLUMN CONTAINER */
         .container {
             display: grid;
-            grid-template-columns: 360px 1fr;
+            grid-template-columns: 380px 1fr;
             gap: 24px;
             max-width: 1280px;
             width: 100%;
         }
 
         .panel {
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
             border-radius: 16px;
             padding: 24px;
             backdrop-filter: blur(10px);
+        }
+
+        .panel-left {
+            background: var(--panel-left);
+            border: 1px solid var(--border-purple);
+        }
+
+        /* PANEL RIGHT: DEEP ROYAL PURPLE + GOLD + WHITE */
+        .panel-right {
+            background: var(--panel-right) !important;
+            border: 1px solid var(--border-gold) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
 
         .form-group { margin-bottom: 16px; }
@@ -134,22 +105,22 @@
         input, select {
             width: 100%;
             padding: 10px 12px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-purple);
             border-radius: 8px;
             color: var(--text-main);
             font-family: inherit;
-            box-sizing: border-box;
+            font-size: 14px;
         }
 
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-        /* SINGLE TOGGLE SWITCH STYLING */
+        /* SINGLE MODE TOGGLE CARD */
         .mode-toggle-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-purple);
+            border-radius: 10px;
             padding: 10px 14px;
             margin: 16px 0;
             display: flex;
@@ -170,16 +141,19 @@
         input:checked + .slider { background-color: #a855f7; }
         input:checked + .slider:before { transform: translateX(22px); }
 
+        /* BUTTON STYLING */
         .btn-submit {
             width: 100%;
             padding: 12px;
             background: linear-gradient(135deg, #6366f1, #a855f7);
             border: none;
             border-radius: 8px;
-            color: white;
+            color: #ffffff;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             margin-bottom: 12px;
+            transition: opacity 0.2s;
         }
 
         .btn-deep-report {
@@ -188,47 +162,84 @@
             background: linear-gradient(135deg, #f59e0b, #d97706);
             border: none;
             border-radius: 8px;
-            color: white;
+            color: #ffffff;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
+            transition: opacity 0.2s;
         }
 
+        .btn-submit:hover, .btn-deep-report:hover { opacity: 0.9; }
+
+        /* RIGHT PANEL DISPLAY STYLING */
         .status-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-gold);
             padding-bottom: 12px;
             margin-bottom: 20px;
         }
 
         .report-content-area {
-            min-height: 400px;
+            min-height: 450px;
             line-height: 1.8;
             font-size: 15px;
+            color: var(--text-main);
+        }
+
+        .report-content-area h1, 
+        .report-content-area h2, 
+        .report-content-area h3, 
+        .report-content-area h4,
+        .report-content-area strong {
+            color: var(--accent-gold) !important;
+            font-weight: 700;
+            margin-top: 18px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .report-content-area p {
+            color: var(--text-main) !important;
+            margin-bottom: 14px;
+        }
+
+        .report-content-area blockquote,
+        .report-content-area em {
+            color: #cbd5e1 !important;
+            border-left: 3px solid var(--accent-gold);
+            padding-left: 12px;
+            display: block;
+            margin-top: 6px;
+            font-style: normal;
+            font-size: 13px;
         }
     </style>
 </head>
 <body>
 
-    <!-- Dev Package Switcher Bar (ใช้ทดสอบระหว่างพัฒนา) -->
-<!-- index.html (ตำแหน่ง Dev Bar) -->
-<select id="dev-pkg-select" onchange="handlePackageChange()" style="...">
-    <option value="pkg1">Package 1: Free (Natal 7 - Client Mode)</option>
-    <option value="pkg2" selected>Package 2: Standard 99.- (+ Transit Q&A)</option>
-    <option value="pkg3">Package 3: Deep Action 599.- (Uranian + Radar Chart)</option>
-    <option value="pkg4">Package 4: VIP 1,999.- (Astrologer Technical Mode)</option>
-</select>
-    <label style="margin-left: 10px; cursor: pointer;">
-        <input type="checkbox" id="bypass-cache"> 🔄 ล้าง Cache
+<!-- DEV PACKAGE SELECTOR BAR (FIXED TOP-LEFT) -->
+<div class="dev-floating-bar">
+    <strong style="color: #c084fc;">🛠 Dev:</strong>
+    <select id="dev-pkg-select" onchange="handlePackageChange()">
+        <option value="pkg1">Package 1: Free</option>
+        <option value="pkg2" selected>Package 2: Standard 99.-</option>
+        <option value="pkg3">Package 3: Deep Action 599.-</option>
+        <option value="pkg4">Package 4: VIP 1,999.-</option>
+    </select>
+    <label>
+        <input type="checkbox" id="bypass-cache"> 🔄 Bypass
     </label>
 </div>
-   
+
 <div class="container">
-    <!-- LEFT PANEL: FORM INPUT -->
-    <div class="panel">
+    <!-- LEFT PANEL: FORM INPUTS -->
+    <div class="panel panel-left">
         <h3 style="color: var(--accent-purple); margin-top:0;">✨ EVOLUTIONARY ASTROLOGY ENGINE</h3>
-        <p style="font-size: 12px; color: #94a3b8; margin-top: -8px; margin-bottom: 20px;">โหราศาสตร์สากลเชิงพัฒนาศักยภาพ</p>
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px; margin-bottom: 20px;">
+            ระบบวิเคราะห์ดวงชะตาเชิงพัฒนาศักยภาพ[cite: 1]
+        </p>
         
         <div class="form-group">
             <label>ชื่อผู้ใช้</label>
@@ -265,55 +276,52 @@
 
         <div class="form-group">
             <label>คำถามเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
-            <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่">
+            <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่[cite: 1]">
         </div>
 
-        <!-- SINGLE TOGGLE SWITCH -->
+        <!-- SINGLE MODE TOGGLE -->
         <div class="mode-toggle-card">
-            <span style="font-size: 13px; color: #cbd5e1;">👤 เวอร์ชั่นลูกค้า</span>
+            <span style="font-size: 12px; color: #cbd5e1;">👤 เวอร์ชั่นลูกค้า</span>
             <label class="switch">
                 <input type="checkbox" id="mode-toggle" onchange="handleModeToggle()">
                 <span class="slider"></span>
             </label>
-            <span style="font-size: 13px; color: #a78bfa;">🔮 เวอร์ชั่นโหร</span>
+            <span style="font-size: 12px; color: #a78bfa;">🔮 เวอร์ชั่นโหร</span>
         </div>
 
-        <button class="btn-submit" id="btn-calculate" onclick="calculateChart()">คำนวณตำแหน่งดาวและวิเคราะห์</button>
-   <!-- แทนที่ปุ่มเดิมใน index.html -->
-<button class="btn-deep-report" id="btn-deep-report" onclick="handleDeepReportClick()">
-    🧬 สแกนโครงสร้างจิตวิทยา & ศักยภาพซ่อนเร้น
-</button>
-
-<!-- วางไว้ท้ายไฟล์ก่อนปิด </body> : Modal แจ้งเตือนสิทธิ์ Package -->
-<div id="pkg-hint-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:#130a2a; border:1px solid #f59e0b; border-radius:16px; padding:28px; max-width:400px; width:90%; text-align:center; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-        <div style="font-size:36px; margin-bottom:12px;">🔒</div>
-        <h3 style="color:#fbbf24; margin:0 0 10px 0; font-size:18px;">เฉพาะสมาชิก Package 3 ขึ้นไป</h3>
-        <p style="font-size:14px; color:#cbd5e1; line-height:1.6; margin-bottom:24px;">
-            รายงานวิเคราะห์ปมจิตวิทยาเชิงลึก (Deep Report) และ Radar Chart สงวนสิทธิ์สำหรับสมาชิก <strong>Package 3: Deep Action Report (599.-)</strong> เป็นต้นไป
-        </p>
-        <button onclick="closePkgModal()" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px;">ตกลง</button>
-    </div>
-</div>
+        <button class="btn-submit" id="btn-calculate" onclick="calculateChart()">คำนวณตำแหน่งดาวและวิเคราะห์[cite: 1]</button>
+        <button class="btn-deep-report" id="btn-deep-report" onclick="handleDeepReportClick()">
+            🧬 สแกนโครงสร้างจิตวิทยา & ศักยภาพซ่อนเร้น
+        </button>
     </div>
 
-    <!-- RIGHT PANEL: DISPLAY REPORT & QUOTES -->
-    <div class="panel">
+    <!-- RIGHT PANEL: DISPLAY REPORT -->
+    <div class="panel panel-right">
         <div class="status-bar">
-            <span style="font-weight: 600; color: var(--accent-purple);">✦ INSIGHT ANALYTICS</span>
+            <span style="font-weight: 600; color: var(--accent-gold);">✦ INSIGHT ANALYTICS</span>
             <span id="status-pill" style="font-size: 12px; padding: 2px 8px; border-radius: 4px; background: rgba(255,255,255,0.05); color: #10b981;">Ready</span>
         </div>
 
-        <!-- DISPLAY AREA -->
         <div class="report-content-area" id="natal-report-content">
-            <p id="default-message" style="color: #94a3b8; text-align: center; margin-top: 100px;">
-                กรอกข้อมูลทางซ้ายมือแล้วกดปุ่ม "คำนวณตำแหน่งดาวและวิเคราะห์" เพื่อดูผลลัพธ์
+            <p id="default-message" style="color: var(--text-muted); text-align: center; margin-top: 120px;">
+                กรอกข้อมูลทางซ้ายมือแล้วกดปุ่ม "คำนวณตำแหน่งดาวและวิเคราะห์" เพื่อดูผลลัพธ์[cite: 1]
             </p>
         </div>
     </div>
 </div>
 
-<script src="quotes.js"></script>
+<!-- MODAL HINT FOR PACKAGE RESTRICTIONS -->
+<div id="pkg-hint-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; justify-content:center; align-items:center;">
+    <div style="background:#130a2a; border:1px solid #f59e0b; border-radius:16px; padding:28px; max-width:400px; width:90%; text-align:center; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+        <div style="font-size:36px; margin-bottom:12px;">🔒</div>
+        <h3 style="color:#fbbf24; margin:0 0 10px 0; font-size:18px;">เฉพาะสมาชิก Package 3 ขึ้นไป</h3>
+        <p style="font-size:14px; color:#cbd5e1; line-height:1.6; margin-bottom:24px;">
+            รายงานวิเคราะห์ปมจิตวิทยาเชิงลึก (Deep Report) และ Radar Chart สงวนสิทธิ์สำหรับสมาชิก <strong>Package 3: Deep Action Report (599.-)</strong> เป็นต้นไป[cite: 1]
+        </p>
+        <button onclick="closePkgModal()" style="background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; border:none; padding:10px 24px; border-radius:8px; cursor:pointer; font-weight:600; font-size:14px;">ตกลง</button>
+    </div>
+</div>
+
 <script src="logic.js"></script>
 
 </body>
