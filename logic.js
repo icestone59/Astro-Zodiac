@@ -1,17 +1,70 @@
-// logic.js - Evolutionary & Uranian Astrology Engine Controller
+// logic.js - Evolutionary Astrology Engine Controller
 
-// Global State
 window.currentChartData = null;
+let quoteIntervalId = null;
+
+// คลังคำคมเชิงพัฒนาศักยภาพและจิตวิทยาการเติบโต
+const LOADING_QUOTES = [
+    "“ดวงชะตาคือพิมพ์เขียว แต่การตัดสินใจของคุณคือผู้เขียนสคริปต์จริง”",
+    "“ดาวจรที่ท้าทาย ไม่ใช่เรื่องโชคร้าย แต่คือแบบฝึกหัดขยายขีดความสามารถ”",
+    "“ดวงดาวไม่ได้บังคับชะตาชีวิต เพียงแต่นำเสนอจังหวะเวลาที่เหมาะสม”",
+    "“การตระหนักรู้ปมในจิตใต้สำนึก คือก้าวแรกของการปลดล็อกศักยภาพซ่อนเร้น”",
+    "“พลังงานดาวจรจะไร้ผล หากขาดการลงมือทำอย่างมีวินัยในโลกจริง”",
+    "“เปลี่ยนอุปสรรคให้เป็นกลยุทธ์ ดึงพลังงานดาวจรมาปรับใช้กับเป้าหมาย”"
+];
 
 /**
- * 1. จัดการสิทธิ์และการเปิด/ปิด UI ตาม Package ที่เลือก
+ * ฟังก์ชันเริ่มวนลูปแสดงคำคมสลับทุก 3.5 วินาที
+ */
+function startLoadingQuotes() {
+    const reportArea = document.getElementById("natal-report-content");
+    if (!reportArea) return;
+
+    let index = 0;
+    
+    // แสดงคำคมแรกทันที
+    reportArea.innerHTML = `
+        <div style="text-align: center; margin-top: 100px; padding: 0 20px;">
+            <div style="font-size: 24px; margin-bottom: 16px; animation: spin 2s linear infinite;">🔮</div>
+            <p style="color: #cbd5e1; font-size: 15px; font-style: italic; min-height: 48px; transition: opacity 0.5s ease-in-out;" id="quote-text">
+                ${LOADING_QUOTES[index]}
+            </p>
+            <p style="color: #94a3b8; font-size: 12px; margin-top: 12px;">กำลังประมวลผลคณิตศาสตร์ดาราศาสตร์และ AI พยากรณ์...</p>
+        </div>
+    `;
+
+    // วนลูปสลับคำคม
+    quoteIntervalId = setInterval(() => {
+        index = (index + 1) % LOADING_QUOTES.length;
+        const quoteElem = document.getElementById("quote-text");
+        if (quoteElem) {
+            quoteElem.style.opacity = 0;
+            setTimeout(() => {
+                quoteElem.innerText = LOADING_QUOTES[index];
+                quoteElem.style.opacity = 1;
+            }, 300);
+        }
+    }, 3500);
+}
+
+/**
+ * ฟังก์ชันหยุดแสดงคำคมเมื่อ AI ประมวลผลเสร็จ
+ */
+function stopLoadingQuotes() {
+    if (quoteIntervalId) {
+        clearInterval(quoteIntervalId);
+        quoteIntervalId = null;
+    }
+}
+
+/**
+ * จัดการสิทธิ์และการเปิด/ปิด UI ตาม Package
  */
 function handlePackageChange() {
     const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
     const questionInput = document.getElementById("question");
     const btnDeep = document.getElementById("btn-deep-report");
 
-    // ควบคุมการใช้งานช่องคำถามดาวจร (Transit Q&A)
     if (questionInput) {
         if (selectedPkg === "pkg1") {
             questionInput.value = "";
@@ -29,40 +82,28 @@ function handlePackageChange() {
         }
     }
 
-    // ควบคุมความโปร่งใสปุ่ม Deep Report (Package 3 ขึ้นไป)
     if (btnDeep) {
         btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
     }
 
-    // หากมีข้อมูลดวงชะตาคำนวณไว้แล้ว ให้ส่งวิเคราะห์ตาม Package ใหม่ทันที
-    if (window.currentChartData) {
+    if (window.currentChartData && selectedPkg !== "pkg1") {
         calculateAIAnalysis();
     }
 }
 
-/**
- * 2. จัดการสลับโหมดการแปลผล (เวอร์ชั่นลูกค้า vs เวอร์ชั่นโหร)
- */
 function handleModeToggle() {
     if (window.currentChartData) {
         calculateAIAnalysis();
     }
 }
 
-/**
- * 3. ตรวจสอบสิทธิ์และเปิดรายงานปมจิตวิทยาเชิงลึก (Deep Report)
- */
 function handleDeepReportClick() {
     const currentPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
-
-    // สิทธิ์ Package 1 และ 2 ไม่อนุญาตให้เข้าถึง Deep Report
     if (currentPkg === "pkg1" || currentPkg === "pkg2") {
         const modal = document.getElementById("pkg-hint-modal");
         if (modal) modal.style.display = "flex";
         return;
     }
-
-    // Package 3 ขึ้นไป อนุญาตให้ไปยังหน้า deepreport.html
     window.location.href = "/deepreport";
 }
 
@@ -72,11 +113,10 @@ function closePkgModal() {
 }
 
 /**
- * 4. คำนวณตำแหน่งองศาดาวกำเนิดและดาวจร (Backend Calculation)
+ * คำนวณตำแหน่งองศาดาวกำเนิดและดาวจร (Backend Calculation)
  */
 async function calculateChart() {
     const statusPill = document.getElementById("status-pill");
-    const reportArea = document.getElementById("natal-report-content");
 
     const payload = {
         user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
@@ -93,9 +133,7 @@ async function calculateChart() {
         statusPill.style.color = "#f59e0b";
     }
 
-    if (reportArea) {
-        reportArea.innerHTML = `<p style="color: #94a3b8; text-align: center; margin-top: 120px;">⏳ กำลังคำนวณตำแหน่งดวงดาวดาราศาสตร์และสกัดมุมสัมพันธ์...</p>`;
-    }
+    startLoadingQuotes(); // เริ่มแสดงคำคมระหว่างรอ
 
     try {
         const response = await fetch('/calculate_chart', {
@@ -108,17 +146,18 @@ async function calculateChart() {
 
         if (data.status === "success") {
             window.currentChartData = data;
-            // ประมวลผล AI ต่อทันที
             await calculateAIAnalysis();
         } else {
             throw new Error(data.message || "เกิดข้อผิดพลาดในการคำนวณตำแหน่งดาว");
         }
     } catch (error) {
+        stopLoadingQuotes();
         console.error("Calculate Chart Error:", error);
         if (statusPill) {
             statusPill.textContent = "Error";
             statusPill.style.color = "#ef4444";
         }
+        const reportArea = document.getElementById("natal-report-content");
         if (reportArea) {
             reportArea.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 120px;">❌ เกิดข้อผิดพลาด: ${error.message}</p>`;
         }
@@ -126,7 +165,7 @@ async function calculateChart() {
 }
 
 /**
- * 5. ส่งข้อมูลดวงชะตาให้ AI ประมวลผลพยากรณ์ (Natal 7 / Transit Q&A)
+ * ส่งข้อมูลดวงชะตาให้ AI ประมวลผลพยากรณ์
  */
 async function calculateAIAnalysis() {
     if (!window.currentChartData) return;
@@ -139,7 +178,6 @@ async function calculateAIAnalysis() {
     const isBypassCache = document.getElementById("bypass-cache")?.checked || false;
     const questionText = document.getElementById("question")?.value?.trim() || "";
 
-    // กำหนดประเภทรายงาน: Package 2 ขึ้นไป และมีการพิมพ์คำถาม จะใช้ transit_qa
     let reportType = "natal_7";
     if (selectedPkg !== "pkg1" && questionText.length > 0) {
         reportType = "transit_qa";
@@ -160,8 +198,9 @@ async function calculateAIAnalysis() {
         statusPill.style.color = "#3b82f6";
     }
 
-    if (reportArea) {
-        reportArea.innerHTML = `<p style="color: #94a3b8; text-align: center; margin-top: 120px;">🔮 กำลังประมวลผลคำทำนายเชิงพัฒนาศักยภาพ...</p>`;
+    // เริ่มคำสั่งวนลูปคำคมหากยังไม่ได้เริ่ม
+    if (!quoteIntervalId) {
+        startLoadingQuotes();
     }
 
     try {
@@ -172,6 +211,7 @@ async function calculateAIAnalysis() {
         });
 
         const data = await response.json();
+        stopLoadingQuotes(); // หยุดคำคมเมื่อได้รับข้อมูลเสร็จสิ้น
 
         if (data.status === "success") {
             if (statusPill) {
@@ -181,7 +221,6 @@ async function calculateAIAnalysis() {
 
             const markdownText = (data.type === "transit_qa") ? data.answer : data.report;
             
-            // แปลง Markdown เป็น HTML สวยงาม
             if (reportArea) {
                 if (typeof marked !== 'undefined') {
                     reportArea.innerHTML = marked.parse(markdownText);
@@ -193,6 +232,7 @@ async function calculateAIAnalysis() {
             throw new Error(data.message || "เกิดข้อผิดพลาดในการวิเคราะห์ AI");
         }
     } catch (error) {
+        stopLoadingQuotes();
         console.error("AI Analysis Error:", error);
         if (statusPill) {
             statusPill.textContent = "Error";
@@ -204,7 +244,6 @@ async function calculateAIAnalysis() {
     }
 }
 
-// ผูก Event Listener เมื่อ DOM โหลดเสร็จสิ้น
 document.addEventListener("DOMContentLoaded", () => {
     handlePackageChange();
 });
