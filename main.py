@@ -29,6 +29,13 @@ logging.basicConfig(level=logging.INFO)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, static_folder=BASE_DIR, static_url_path='')
 
+# main.py - Handling Cache Bypass for Dev Testing
+bypass_cache = data.get('bypass_cache', False)
+
+if bypass_cache:
+    cached_response = None  # บังคับยิง OpenAI API ใหม่เพื่อตรวจ Prompt
+else:
+    cached_response = get_cached_ai_report(cache_key, report_type)[cite: 1]
 # ------------------------------------------------------------------
 # Page & Static Routes (ป้องกัน 404 Not Found)
 # ------------------------------------------------------------------
