@@ -408,6 +408,24 @@ function openDeepReportPage() {
     localStorage.setItem("deep_report_payload", JSON.stringify(payload));
     window.open('/deepreport', '_blank');
 }
+// เพิ่มในไฟล์ logic.js
+function handleDeepReportClick() {
+    // ดึงระดับ Package ปัจจุบันจาก Dev Selector
+    const currentPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+
+    // Package 1 (Free) และ Package 2 (Standard) ไม่สามารถดูรายงานปมลึกได้[cite: 1]
+    if (currentPkg === "pkg1" || currentPkg === "pkg2") {
+        document.getElementById("pkg-hint-modal").style.display = "flex";
+        return;
+    }
+
+    // อนุญาตเฉพาะ Package 3 และ Package 4 ให้เข้าใช้งาน[cite: 1]
+    openDeepReportPage();
+}
+
+function closePkgModal() {
+    document.getElementById("pkg-hint-modal").style.display = "none";
+}
 
 function updateStatus(message, isError = false) {
     const statusText = document.getElementById("status-text");
