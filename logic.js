@@ -4,15 +4,22 @@ window.currentChartData = null;
 let quoteIntervalId = null;
 // logic.js - เพิ่มระบบจัดการโควตา Package 2
 // logic.js
-let pkg2Quota = 3;
+// logic.js - ปรับปรุงระบบโควตาและการยิงคำถาม
+let pkg2Quota = 3; // กำหนดโควตาตั้งต้นของ Package 2
 
+/**
+ * จัดการการแสดงผลป้ายโควตาตาม Package
+ */
 function updateQuotaDisplay() {
     const quotaBadge = document.getElementById("quota-badge");
     const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
 
     if (!quotaBadge) return;
 
-    if (selectedPkg === "pkg2") {
+    // Package 1 และ Package อื่นๆ ให้ซ่อนป้ายโควตาทันที[cite: 1]
+    if (selectedPkg === "pkg1") {
+        quotaBadge.style.display = "none";
+    } else if (selectedPkg === "pkg2") {
         quotaBadge.style.display = "inline-block";
         quotaBadge.textContent = `โควตาคงเหลือ: ${pkg2Quota}/3 คำถาม`;
         quotaBadge.style.color = (pkg2Quota <= 0) ? "#ef4444" : "#c084fc";
@@ -21,6 +28,157 @@ function updateQuotaDisplay() {
         quotaBadge.style.display = "none";
     }
 }
+
+/**
+ * จัดการสิทธิ์ UI เมื่อสลับ Package
+ */
+function handlePackageChange() {
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+    const questionInput = document.getElementById("question");
+    const btnDeep = document.getElementById("btn-deep-report");
+
+    if (questionInput) {
+        if (selectedPkg === "pkg1") {
+            questionInput.value = "";
+            questionInput.disabled = true;
+            questionInput.placeholder = "🔒 ถามคำถามดาวจร (Transit Q&A) เฉพาะ Package 2 ขึ้นไป";
+            questionInput.style.opacity = "0.4";
+            questionInput.style.cursor = "not-allowed";
+        } else {
+            questionInput.disabled = false;
+            questionInput.placeholder = "เช่น ผมจะได้งานเมื่อไหร่[cite: 1]";
+            questionInput.style.opacity = "1";
+            questionInput.style.cursor = "text";
+        }
+    }
+
+    if (btnDeep) {
+        btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
+    }
+
+    updateQuotaDisplay(); // อัปเดตการแสดงผลป้ายโควตา
+
+    if (window.currentChartData && selectedPkg !== "pkg1") {
+        calculateAIAnalysis();
+    }
+}
+
+/**
+ * ส่งวิเคราะห์ AI และตัดโควตา Package 2
+ */
+async function calculateAIAnalysis() {
+    if (!window.currentChartData) return;
+
+    const statusPill = document.getElementById("status-pill");
+    const reportArea = document.getElementById("natal-report-content");
+
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+    const isBypassCache = document.getElementById("bypass-cache")?.checked || false;
+    const questionText = document.getElementById("question")?.value?.trim() || "";
+
+    // ตรวจสอบโควตา Package 2
+    if (selectedPkg === "pkg2" && questionText.length > 0 && pkg2Quota <= 0) {
+        alert("❌ คุณใช้โควตาคำถามของ Package 2 ครบแล้ว (3/3 คำถาม)");
+        return;
+    }
+
+    const mode = (selectedPkg === "pkg4") ? "astrologer" : "client";
+    let reportType = "natal_7";
+    if (selectedPkg !== "pkg1" && questionText.length > 0) {
+        reportType = "transit_qa";
+    }
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
+        report_type: reportType,
+        chart_data: window.currentChartData,
+        question: questionText,
+        mode: mode,
+        package_level: selectedPkg,
+        bypass_cache: isBypassCache
+    };
+
+    if (statusPill) {
+        statusPill.textContent = "Analyzing AI...";
+        statusPill.style.color = "#3b82f6";
+    }
+
+    if (!quoteIntervalId) {
+        startLoadingQuotes();
+    }
+
+    try {
+        const response = await fetch('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        stopLoadingQuotes();
+
+        if (data.status === "success") {
+            if (statusPill) {
+                statusPill.textContent = "Ready";
+                statusPill.style.color = "#10b981";
+            }
+
+            // ตัดโควตาลง 1 และอัปเดตหน้าจอเมื่อยิง Transit Q&A ใน Package 2 สำเร็จ
+            if (selectedPkg === "pkg2" && reportType === "transit_qa") {
+                pkg2Quota = Math.max(0, pkg2Quota - 1);
+                updateQuotaDisplay();
+            }
+
+            const markdownText = (data.type === "transit_qa") ? data.answer : data.report;
+            
+            if (reportArea) {
+                if (typeof marked !== 'undefined') {
+                    reportArea.innerHTML = marked.parse(markdownText);
+                } else {
+                    reportArea.innerText = markdownText;
+                }
+            }
+        } else {
+            throw new Error(data.message || "เกิดข้อผิดพลาดในการวิเคราะห์ AI");
+        }
+    } catch (error) {
+        stopLoadingQuotes();
+        console.error("AI Analysis Error:", error);
+        if (statusPill) {
+            statusPill.textContent = "Error";
+            statusPill.style.color = "#ef4444";
+        }
+        if (reportArea) {
+            reportArea.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 120px;">❌ เกิดข้อผิดพลาดในการดึงคำทำนาย: ${error.message}</p>`;
+        }
+    }
+}
+
+// ผูก Event Listener เมื่อ DOM โหลดเสร็จ
+document.addEventListener("DOMContentLoaded", () => {
+    handlePackageChange();
+
+    const questionInput = document.getElementById("question");
+    if (questionInput) {
+        questionInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                
+                const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+                if (selectedPkg === "pkg2" && pkg2Quota <= 0) {
+                    alert("❌ คุณใช้โควตาคำถามของ Package 2 ครบแล้ว (3/3 คำถาม)");
+                    return;
+                }
+
+                if (window.currentChartData) {
+                    calculateAIAnalysis();
+                } else {
+                    calculateChart();
+                }
+            }
+        });
+    }
+});
 
 function handlePackageChange() {
     const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
