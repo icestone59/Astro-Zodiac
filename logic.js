@@ -1,9 +1,8 @@
-// logic.js - Evolutionary Astrology Engine Controller
+// logic.js - Evolutionary & Uranian Astrology Controller (Clean State Version)
 
 window.currentChartData = null;
 let quoteIntervalId = null;
 
-// คลังคำคมเชิงพัฒนาศักยภาพและจิตวิทยาการเติบโต
 const LOADING_QUOTES = [
     "“ดวงชะตาคือพิมพ์เขียว แต่การตัดสินใจของคุณคือผู้เขียนสคริปต์จริง”",
     "“ดาวจรที่ท้าทาย ไม่ใช่เรื่องโชคร้าย แต่คือแบบฝึกหัดขยายขีดความสามารถ”",
@@ -13,19 +12,14 @@ const LOADING_QUOTES = [
     "“เปลี่ยนอุปสรรคให้เป็นกลยุทธ์ ดึงพลังงานดาวจรมาปรับใช้กับเป้าหมาย”"
 ];
 
-/**
- * ฟังก์ชันเริ่มวนลูปแสดงคำคมสลับทุก 3.5 วินาที
- */
 function startLoadingQuotes() {
     const reportArea = document.getElementById("natal-report-content");
     if (!reportArea) return;
 
     let index = 0;
-    
-    // แสดงคำคมแรกทันที
     reportArea.innerHTML = `
         <div style="text-align: center; margin-top: 100px; padding: 0 20px;">
-            <div style="font-size: 24px; margin-bottom: 16px; animation: spin 2s linear infinite;">🔮</div>
+            <div style="font-size: 24px; margin-bottom: 16px;">🔮</div>
             <p style="color: #cbd5e1; font-size: 15px; font-style: italic; min-height: 48px; transition: opacity 0.5s ease-in-out;" id="quote-text">
                 ${LOADING_QUOTES[index]}
             </p>
@@ -33,7 +27,6 @@ function startLoadingQuotes() {
         </div>
     `;
 
-    // วนลูปสลับคำคม
     quoteIntervalId = setInterval(() => {
         index = (index + 1) % LOADING_QUOTES.length;
         const quoteElem = document.getElementById("quote-text");
@@ -47,9 +40,6 @@ function startLoadingQuotes() {
     }, 3500);
 }
 
-/**
- * ฟังก์ชันหยุดแสดงคำคมเมื่อ AI ประมวลผลเสร็จ
- */
 function stopLoadingQuotes() {
     if (quoteIntervalId) {
         clearInterval(quoteIntervalId);
@@ -57,9 +47,6 @@ function stopLoadingQuotes() {
     }
 }
 
-/**
- * จัดการสิทธิ์และการเปิด/ปิด UI ตาม Package
- */
 function handlePackageChange() {
     const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
     const questionInput = document.getElementById("question");
@@ -86,12 +73,6 @@ function handlePackageChange() {
         btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
     }
 
-    if (window.currentChartData && selectedPkg !== "pkg1") {
-        calculateAIAnalysis();
-    }
-}
-
-function handleModeToggle() {
     if (window.currentChartData) {
         calculateAIAnalysis();
     }
@@ -112,9 +93,6 @@ function closePkgModal() {
     if (modal) modal.style.display = "none";
 }
 
-/**
- * คำนวณตำแหน่งองศาดาวกำเนิดและดาวจร (Backend Calculation)
- */
 async function calculateChart() {
     const statusPill = document.getElementById("status-pill");
 
@@ -122,7 +100,7 @@ async function calculateChart() {
         user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
         day: parseInt(document.getElementById("day")?.value || 1),
         month: parseInt(document.getElementById("month")?.value || 1),
-        year: parseInt(document.getElementById("year")?.value || 2538),
+        year: parseInt(document.getElementById("year")?.value || 2520),
         hour: parseInt(document.getElementById("hour")?.value || 0),
         minute: parseInt(document.getElementById("minute")?.value || 0),
         location_name: document.getElementById("location_name")?.value || "กรุงเทพมหานคร"
@@ -133,7 +111,7 @@ async function calculateChart() {
         statusPill.style.color = "#f59e0b";
     }
 
-    startLoadingQuotes(); // เริ่มแสดงคำคมระหว่างรอ
+    startLoadingQuotes();
 
     try {
         const response = await fetch('/calculate_chart', {
@@ -164,9 +142,6 @@ async function calculateChart() {
     }
 }
 
-/**
- * ส่งข้อมูลดวงชะตาให้ AI ประมวลผลพยากรณ์
- */
 async function calculateAIAnalysis() {
     if (!window.currentChartData) return;
 
@@ -174,9 +149,11 @@ async function calculateAIAnalysis() {
     const reportArea = document.getElementById("natal-report-content");
 
     const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
-    const isAstrologerMode = document.getElementById("mode-toggle")?.checked || false;
     const isBypassCache = document.getElementById("bypass-cache")?.checked || false;
     const questionText = document.getElementById("question")?.value?.trim() || "";
+
+    // กำหนดโหมดภาษา: Package 4 ใช้โหร (astrologer), Package 1-3 ใช้ลูกค้า (client)
+    const mode = (selectedPkg === "pkg4") ? "astrologer" : "client";
 
     let reportType = "natal_7";
     if (selectedPkg !== "pkg1" && questionText.length > 0) {
@@ -188,7 +165,7 @@ async function calculateAIAnalysis() {
         report_type: reportType,
         chart_data: window.currentChartData,
         question: questionText,
-        mode: isAstrologerMode ? "astrologer" : "client",
+        mode: mode,
         package_level: selectedPkg,
         bypass_cache: isBypassCache
     };
@@ -198,7 +175,6 @@ async function calculateAIAnalysis() {
         statusPill.style.color = "#3b82f6";
     }
 
-    // เริ่มคำสั่งวนลูปคำคมหากยังไม่ได้เริ่ม
     if (!quoteIntervalId) {
         startLoadingQuotes();
     }
@@ -211,7 +187,7 @@ async function calculateAIAnalysis() {
         });
 
         const data = await response.json();
-        stopLoadingQuotes(); // หยุดคำคมเมื่อได้รับข้อมูลเสร็จสิ้น
+        stopLoadingQuotes();
 
         if (data.status === "success") {
             if (statusPill) {
@@ -245,25 +221,19 @@ async function calculateAIAnalysis() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // 1. ตั้งค่าการล็อก/เปิด สิทธิ์ช่องกรอกตาม Package ตั้งต้น
     handlePackageChange();
 
-    // 2. ดักจับการกดปุ่ม Enter ที่ช่องกรอกคำถามเจาะจง
     const questionInput = document.getElementById("question");
     if (questionInput) {
         questionInput.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
-                event.preventDefault(); // ป้องกันการรีเฟรชหน้าจอ
-
-                // หากมีข้อมูลดวงที่คำนวณไว้แล้ว ให้ยิงวิเคราะห์คำถามทันที
+                event.preventDefault();
                 if (window.currentChartData) {
                     calculateAIAnalysis();
                 } else {
-                    // หากยังไม่มีข้อมูลดวง ให้คำนวณดวงกำเนิดใหม่พร้อมวิเคราะห์
                     calculateChart();
                 }
             }
         });
     }
-});
 });
