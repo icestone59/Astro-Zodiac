@@ -438,21 +438,45 @@ function updateStatus(message, isError = false) {
         statusPill.textContent = isError ? "Error" : "Ready";
         statusPill.style.color = isError ? "#ef4444" : "#10b981";
     }
-    // logic.js (เพิ่มฟังก์ชันจัดการเมื่อสลับ Package)
-// วางไว้ท้ายไฟล์ logic.js
+
+// ฟังก์ชันจัดการการเปิด/ปิดสิทธิ์ UI ตาม Package ที่เลือก
 function handlePackageChange() {
-    const selectedPkg = document.getElementById("dev-pkg-select")?.value;
-    
-    // ปรับความโปร่งใสปุ่มสแกนปมลึกตามสิทธิ์ Package[cite: 1]
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg2";
+    const questionInput = document.getElementById("question");
     const btnDeep = document.getElementById("btn-deep-report");
+
+    // 1. ล็อกช่องกรอกคำถาม Transit สำหรับ Package 1 (Free)
+    if (questionInput) {
+        if (selectedPkg === "pkg1") {
+            questionInput.value = "";
+            questionInput.disabled = true;
+            questionInput.placeholder = "🔒 ถามคำถามดาวจร (Transit Q&A) เฉพาะ Package 2 ขึ้นไป";
+            questionInput.style.opacity = "0.5";
+            questionInput.style.cursor = "not-allowed";
+            questionInput.style.background = "rgba(0, 0, 0, 0.8)";
+        } else {
+            questionInput.disabled = false;
+            questionInput.placeholder = "เช่น ผมจะได้งานเมื่อไหร่";
+            questionInput.style.opacity = "1";
+            questionInput.style.cursor = "text";
+            questionInput.style.background = "rgba(0, 0, 0, 0.5)";
+        }
+    }
+
+    // 2. ปรับสถานะปุ่มสแกนปมลึก (Package 3 ขึ้นไป)
     if (btnDeep) {
         btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
     }
 
-    // สั่งยิงวิเคราะห์ซ้ำตาม Package ใหม่ทันทีถ้ามีข้อมูลอยู่แล้ว
-    if (window.currentChartData) {
+    // 3. สั่งวิเคราะห์ใหม่ทันทีถ้ามีข้อมูลดวงชะตากรอกไว้แล้ว
+    if (window.currentChartData && typeof calculateAIAnalysis === "function") {
         calculateAIAnalysis();
     }
 }
+
+// เรียกทำงานทันทีที่เปิดหน้าเว็บเพื่อตั้งค่าสิทธิ์ตั้งต้น
+document.addEventListener("DOMContentLoaded", () => {
+    handlePackageChange();
+});
 
 }
