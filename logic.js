@@ -9,6 +9,21 @@ const reportCache = {
     astrologer: null
 };
 
+// ดึงค่าสิทธิ์แพ็กเกจจาก Dev Selector
+const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg2";
+const forceBypassCache = document.getElementById("bypass-cache")?.checked || false;
+
+const payload = {
+    user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
+    chart_data: currentChartData,
+    report_type: (selectedPkg === 'pkg3') ? 'deep_report' : reportType,
+    package_level: selectedPkg,
+    // สลับโหมดโหรเฉพาะเมื่อเลือก Pkg 4
+    mode: (selectedPkg === 'pkg4') ? 'astrologer' : 'client', 
+    question: document.getElementById("question")?.value || "",
+    bypass_cache: forceBypassCache
+};
+
 // logic.js - Interactive Terminal Debug Error Renderer
 
 // ฟังก์ชันสำหรับวาด Terminal Debug Log บน UI
