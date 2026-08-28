@@ -3,7 +3,8 @@
 window.currentChartData = null;
 let quoteIntervalId = null;
 // logic.js - เพิ่มระบบจัดการโควตา Package 2
-let pkg2Quota = 3; // กำหนดโควตาตั้งต้น 3 คำถาม
+// logic.js
+let pkg2Quota = 3;
 
 function updateQuotaDisplay() {
     const quotaBadge = document.getElementById("quota-badge");
@@ -14,14 +15,69 @@ function updateQuotaDisplay() {
     if (selectedPkg === "pkg2") {
         quotaBadge.style.display = "inline-block";
         quotaBadge.textContent = `โควตาคงเหลือ: ${pkg2Quota}/3 คำถาม`;
-        if (pkg2Quota <= 0) {
-            quotaBadge.style.color = "#ef4444";
-            quotaBadge.style.borderColor = "#ef4444";
-        }
+        quotaBadge.style.color = (pkg2Quota <= 0) ? "#ef4444" : "#c084fc";
+        quotaBadge.style.borderColor = (pkg2Quota <= 0) ? "#ef4444" : "rgba(139, 92, 246, 0.4)";
     } else {
         quotaBadge.style.display = "none";
     }
 }
+
+function handlePackageChange() {
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+    const questionInput = document.getElementById("question");
+    const btnDeep = document.getElementById("btn-deep-report");
+
+    if (questionInput) {
+        if (selectedPkg === "pkg1") {
+            questionInput.value = "";
+            questionInput.disabled = true;
+            questionInput.placeholder = "🔒 ถามคำถามดาวจร (Transit Q&A) เฉพาะ Package 2 ขึ้นไป";
+            questionInput.style.opacity = "0.4";
+            questionInput.style.cursor = "not-allowed";
+        } else {
+            questionInput.disabled = false;
+            questionInput.placeholder = "เช่น ผมจะได้งานเมื่อไหร่[cite: 1]";
+            questionInput.style.opacity = "1";
+            questionInput.style.cursor = "text";
+        }
+    }
+
+    if (btnDeep) {
+        btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
+    }
+
+    updateQuotaDisplay();
+
+    if (window.currentChartData && selectedPkg !== "pkg1") {
+        calculateAIAnalysis();
+    }
+}
+
+// ผูกการยิงคำถามด้วยปุ่ม Enter
+document.addEventListener("DOMContentLoaded", () => {
+    handlePackageChange();
+
+    const questionInput = document.getElementById("question");
+    if (questionInput) {
+        questionInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                
+                const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+                if (selectedPkg === "pkg2" && pkg2Quota <= 0) {
+                    alert("❌ คุณใช้โควตาคำถามของ Package 2 ครบแล้ว (3/3 คำถาม)");
+                    return;
+                }
+
+                if (window.currentChartData) {
+                    calculateAIAnalysis();
+                } else {
+                    calculateChart();
+                }
+            }
+        });
+    }
+});
 
 // ปรับปรุงฟังก์ชันสั่งวิเคราะห์ AI ให้ตัดโควตา
 async function calculateAIAnalysis() {
