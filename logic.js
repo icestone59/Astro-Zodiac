@@ -438,4 +438,23 @@ function updateStatus(message, isError = false) {
         statusPill.textContent = isError ? "Error" : "Ready";
         statusPill.style.color = isError ? "#ef4444" : "#10b981";
     }
+    // logic.js (เพิ่มฟังก์ชันจัดการเมื่อสลับ Package)
+function handlePackageChange() {
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value;
+    
+    // 1. จัดการการล็อก/เปิด ปุ่มสแกนปมลึก
+    const btnDeep = document.getElementById("btn-deep-report");
+    if (btnDeep) {
+        if (selectedPkg === "pkg1" || selectedPkg === "pkg2") {
+            btnDeep.style.opacity = "0.6";
+        } else {
+            btnDeep.style.opacity = "1";
+        }
+    }
+
+    // 2. หากมีข้อมูลดวงชะตาคำนวณไว้อยู่แล้ว ให้สั่งยิงวิเคราะห์ตามสิทธิ์แพ็กเกจใหม่ทันที
+    if (window.currentChartData) {
+        calculateAIAnalysis(); // เรียกฟังก์ชันยิงวิเคราะห์ซ้ำ (ถ้ามีใน Cache จะขึ้นทันที ไม่เสีย API)
+    }
+}
 }
