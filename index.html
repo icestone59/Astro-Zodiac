@@ -8,6 +8,62 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
+
+        <!-- 1. วาง CSS ชุดนี้ในแท็ก <style> เพื่อล็อคขนาดไม่ให้กล่องขยายดันหน้าจอพัง -->
+    .dev-floating-bar {
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        z-index: 99999 !important;
+        background: #1e1b4b !important;
+        border: 1px solid #8b5cf6 !important;
+        border-radius: 8px !important;
+        padding: 6px 12px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-size: 12px !important;
+        color: #f8fafc !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5) !important;
+        width: auto !important;
+        max-width: 320px !important;
+    }
+
+    .dev-floating-bar select {
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid #475569 !important;
+        border-radius: 6px !important;
+        padding: 4px 8px !important;
+        font-size: 12px !important;
+        width: 180px !important;
+        max-width: 180px !important;
+        cursor: pointer !important;
+    }
+
+    .dev-floating-bar label {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin: 0 !important;
+        font-size: 11px !important;
+        color: #cbd5e1 !important;
+        cursor: pointer !important;
+    }
+
+<!-- 2. วางโครงสร้าง HTML นี้ไว้บรรทัดแรกหลังแท็ก <body> -->
+<div class="dev-floating-bar">
+    <strong style="color: #c084fc;">🛠 Dev:</strong>
+    <select id="dev-pkg-select" onchange="handlePackageChange()">
+        <option value="pkg1">Package 1: Free</option>
+        <option value="pkg2" selected>Package 2: Standard 99.-</option>
+        <option value="pkg3">Package 3: Deep Action 599.-</option>
+        <option value="pkg4">Package 4: VIP 1,999.-</option>
+    </select>
+    <label>
+        <input type="checkbox" id="bypass-cache"> 🔄 Bypass
+    </label>
+</div>
   /* การ์ดแสดงผลฝั่งขวา (Insight Analytics Panel) */
 .panel:nth-child(2) {
     background: #130a2a !important; /* สีม่วงน้ำเงินเข้มลึก ลึกลับลักชัวรี */
