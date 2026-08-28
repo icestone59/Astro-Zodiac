@@ -1,457 +1,23 @@
-// logic.js - Evolutionary Astrology Engine Bridge
+// logic.js - Evolutionary & Uranian Astrology Engine Controller
 
-let currentChartData = null;
-let currentReportType = 'natal_7';
+// Global State
+window.currentChartData = null;
 
-// คลังเก็บ Memory Cache ฝั่ง Frontend (ป้องกันการยิง API ซ้ำ)
-const reportCache = {
-    client: null,
-    astrologer: null
-};
-
-// ดึงค่าสิทธิ์แพ็กเกจจาก Dev Selector
-const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg2";
-const forceBypassCache = document.getElementById("bypass-cache")?.checked || false;
-
-const payload = {
-    user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
-    chart_data: currentChartData,
-    report_type: (selectedPkg === 'pkg3') ? 'deep_report' : reportType,
-    package_level: selectedPkg,
-    // สลับโหมดโหรเฉพาะเมื่อเลือก Pkg 4
-    mode: (selectedPkg === 'pkg4') ? 'astrologer' : 'client', 
-    question: document.getElementById("question")?.value || "",
-    bypass_cache: forceBypassCache
-};
-
-// logic.js - Interactive Terminal Debug Error Renderer
-
-// ฟังก์ชันสำหรับวาด Terminal Debug Log บน UI
-function renderErrorLog(endpoint, errorData) {
-    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
-    const statusPill = document.getElementById("status-pill");
-
-    if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
-
-    if (statusPill) {
-        statusPill.textContent = "Error";
-        statusPill.style.color = "#ef4444";
-    }
-
-    if (target) {
-        target.innerHTML = `
-            <div style="background: #090d16; border: 1px solid #f43f5e; border-radius: 12px; padding: 20px; font-family: 'Courier New', monospace; margin: 16px 0; box-shadow: 0 4px 20px rgba(244, 63, 94, 0.15);">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(244, 63, 94, 0.3); padding-bottom: 10px; margin-bottom: 12px;">
-                    <span style="color: #f43f5e; font-weight: bold; font-size: 14px;">🚨 SYSTEM DEBUG LOG</span>
-                    <span style="background: rgba(244, 63, 94, 0.2); color: #fda4af; font-size: 11px; padding: 2px 8px; border-radius: 4px;">ENDPOINT: ${endpoint}</span>
-                </div>
-                
-                <div style="color: #cbd5e1; font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-all;">
-<span style="color: #fbbf24;">[TIMESTAMP]</span> : ${new Date().toISOString()}
-<span style="color: #fbbf24;">[ERROR TYPE]</span>: ${errorData.error_type || errorData.name || 'Client/Network Error'}
-<span style="color: #f43f5e; font-weight: bold;">[MESSAGE]</span>   : ${errorData.message || 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้'}
-
-<span style="color: #94a3b8;">--------------------------------------------------------------------------------</span>
-<span style="color: #fbbf24;">[TRACEBACK / DIAGNOSTIC DETAILS]</span>:
-${errorData.traceback || errorData.stack || 'ไม่พบข้อมูล Traceback ฝั่ง Client (เช็กการเชื่อมต่อ Network หรือ CORS)'}
-                </div>
-            </div>
-        `;
-    }
-}
-
-// อัปเดตฟังก์ชัน analyzeAI ให้เรียกใช้ renderErrorLog
-async function analyzeAI(reportType) {
-    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
-    if (typeof startQuoteRotator === 'function' && target) startQuoteRotator(target.id);
-
-    const payload = {
-        user_name: document.getElementById("user_name")?.value || "คุณ",
-        chart_data: currentChartData,
-        report_type: reportType,
-        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
-        question: document.getElementById("question")?.value || ""
-    };
-
-    try {
-        const res = await fetch('/analyze_ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        if (!res.ok || data.status === "error") {
-            // ส่งข้อมูล Error ไปพ่นลง Terminal Log บนหน้าจอ
-            renderErrorLog('/analyze_ai', data);
-            return;
-        }
-
-        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
-        
-        const reportText = data.report || data.answer;
-        if (target) target.innerHTML = marked.parse(reportText);
-
-        const statusPill = document.getElementById("status-pill");
-        if (statusPill) {
-            statusPill.textContent = "Ready";
-            statusPill.style.color = "#10b981";
-        }
-
-    } catch (error) {
-        renderErrorLog('/analyze_ai', {
-            error_type: error.name,
-            message: error.message,
-            stack: error.stack
-        });
-    }
-}
-
-
-// ดึงโหมดปัจจุบันจาก Toggle
-function getSelectedMode() {
-    const toggle = document.getElementById("mode-toggle");
-    return (toggle && toggle.checked) ? "astrologer" : "client";
-}
-
-// ฟังก์ชันสลับโหมดทันที (0 วินาที ไม่ยิง API หากมี Cache อยู่แล้ว)
-async function handleModeToggle() {
-    const mode = getSelectedMode();
-    const outputTarget = document.getElementById("natal-report-content") || document.getElementById("report-content");
-
-    // 1. เช็ก Memory Cache ฝั่ง Frontend ก่อน
-    if (reportCache[mode]) {
-        console.log(`[FRONTEND CACHE HIT]: Switching to ${mode} mode instantly.`);
-        if (outputTarget) outputTarget.innerHTML = marked.parse(reportCache[mode]);
-        return;
-    }
-
-    // 2. ถ้าใน Frontend Memory ยังไม่มี ให้เรียกประมวลผล (ซึ่ง Backend จะไปเช็ก DB Cache ต่อ)
-    if (currentChartData) {
-        await analyzeAI(currentReportType);
-    }
-}
-
-// logic.js - Async Request with Explicit Timeout & Fallback
-
-async function fetchWithTimeout(resource, options = {}) {
-    const { timeout = 25000 } = options; // ล็อค Timeout ไว้ที่ 25 วินาที
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
-    
-    try {
-        const response = await fetch(resource, {
-            ...options,
-            signal: controller.signal
-        });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        throw error;
-    }
-}
-
-async function calculateChart() {
-    const btn = document.getElementById("btn-calculate");
-    if (btn) btn.disabled = true;
-
-    try {
-        const payload = {
-            day: parseInt(document.getElementById("day").value),
-            month: parseInt(document.getElementById("month").value),
-            year: parseInt(document.getElementById("year").value),
-            hour: parseInt(document.getElementById("hour").value),
-            minute: parseInt(document.getElementById("minute").value),
-            location_name: document.getElementById("location_name").value
-        };
-
-        const res = await fetchWithTimeout('/calculate_chart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            timeout: 10000
-        });
-
-        const data = await res.json();
-        if (!res.ok || data.status === "error") throw new Error(data.message || "คำนวณตำแหน่งดาวไม่สำเร็จ");
-
-        currentChartData = data;
-
-        // เช็กว่ามีคำถาม Transit Q&A หรือไม่
-        const questionInput = document.getElementById("question");
-        const userQuestion = questionInput ? questionInput.value.trim() : "";
-
-        await analyzeAI(userQuestion !== "" ? 'transit_qa' : 'natal_7');
-
-    } catch (error) {
-        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
-        const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
-        if (target) {
-            target.innerHTML = `<div style="color:#ef4444; padding:20px;">⚠️ เกิดข้อผิดพลาด: ${error.name === 'AbortError' ? 'การเชื่อมต่อใช้เวลานานเกินกำหนด (Timeout)' : error.message}</div>`;
-        }
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-}
-
-// logic.js - Debug & Error Handler Fix
-
-// logic.js - Catch & Display Full Error Detail
-
-async function analyzeAI(reportType) {
-    const target = document.getElementById("natal-report-content") || document.getElementById("report-content");
-    const statusPill = document.getElementById("status-pill");
-
-    if (typeof startQuoteRotator === 'function' && target) {
-        startQuoteRotator(target.id);
-    }
-
-    const payload = {
-        user_name: document.getElementById("user_name")?.value || "คุณ",
-        chart_data: currentChartData,
-        report_type: reportType,
-        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
-        question: document.getElementById("question")?.value || ""
-    };
-
-    try {
-        const res = await fetch('/analyze_ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-
-        // เช็กสถานะข้อผิดพลาดจาก Backend
-        if (!res.ok || data.status === "error") {
-            throw new Error(data.message || `HTTP ${res.status}: เกิดข้อผิดพลาดไม่ทราบสาเหตุจากเซิร์ฟเวอร์`);
-        }
-
-        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
-        
-        const reportText = data.report || data.answer;
-        if (target) target.innerHTML = marked.parse(reportText);
-
-        if (statusPill) {
-            statusPill.textContent = "Ready";
-            statusPill.style.color = "#10b981";
-        }
-
-    } catch (error) {
-        // หยุดคำคมเมื่อเกิด Error
-        if (typeof stopQuoteRotator === 'function') stopQuoteRotator();
-
-        // เขียนรายละเอียด Error ลงกล่องหลักทันที
-        if (target) {
-            target.innerHTML = `
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; border-radius: 12px; padding: 20px; margin: 20px 0;">
-                    <h4 style="color: #ef4444; margin: 0 0 8px 0; font-size: 16px;">⚠️ ระบบประมวลผลขัดข้อง (Debug Detail)</h4>
-                    <p style="color: #f87171; font-size: 13px; font-family: monospace; white-space: pre-wrap; margin: 0;">${error.message}</p>
-                </div>
-            `;
-        }
-
-        if (statusPill) {
-            statusPill.textContent = "Error";
-            statusPill.style.color = "#ef4444";
-        }
-    }
-}
-// ฟังก์ชันเรียกประมวลผล AI พร้อมส่ง Mode
-async function analyzeAI(reportType) {
-    if (!currentChartData) return;
-
-    const outputTarget = document.getElementById("natal-report-content") || document.getElementById("report-content");
-
-    // 1. เริ่มแสดงคำคมวนสลับทุก 3 วินาที
-    startQuoteRotator(outputTarget.id);
-
-    const payload = {
-        user_name: document.getElementById("user_name")?.value || "คุณ",
-        chart_data: currentChartData,
-        report_type: reportType,
-        mode: typeof getSelectedMode === 'function' ? getSelectedMode() : 'client',
-        question: document.getElementById("question")?.value || ""
-    };
-
-    try {
-        const res = await fetch('/analyze_ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!res.ok || data.status === "error") throw new Error(data.message);
-
-        // 2. หยุดการแสดงคำคมเมื่อประมวลผลเสร็จสิ้น
-        stopQuoteRotator();
-
-        const reportText = data.report || data.answer;
-        outputTarget.innerHTML = marked.parse(reportText);
-
-    } catch (error) {
-        stopQuoteRotator();
-        outputTarget.innerHTML = `<p style="color:#ef4444;">เกิดข้อผิดพลาด: ${error.message}</p>`;
-    }
-}
-
-// เมื่อกดคำนวณดวงใหม่ ให้ล้าง Memory Cache เก่าทิ้ง
-function resetReportCache() {
-    reportCache.client = null;
-    reportCache.astrologer = null;
-}
-
-// 1. ฟังก์ชันคำนวณองศาดาวกำเนิด และ ดาวจร Real-time
-async function calculateChart() {
-    const btn = document.getElementById("btn-calculate");
-    if (btn) btn.disabled = true;
-    
-    updateStatus("กำลังคำนวณตำแหน่งดาวกำเนิดและดาวจร Real-time...");
-
-    try {
-        const payload = {
-            day: parseInt(document.getElementById("day").value),
-            month: parseInt(document.getElementById("month").value),
-            year: parseInt(document.getElementById("year").value),
-            hour: parseInt(document.getElementById("hour").value),
-            minute: parseInt(document.getElementById("minute").value),
-            location_name: document.getElementById("location_name").value
-        };
-
-        const res = await fetch('/calculate_chart', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!res.ok || data.status === "error") throw new Error(data.message || "คำนวณองศาดดาวไม่สำเร็จ");
-
-        currentChartData = data;
-
-        // เช็กคำถาม Transit
-        const questionInput = document.getElementById("question");
-        const userQuestion = questionInput ? questionInput.value.trim() : "";
-
-        if (userQuestion !== "") {
-            updateStatus("กำลังวิเคราะห์คำถามเจาะจงด้วยมุมดาวจร Real-time...");
-            await analyzeAI('transit_qa');
-        } else {
-            updateStatus("กำลังวิเคราะห์พื้นดวงชะตา 7 หมวดหมู่...");
-            await analyzeAI('natal_7');
-        }
-
-    } catch (error) {
-        updateStatus(`เกิดข้อผิดพลาด: ${error.message}`, true);
-    } finally {
-        if (btn) btn.disabled = false;
-    }
-}
-
-// 2. ฟังก์ชันวิเคราะห์ AI (Natal 7 และ Transit Q&A)
-async function analyzeAI(reportType) {
-    if (!currentChartData) {
-        alert("กรุณากรอกข้อมูลวันเวลาเกิดแล้วกด 'คำนวณตำแหน่งดาว' ก่อนครับ");
-        return;
-    }
-
-    const outputTarget = document.getElementById("report-content") || document.getElementById("natal-report-content");
-    const defaultMsg = document.getElementById("default-message");
-    
-    if (defaultMsg) defaultMsg.style.display = "none";
-    if (outputTarget) outputTarget.innerHTML = "<p style='color:#a78bfa;'>กำลังประมวลผลบทวิเคราะห์โหราศาสตร์...</p>";
-
-    const payload = {
-        user_name: document.getElementById("user_name").value,
-        chart_data: currentChartData,
-        report_type: reportType,
-        question: document.getElementById("question") ? document.getElementById("question").value : ""
-    };
-
-    try {
-        const res = await fetch('/analyze_ai', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await res.json();
-        if (!res.ok || data.status === "error") throw new Error(data.message || "การประมวลผล AI ขัดข้อง");
-
-        let reportText = data.report || data.answer;
-        if (outputTarget) outputTarget.innerHTML = marked.parse(reportText);
-
-        updateStatus("การวิเคราะห์เสร็จสมบูรณ์");
-    } catch (error) {
-        updateStatus(`วิเคราะห์ไม่สำเร็จ: ${error.message}`, true);
-    }
-}
-
-// 3. ฟังก์ชันสำหรับปุ่มสีส้ม "กดดูชะตาของคุณ" (เปิดหน้า deepreport.html แยกระบบ)
-function openDeepReportPage() {
-    if (!currentChartData) {
-        alert("กรุณากด 'คำนวณตำแหน่งดาวและวิเคราะห์' ที่แถบซ้ายมือก่อนเปิดดูรายงานปมลึกครับ");
-        return;
-    }
-
-    const payload = {
-        user_name: document.getElementById("user_name").value,
-        chart_data: currentChartData,
-        question: document.getElementById("question") ? document.getElementById("question").value : ""
-    };
-
-    // ฝาก payload ลง localStorage แล้วเปิดแท็บใหม่
-    localStorage.setItem("deep_report_payload", JSON.stringify(payload));
-    window.open('/deepreport', '_blank');
-}
-// เพิ่มในไฟล์ logic.js
-function handleDeepReportClick() {
-    // ดึงระดับ Package ปัจจุบันจาก Dev Selector
-    const currentPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
-
-    // Package 1 (Free) และ Package 2 (Standard) ไม่สามารถดูรายงานปมลึกได้[cite: 1]
-    if (currentPkg === "pkg1" || currentPkg === "pkg2") {
-        document.getElementById("pkg-hint-modal").style.display = "flex";
-        return;
-    }
-
-    // อนุญาตเฉพาะ Package 3 และ Package 4 ให้เข้าใช้งาน[cite: 1]
-    openDeepReportPage();
-}
-
-function closePkgModal() {
-    document.getElementById("pkg-hint-modal").style.display = "none";
-}
-
-function updateStatus(message, isError = false) {
-    const statusText = document.getElementById("status-text");
-    const statusPill = document.getElementById("status-pill");
-    if (statusText) {
-        statusText.textContent = message;
-        statusText.style.color = isError ? "#ef4444" : "#c084fc";
-    }
-    if (statusPill) {
-        statusPill.textContent = isError ? "Error" : "Ready";
-        statusPill.style.color = isError ? "#ef4444" : "#10b981";
-    }
-
-// ฟังก์ชันจัดการการเปิด/ปิดสิทธิ์ UI ตาม Package ที่เลือก
+/**
+ * 1. จัดการสิทธิ์และการเปิด/ปิด UI ตาม Package ที่เลือก
+ */
 function handlePackageChange() {
-    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg2";
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
     const questionInput = document.getElementById("question");
     const btnDeep = document.getElementById("btn-deep-report");
 
-    // 1. ล็อกช่องกรอกคำถาม Transit สำหรับ Package 1 (Free)
+    // ควบคุมการใช้งานช่องคำถามดาวจร (Transit Q&A)
     if (questionInput) {
         if (selectedPkg === "pkg1") {
             questionInput.value = "";
             questionInput.disabled = true;
             questionInput.placeholder = "🔒 ถามคำถามดาวจร (Transit Q&A) เฉพาะ Package 2 ขึ้นไป";
-            questionInput.style.opacity = "0.5";
+            questionInput.style.opacity = "0.4";
             questionInput.style.cursor = "not-allowed";
             questionInput.style.background = "rgba(0, 0, 0, 0.8)";
         } else {
@@ -463,20 +29,182 @@ function handlePackageChange() {
         }
     }
 
-    // 2. ปรับสถานะปุ่มสแกนปมลึก (Package 3 ขึ้นไป)
+    // ควบคุมความโปร่งใสปุ่ม Deep Report (Package 3 ขึ้นไป)
     if (btnDeep) {
         btnDeep.style.opacity = (selectedPkg === "pkg1" || selectedPkg === "pkg2") ? "0.5" : "1";
     }
 
-    // 3. สั่งวิเคราะห์ใหม่ทันทีถ้ามีข้อมูลดวงชะตากรอกไว้แล้ว
-    if (window.currentChartData && typeof calculateAIAnalysis === "function") {
+    // หากมีข้อมูลดวงชะตาคำนวณไว้แล้ว ให้ส่งวิเคราะห์ตาม Package ใหม่ทันที
+    if (window.currentChartData) {
         calculateAIAnalysis();
     }
 }
 
-// เรียกทำงานทันทีที่เปิดหน้าเว็บเพื่อตั้งค่าสิทธิ์ตั้งต้น
+/**
+ * 2. จัดการสลับโหมดการแปลผล (เวอร์ชั่นลูกค้า vs เวอร์ชั่นโหร)
+ */
+function handleModeToggle() {
+    if (window.currentChartData) {
+        calculateAIAnalysis();
+    }
+}
+
+/**
+ * 3. ตรวจสอบสิทธิ์และเปิดรายงานปมจิตวิทยาเชิงลึก (Deep Report)
+ */
+function handleDeepReportClick() {
+    const currentPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+
+    // สิทธิ์ Package 1 และ 2 ไม่อนุญาตให้เข้าถึง Deep Report
+    if (currentPkg === "pkg1" || currentPkg === "pkg2") {
+        const modal = document.getElementById("pkg-hint-modal");
+        if (modal) modal.style.display = "flex";
+        return;
+    }
+
+    // Package 3 ขึ้นไป อนุญาตให้ไปยังหน้า deepreport.html
+    window.location.href = "/deepreport";
+}
+
+function closePkgModal() {
+    const modal = document.getElementById("pkg-hint-modal");
+    if (modal) modal.style.display = "none";
+}
+
+/**
+ * 4. คำนวณตำแหน่งองศาดาวกำเนิดและดาวจร (Backend Calculation)
+ */
+async function calculateChart() {
+    const statusPill = document.getElementById("status-pill");
+    const reportArea = document.getElementById("natal-report-content");
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
+        day: parseInt(document.getElementById("day")?.value || 1),
+        month: parseInt(document.getElementById("month")?.value || 1),
+        year: parseInt(document.getElementById("year")?.value || 2538),
+        hour: parseInt(document.getElementById("hour")?.value || 0),
+        minute: parseInt(document.getElementById("minute")?.value || 0),
+        location_name: document.getElementById("location_name")?.value || "กรุงเทพมหานคร"
+    };
+
+    if (statusPill) {
+        statusPill.textContent = "Calculating Stars...";
+        statusPill.style.color = "#f59e0b";
+    }
+
+    if (reportArea) {
+        reportArea.innerHTML = `<p style="color: #94a3b8; text-align: center; margin-top: 120px;">⏳ กำลังคำนวณตำแหน่งดวงดาวดาราศาสตร์และสกัดมุมสัมพันธ์...</p>`;
+    }
+
+    try {
+        const response = await fetch('/calculate_chart', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+            window.currentChartData = data;
+            // ประมวลผล AI ต่อทันที
+            await calculateAIAnalysis();
+        } else {
+            throw new Error(data.message || "เกิดข้อผิดพลาดในการคำนวณตำแหน่งดาว");
+        }
+    } catch (error) {
+        console.error("Calculate Chart Error:", error);
+        if (statusPill) {
+            statusPill.textContent = "Error";
+            statusPill.style.color = "#ef4444";
+        }
+        if (reportArea) {
+            reportArea.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 120px;">❌ เกิดข้อผิดพลาด: ${error.message}</p>`;
+        }
+    }
+}
+
+/**
+ * 5. ส่งข้อมูลดวงชะตาให้ AI ประมวลผลพยากรณ์ (Natal 7 / Transit Q&A)
+ */
+async function calculateAIAnalysis() {
+    if (!window.currentChartData) return;
+
+    const statusPill = document.getElementById("status-pill");
+    const reportArea = document.getElementById("natal-report-content");
+
+    const selectedPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
+    const isAstrologerMode = document.getElementById("mode-toggle")?.checked || false;
+    const isBypassCache = document.getElementById("bypass-cache")?.checked || false;
+    const questionText = document.getElementById("question")?.value?.trim() || "";
+
+    // กำหนดประเภทรายงาน: Package 2 ขึ้นไป และมีการพิมพ์คำถาม จะใช้ transit_qa
+    let reportType = "natal_7";
+    if (selectedPkg !== "pkg1" && questionText.length > 0) {
+        reportType = "transit_qa";
+    }
+
+    const payload = {
+        user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
+        report_type: reportType,
+        chart_data: window.currentChartData,
+        question: questionText,
+        mode: isAstrologerMode ? "astrologer" : "client",
+        package_level: selectedPkg,
+        bypass_cache: isBypassCache
+    };
+
+    if (statusPill) {
+        statusPill.textContent = "Analyzing AI...";
+        statusPill.style.color = "#3b82f6";
+    }
+
+    if (reportArea) {
+        reportArea.innerHTML = `<p style="color: #94a3b8; text-align: center; margin-top: 120px;">🔮 กำลังประมวลผลคำทำนายเชิงพัฒนาศักยภาพ...</p>`;
+    }
+
+    try {
+        const response = await fetch('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.status === "success") {
+            if (statusPill) {
+                statusPill.textContent = "Ready";
+                statusPill.style.color = "#10b981";
+            }
+
+            const markdownText = (data.type === "transit_qa") ? data.answer : data.report;
+            
+            // แปลง Markdown เป็น HTML สวยงาม
+            if (reportArea) {
+                if (typeof marked !== 'undefined') {
+                    reportArea.innerHTML = marked.parse(markdownText);
+                } else {
+                    reportArea.innerText = markdownText;
+                }
+            }
+        } else {
+            throw new Error(data.message || "เกิดข้อผิดพลาดในการวิเคราะห์ AI");
+        }
+    } catch (error) {
+        console.error("AI Analysis Error:", error);
+        if (statusPill) {
+            statusPill.textContent = "Error";
+            statusPill.style.color = "#ef4444";
+        }
+        if (reportArea) {
+            reportArea.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 120px;">❌ เกิดข้อผิดพลาดในการดึงคำทำนาย: ${error.message}</p>`;
+        }
+    }
+}
+
+// ผูก Event Listener เมื่อ DOM โหลดเสร็จสิ้น
 document.addEventListener("DOMContentLoaded", () => {
     handlePackageChange();
 });
-
-}
