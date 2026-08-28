@@ -245,5 +245,25 @@ async function calculateAIAnalysis() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. ตั้งค่าการล็อก/เปิด สิทธิ์ช่องกรอกตาม Package ตั้งต้น
     handlePackageChange();
+
+    // 2. ดักจับการกดปุ่ม Enter ที่ช่องกรอกคำถามเจาะจง
+    const questionInput = document.getElementById("question");
+    if (questionInput) {
+        questionInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault(); // ป้องกันการรีเฟรชหน้าจอ
+
+                // หากมีข้อมูลดวงที่คำนวณไว้แล้ว ให้ยิงวิเคราะห์คำถามทันที
+                if (window.currentChartData) {
+                    calculateAIAnalysis();
+                } else {
+                    // หากยังไม่มีข้อมูลดวง ให้คำนวณดวงกำเนิดใหม่พร้อมวิเคราะห์
+                    calculateChart();
+                }
+            }
+        });
+    }
+});
 });
