@@ -22,46 +22,6 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* การ์ดแสดงผลฝั่งขวา (Insight Analytics Panel) */
-.panel:nth-child(2) {
-    background: #130a2a !important; /* สีม่วงน้ำเงินเข้มลึก ลึกลับลักชัวรี */
-    border: 1px solid rgba(245, 158, 11, 0.3) !important; /* เส้นขอบทองบางเบา */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-}
-
-/* หัวข้อบทวิเคราะห์ (1. นิสัย บุคลิกภาพ, 2. การเงิน ฯลฯ) */
-.report-content-area h1, 
-.report-content-area h2, 
-.report-content-area h3, 
-.report-content-area h4,
-.report-content-area strong {
-    color: #fbbf24 !important; /* สีเหลืองทองสว่าง (Amber Gold) */
-    font-weight: 700;
-    letter-spacing: 0.3px;
-}
-
-/* เนื้อหาบทบรรยายหลัก */
-.report-content-area p,
-.report-content-area li {
-    color: #f8fafc !important; /* สีขาวบริสุทธิ์ อ่านชัดเจนบนพื้นหลังมืด */
-    font-size: 15px;
-    line-height: 1.8;
-    margin-bottom: 16px;
-}
-
-/* บรรทัด "ที่มา:" สำหรับเวอร์ชั่นโหร */
-.report-content-area em,
-.report-content-area blockquote {
-    color: #cbd5e1 !important; /* สีเทาสว่างนุ่มตา */
-    border-left: 3px solid #f59e0b;
-    padding-left: 12px;
-    display: block;
-    margin-top: 8px;
-    font-style: normal;
-    font-size: 13px;
-}
-
-
         body {
             background-color: var(--bg-main);
             color: var(--text-main);
@@ -72,7 +32,7 @@
             min-height: 100vh;
         }
 
-        /* FLOATING DEV BAR (LOCKED BOUNDS) */
+        /* DEV BAR LOCCKED AT TOP-LEFT */
         .dev-floating-bar {
             position: fixed !important;
             top: 12px !important;
@@ -89,7 +49,6 @@
             color: #f8fafc !important;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6) !important;
             width: auto !important;
-            max-width: 360px !important;
         }
 
         .dev-floating-bar select {
@@ -100,7 +59,6 @@
             padding: 4px 8px !important;
             font-size: 12px !important;
             width: 190px !important;
-            max-width: 190px !important;
             cursor: pointer !important;
         }
 
@@ -120,6 +78,7 @@
             gap: 24px;
             max-width: 1280px;
             width: 100%;
+            align-items: start;
         }
 
         .panel {
@@ -131,17 +90,29 @@
         .panel-left {
             background: var(--panel-left);
             border: 1px solid var(--border-purple);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        /* PANEL RIGHT: DEEP ROYAL PURPLE + GOLD + WHITE */
         .panel-right {
             background: var(--panel-right) !important;
             border: 1px solid var(--border-gold) !important;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            min-height: 580px;
         }
 
-        .form-group { margin-bottom: 16px; }
-        label { display: block; font-size: 13px; color: var(--accent-purple); margin-bottom: 6px; }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 13px;
+            color: var(--accent-purple);
+            margin-bottom: 6px;
+        }
+
         input, select {
             width: 100%;
             padding: 10px 12px;
@@ -151,37 +122,16 @@
             color: var(--text-main);
             font-family: inherit;
             font-size: 14px;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--accent-purple);
         }
 
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-        /* SINGLE MODE TOGGLE CARD */
-        .mode-toggle-card {
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-purple);
-            border-radius: 10px;
-            padding: 10px 14px;
-            margin: 16px 0;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #334155; transition: .3s; border-radius: 22px;
-        }
-        .slider:before {
-            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
-            background-color: white; transition: .3s; border-radius: 50%;
-        }
-        input:checked + .slider { background-color: #a855f7; }
-        input:checked + .slider:before { transform: translateX(22px); }
-
-        /* BUTTON STYLING */
         .btn-submit {
             width: 100%;
             padding: 12px;
@@ -192,8 +142,8 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            margin-bottom: 12px;
             transition: opacity 0.2s;
+            margin-top: 8px;
         }
 
         .btn-deep-report {
@@ -211,7 +161,6 @@
 
         .btn-submit:hover, .btn-deep-report:hover { opacity: 0.9; }
 
-        /* RIGHT PANEL DISPLAY STYLING */
         .status-bar {
             display: flex;
             justify-content: space-between;
@@ -222,7 +171,6 @@
         }
 
         .report-content-area {
-            min-height: 450px;
             line-height: 1.8;
             font-size: 15px;
             color: var(--text-main);
@@ -231,35 +179,23 @@
         .report-content-area h1, 
         .report-content-area h2, 
         .report-content-area h3, 
-        .report-content-area h4,
         .report-content-area strong {
             color: var(--accent-gold) !important;
             font-weight: 700;
-            margin-top: 18px;
-            margin-bottom: 8px;
+            margin-top: 16px;
+            margin-bottom: 6px;
             display: block;
         }
 
         .report-content-area p {
             color: var(--text-main) !important;
-            margin-bottom: 14px;
-        }
-
-        .report-content-area blockquote,
-        .report-content-area em {
-            color: #cbd5e1 !important;
-            border-left: 3px solid var(--accent-gold);
-            padding-left: 12px;
-            display: block;
-            margin-top: 6px;
-            font-style: normal;
-            font-size: 13px;
+            margin-bottom: 12px;
         }
     </style>
 </head>
 <body>
 
-<!-- DEV PACKAGE SELECTOR BAR (FIXED TOP-LEFT) -->
+<!-- DEV PACKAGE SELECTOR BAR -->
 <div class="dev-floating-bar">
     <strong style="color: #c084fc;">🛠 Dev:</strong>
     <select id="dev-pkg-select" onchange="handlePackageChange()">
@@ -274,63 +210,64 @@
 </div>
 
 <div class="container">
-    <!-- LEFT PANEL: FORM INPUTS -->
-<!-- index.html (ตำแหน่ง Panel Left) -->
-<!-- index.html (ส่วน Panel Left ฉบับแก้ไขช่องซ้ำ) -->
-<div class="form-group">
-    <div style="display: flex; justify-content: space-between; align- items: center; margin-bottom: 6px;">
-        <label style="margin-bottom: 0;">คำถามเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
-        <span id="quota-badge" style="font-size: 11px; background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); padding: 2px 8px; border-radius: 12px; font-weight: 600; display: none;">
-            โควตาคงเหลือ: 3/3 คำถาม
-        </span>
-    </div>
-    <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่[cite: 1]">
-</div>
-
-    <div class="form-group">
-        <label>วัน / เดือน / ปีเกิด (พ.ศ.)</label>
-        <div class="grid-3">
-            <input type="number" id="day" value="25" placeholder="วัน">
-            <input type="number" id="month" value="5" placeholder="เดือน">
-            <input type="number" id="year" value="2520" placeholder="ปี พ.ศ.">
+    <!-- LEFT PANEL: INPUT FORM -->
+    <div class="panel panel-left">
+        <div>
+            <h3 style="color: var(--accent-purple); margin-top:0;">✨ EVOLUTIONARY ASTROLOGY ENGINE</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                ระบบวิเคราะห์ดวงชะตาเชิงพัฒนาศักยภาพ[cite: 1]
+            </p>
         </div>
-    </div>
-
-    <div class="form-group">
-        <label>เวลาเกิด (ชั่วโมง : นาที)</label>
-        <div class="grid-2">
-            <input type="number" id="hour" value="10" placeholder="ชม.">
-            <input type="number" id="minute" value="51" placeholder="นาที">
+        
+        <div class="form-group">
+            <label>ชื่อผู้ใช้</label>
+            <input type="text" id="user_name" value="คุณไอซ์">
         </div>
-    </div>
 
-    <div class="form-group">
-        <label>จังหวัดที่เกิด</label>
-        <select id="location_name">
-            <option value="กรุงเทพมหานคร" selected>กรุงเทพมหานคร</option>
-            <option value="เชียงใหม่">เชียงใหม่</option>
-            <option value="ขอนแก่น">ขอนแก่น</option>
-            <option value="ชลบุรี">ชลบุรี</option>
-            <option value="สงขลา">สงขลา</option>
-        </select>
-    </div>
-
-    <!-- ช่องกรอกคำถาม Transit เจาะจงเพียงช่องเดียวในตำแหน่งเดิม -->
-    <div class="form-group">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <label style="margin-bottom: 0;">คำถามเจาะจง (Transit vs Natal - เว้นว่างได้)</label>
-            <span id="quota-badge" style="font-size: 11px; background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); padding: 2px 8px; border-radius: 12px; font-weight: 600;">
-                โควตาคงเหลือ: 3/3 คำถาม
-            </span>
+        <div class="form-group">
+            <label>วัน / เดือน / ปีเกิด (พ.ศ.)</label>
+            <div class="grid-3">
+                <input type="number" id="day" value="25" placeholder="วัน">
+                <input type="number" id="month" value="5" placeholder="เดือน">
+                <input type="number" id="year" value="2520" placeholder="ปี พ.ศ.">
+            </div>
         </div>
-        <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่">
-    </div>
 
-    <button class="btn-submit" id="btn-calculate" onclick="calculateChart()">คำนวณตำแหน่งดาวและวิเคราะห์[cite: 1]</button>
-    <button class="btn-deep-report" id="btn-deep-report" onclick="handleDeepReportClick()">
-        🧬 สแกนโครงสร้างจิตวิทยา & ศักยภาพซ่อนเร้น
-    </button>
-</div>
+        <div class="form-group">
+            <label>เวลาเกิด (ชั่วโมง : นาที)</label>
+            <div class="grid-2">
+                <input type="number" id="hour" value="10" placeholder="ชม.">
+                <input type="number" id="minute" value="51" placeholder="นาที">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>จังหวัดที่เกิด</label>
+            <select id="location_name">
+                <option value="กรุงเทพมหานคร" selected>กรุงเทพมหานคร</option>
+                <option value="เชียงใหม่">เชียงใหม่</option>
+                <option value="ขอนแก่น">ขอนแก่น</option>
+                <option value="ชลบุรี">ชลบุรี</option>
+                <option value="สงขลา">สงขลา</option>
+            </select>
+        </div>
+
+        <!-- SINGLE TRANSIT INPUT FIELD WITH QUOTA BADGE -->
+        <div class="form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="margin-bottom: 0;">คำถามเจาะจง (Transit vs Natal)</label>
+                <span id="quota-badge" style="font-size: 11px; background: rgba(139, 92, 246, 0.2); color: #c084fc; border: 1px solid rgba(139, 92, 246, 0.4); padding: 2px 8px; border-radius: 12px; font-weight: 600; display: none;">
+                    โควตาคงเหลือ: 3/3 คำถาม
+                </span>
+            </div>
+            <input type="text" id="question" placeholder="เช่น ผมจะได้งานเมื่อไหร่[cite: 1]">
+        </div>
+
+        <button class="btn-submit" id="btn-calculate" onclick="calculateChart()">คำนวณตำแหน่งดาวและวิเคราะห์[cite: 1]</button>
+        <button class="btn-deep-report" id="btn-deep-report" onclick="handleDeepReportClick()">
+            🧬 สแกนโครงสร้างจิตวิทยา & ศักยภาพซ่อนเร้น
+        </button>
+    </div>
 
     <!-- RIGHT PANEL: DISPLAY REPORT -->
     <div class="panel panel-right">
@@ -340,7 +277,7 @@
         </div>
 
         <div class="report-content-area" id="natal-report-content">
-            <p id="default-message" style="color: var(--text-muted); text-align: center; margin-top: 120px;">
+            <p id="default-message" style="color: var(--text-muted); text-align: center; margin-top: 180px;">
                 กรอกข้อมูลทางซ้ายมือแล้วกดปุ่ม "คำนวณตำแหน่งดาวและวิเคราะห์" เพื่อดูผลลัพธ์[cite: 1]
             </p>
         </div>
