@@ -124,6 +124,8 @@
     let radarChartInstance = null;
     let barChartInstance = null;
 
+<!-- deepreport.html - ปรับสคริปต์ดึงค่า package_level ส่ง Backend -->
+<script>
     document.addEventListener("DOMContentLoaded", async () => {
         const payloadRaw = localStorage.getItem("deep_report_payload");
         if (!payloadRaw) {
@@ -132,7 +134,7 @@
         }
 
         const payload = JSON.parse(payloadRaw);
-        document.getElementById("user-display-name").textContent = `ผู้รับคำทำนาย: ${payload.user_name}`;
+        document.getElementById("user-display-name").textContent = `ผู้รับคำทำนาย: ${payload.user_name} (${payload.package_level || 'pkg4'})`;
 
         try {
             const res = await fetch('/analyze_ai', {
@@ -142,6 +144,8 @@
                     user_name: payload.user_name,
                     chart_data: payload.chart_data,
                     report_type: 'deep_report',
+                    package_level: payload.package_level || 'pkg4',
+                    mode: payload.mode || 'astrologer',
                     question: payload.question || ""
                 })
             });
@@ -149,10 +153,8 @@
             const data = await res.json();
             let reportText = data.report || data.answer;
 
-            // Render Markdown
             document.getElementById("report-content").innerHTML = marked.parse(reportText);
 
-            // Render Charts
             if (data.radar_data && data.bar_data) {
                 document.getElementById("charts-wrapper").style.display = "grid";
                 renderCharts(data.radar_data, data.bar_data);
@@ -161,6 +163,7 @@
             document.getElementById("report-content").innerHTML = `<p style='color:#ef4444;'>เกิดข้อผิดพลาด: ${err.message}</p>`;
         }
     });
+</script>
 
     function renderCharts(radarData, barData) {
         const chartStyle = {
