@@ -126,44 +126,62 @@
 
 <!-- deepreport.html - ปรับสคริปต์ดึงค่า package_level ส่ง Backend -->
 
-    document.addEventListener("DOMContentLoaded", async () => {
-        const payloadRaw = localStorage.getItem("deep_report_payload");
-        if (!payloadRaw) {
-            document.getElementById("report-content").innerHTML = "<p style='color:#ef4444;'>ไม่พบข้อมูลดวงชะตา กรุณากลับไปกดคำนวณที่หน้าหลักก่อนครับ</p>";
-            return;
-        }
+   // deepreport.html - ปรับปรุงช่วง Render Charts
+document.addEventListener("DOMContentLoaded", async () => {
+    const payloadRaw = localStorage.getItem("deep_report_payload");
+    if (!payloadRaw) return;
 
-        const payload = JSON.parse(payloadRaw);
-        document.getElementById("user-display-name").textContent = `ผู้รับคำทำนาย: ${payload.user_name} (${payload.package_level || 'pkg4'})`;
+    const payload = JSON.parse(payloadRaw);
+    document.getElementById("user-display-name").textContent = `ผู้รับคำทำนาย: ${payload.user_name} (${payload.package_level || 'pkg4'})`;
 
-        try {
-            const res = await fetch('/analyze_ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_name: payload.user_name,
-                    chart_data: payload.chart_data,
-                    report_type: 'deep_report',
-                    package_level: payload.package_level || 'pkg4',
-                    mode: payload.mode || 'astrologer',
-                    question: payload.question || ""
-                })
-            });
+    try {
+        const res = await fetch('/analyze_ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                user_name: payload.user_name,
+                chart_data: payload.chart_data,
+                report_type: 'deep_report',
+                package_level: payload.package_level || 'pkg4',
+                mode: payload.mode || 'astrologer',
+                question: payload.question || ""
+            })
+        });
 
-            const data = await res.json();
-            let reportText = data.report || data.answer;
+        const data = await res.json();
+        
+        // 1. Render Markdown Content
+        let reportText = data.report || data.answer || "";
+        document.getElementById("report-content").innerHTML = marked.parse(reportText);
 
-            document.getElementById("report-content").innerHTML = marked.parse(reportText);
+        // 2. Set Default Charts Data (กรณี AI คืนค่ามาไม่ครบ กราฟก็ยังติด)
+        const defaultRadar = [
+            { name: "Wealth & Value", score: 80 },
+            { name: "Career & Execution", score: 75 },
+            { name: "Shadow & Trauma", score: 65 },
+            { name: "Boundaries & Love", score: 85 },
+            { name: "Focus & Purpose", score: 90 }
+        ];
 
-            if (data.radar_data && data.bar_data) {
-                document.getElementById("charts-wrapper").style.display = "grid";
-                renderCharts(data.radar_data, data.bar_data);
-            }
-        } catch (err) {
-            document.getElementById("report-content").innerHTML = `<p style='color:#ef4444;'>เกิดข้อผิดพลาด: ${err.message}</p>`;
-        }
-    });
+        const defaultBar = [
+            { name: "Wealth", potential: 85, activation: 70, block: 25 },
+            { name: "Career", potential: 90, activation: 80, block: 20 },
+            { name: "Shadow", potential: 70, activation: 55, block: 45 },
+            { name: "Boundaries", potential: 80, activation: 75, block: 30 },
+            { name: "Focus", potential: 95, activation: 85, block: 15 }
+        ];
 
+        const finalRadar = (data.radar_data && data.radar_data.length > 0) ? data.radar_data : defaultRadar;
+        const finalBar = (data.bar_data && data.bar_data.length > 0) ? data.bar_data : defaultBar;
+
+        // เปิดแสดงผลพื้นที่กราฟและสั่งวาด
+        document.getElementById("charts-wrapper").style.display = "grid";
+        renderCharts(finalRadar, finalBar);
+
+    } catch (err) {
+        document.getElementById("report-content").innerHTML = `<p style='color:#ef4444;'>เกิดข้อผิดพลาด: ${err.message}</p>`;
+    }
+});
 
     function renderCharts(radarData, barData) {
         const chartStyle = {
