@@ -6,6 +6,7 @@ import urllib.request
 import datetime
 import swisseph as swe
 from geopy.geocoders import Nominatim
+from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("AstroEngine")
@@ -16,6 +17,27 @@ os.makedirs(EPHE_DIR, exist_ok=True)
 
 NEEDED_SE1_FILES = ['seas_18.se1', 'sepl_18.se1', 'semo_18.se1']
 ASTRO_FTP_URL = 'https://www.astro.com/ftp/swisseph/ephe/'
+
+def get_realtime_transits():
+    """คำนวณตำแหน่งดาวจร Real-time ทั้ง 10 ดาวหลัก และ 8 ดาวทิพย์ยูเรเนียน"""
+    now = datetime.now(timezone.utc)
+    jul_day = swe.julday(now.year, now.month, now.day, now.hour + now.minute/60.0)
+    
+    planets = {
+        "Sun": swe.SUN, "Moon": swe.MOON, "Mercury": swe.MERCURY, 
+        "Venus": swe.VENUS, "Mars": swe.MARS, "Jupiter": swe.JUPITER, 
+        "Saturn": swe.SATURN, "Uranus": swe.URANUS, "Neptune": swe.NEPTUNE, 
+        "Pluto": swe.PLUTO, "Cupido": swe.CUPIDO, "Hades": swe.HADES,
+        "Zeus": swe.ZEUS, "Kronos": swe.KRONOS, "Apollon": swe.APOLLON,
+        "Admetos": swe.ADMETOS, "Vulkanus": swe.VULCANUS, "Poseidon": swe.POSEIDON
+    }
+    
+    transits = {}
+    for name, pid in planets.items():
+        res, _ = swe.calc_ut(jul_day, pid)
+        deg = res[0]
+        transits[name] = {"deg_dec": round(deg, 4), "dms": f"{int(deg)}°{int((deg%1)*60)}'"}
+    return transits
 
 def download_missing_ephe_files():
     for fname in NEEDED_SE1_FILES:
