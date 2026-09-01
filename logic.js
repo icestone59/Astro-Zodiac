@@ -342,6 +342,7 @@ function handlePackageChange() {
     }
 }
 
+// logic.js - ปรับปรุงการบันทึก Payload ส่งต่อไปยังหน้า Deep Report
 function handleDeepReportClick() {
     const currentPkg = document.getElementById("dev-pkg-select")?.value || "pkg1";
     if (currentPkg === "pkg1" || currentPkg === "pkg2") {
@@ -349,12 +350,22 @@ function handleDeepReportClick() {
         if (modal) modal.style.display = "flex";
         return;
     }
-    window.location.href = "/deepreport";
-}
 
-function closePkgModal() {
-    const modal = document.getElementById("pkg-hint-modal");
-    if (modal) modal.style.display = "none";
+    if (!window.currentChartData) {
+        alert("⚠️ กรุณากดคำนวณตำแหน่งดาวก่อนครับ");
+        return;
+    }
+
+    // บันทึก package_level และ mode ไปพร้อมกับ chart_data
+    localStorage.setItem("deep_report_payload", JSON.stringify({
+        user_name: document.getElementById("user_name")?.value || "คุณไอซ์",
+        chart_data: window.currentChartData,
+        package_level: currentPkg,
+        mode: (currentPkg === "pkg4") ? "astrologer" : "client",
+        question: document.getElementById("question")?.value || ""
+    }));
+
+    window.location.href = "/deepreport";
 }
 
 async function calculateChart() {
