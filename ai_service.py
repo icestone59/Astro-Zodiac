@@ -10,6 +10,24 @@ from prompts import (
     SYSTEM_PROMPT_DEEP_REPORT
 )
 
+if payload.report_type == "deep_report":
+    # สั่งให้ OpenAI ใช้ response_format JSON
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
+            {"role": "user", "content": f"User: {payload.user_name}, Chart Data: {json.dumps(payload.chart_data)}"}
+        ],
+        response_format={"type": "json_object"}
+    )
+    
+    result_json = json.loads(response.choices[0].message.content)
+    return {
+        "status": "success",
+        "report": result_json.get("report", ""),
+        "radar_data": result_json.get("radar_data", []),
+        "bar_data": result_json.get("bar_data", [])
+    }
 # 1. ขยาย Timeout เป็น 60 วินาที และเปิด Auto Retry 2 ครั้ง
 client = OpenAI(
     api_key=os.environ.get("OPENAI_API_KEY"),
