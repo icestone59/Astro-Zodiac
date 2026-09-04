@@ -1,29 +1,37 @@
-# T3 — House Ruler Engine
+# T4 — Natal Aspect Engine
 
 ## Scope
-- Traditional planetary rulership for all 12 signs
-- House cusp -> ruler planet
-- Ruler's natal degree/sign/house
-- Deterministic output using T1 schema
 
-## MVP rulership
-Aries Mars
-Taurus Venus
-Gemini Mercury
-Cancer Moon
-Leo Sun
-Virgo Mercury
-Libra Venus
-Scorpio Mars
-Sagittarius Jupiter
-Capricorn Saturn
-Aquarius Saturn
-Pisces Jupiter
+T4 adds deterministic major natal aspects from the canonical T1/T2 schema:
 
-Modern co-rulers are not enabled in T3. This is intentional so that the engine has one deterministic MVP rule set.
+- Conjunction 0°
+- Sextile 60°
+- Square 90°
+- Trine 120°
+- Opposition 180°
 
-## Next phase
-T4 = Natal Aspect Engine
+The engine returns the canonical `Aspect` model.
 
-Do not migrate `main.py` yet.
-Do not add AI interpretation here.
+## Orb
+
+MVP uses point-based default orbs and takes the larger orb of the two participating points.
+
+Current defaults are intentionally explicit and can be replaced later by versioned user settings.
+
+## Applying / Separating
+
+T4 leaves `applying = None`.
+
+A reliable implementation should be added only after:
+- consistent planetary speed is stored in the schema,
+- a policy for Nodes/Chiron/angles is defined,
+- applying/separating rules are versioned.
+
+## Uranian
+
+Uranian hypothetical factors are excluded from the standard natal major-aspect set by default. A dedicated Uranian engine will handle 90° structures and midpoints in a later stage.
+
+## Important
+
+T4 calculates aspects only.
+It does not interpret the aspect psychologically or astrologically.
