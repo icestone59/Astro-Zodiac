@@ -7,9 +7,8 @@ from application_schema import BirthChartRequest
 from application_service import analyze_free, pipeline_version
 from auth_service import AuthError, authenticate, create_session, register, resolve_session
 from entitlement_engine import check_access
+from in_memory_auth_repository import InMemoryAuthRepository
 from membership_schema import MembershipState
-from persistence_factory import auth_repository, membership_repository
-from runtime_config import persistence_mode, validate_runtime_config
 
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -32,7 +31,6 @@ class MeResponse(BaseModel):
     display_name: str
     role: str
     status: str
-    active_products: list[str]
 class EntitlementResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     allowed: bool
@@ -41,75 +39,45 @@ class EntitlementResponse(BaseModel):
     reason: str
     ai_remaining: int | None = None
 
-app = FastAPI(title="Astro-Zodiac API", version="0.3.0")
+app = FastAPI(title="Astro-Zodiac API", version="0.1.0")
+auth_repo = InMemoryAuthRepository()
 
+def _membership_for(user_id: UUID) -> MembershipState:
+    return MembershipState(user_id=user_id)
 
-def _startup_validate() -> None:
-    validate_runtime_config()
-
-
-# Validate config during import so an incorrectly configured runtime fails fast.
-_startup_validate()
-
-
-def _get_user(authorization: Annotated[str | None, Header()] = None):
+def current_user(authorization: Annotated[str | None, Header()] = None):
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="authentication required")
     token = authorization.split(" ", 1)[1].strip()
-    with auth_repository() as repo:
-        user = resolve_session(repo, token)
+    user = resolve_session(auth_repo, token)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid or expired session")
     return user
 
-
-def _membership(user_id: UUID) -> MembershipState:
-    with membership_repository() as repo:
-        return repo.get_state(user_id)
-
 @app.get("/health")
 def health():
-    validate_runtime_config()
-    # connection() itself will raise if the DB is unavailable.
-    with auth_repository() as repo:
-        # A harmless query through the repository boundary verifies connectivity.
-        repo.ping()
-    return {"status": "ok", "pipeline_version": pipeline_version(), "persistence": persistence_mode()}
-
+    return {"status": "ok", "pipeline_version": pipeline_version()}
 @app.post("/api/v1/auth/register", response_model=MeResponse, status_code=status.HTTP_201_CREATED)
 def api_register(payload: RegisterRequest):
     try:
-        with auth_repository() as repo:
-            user = register(repo, str(payload.email), payload.password, payload.display_name)
+        user = register(auth_repo, str(payload.email), payload.password, payload.display_name)
     except AuthError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    membership = _membership(user.user_id)
-    return MeResponse(user_id=user.user_id, email=str(user.email), display_name=user.display_name,
-                      role=user.role, status=user.status, active_products=membership.active_products)
-
+    return MeResponse(user_id=user.user_id, email=str(user.email), display_name=user.display_name, role=user.role, status=user.status)
 @app.post("/api/v1/auth/login", response_model=AuthResponse)
 def api_login(payload: LoginRequest):
     try:
-        with auth_repository() as repo:
-            user = authenticate(repo, str(payload.email), payload.password)
-            token = create_session(repo, user.user_id)
+        user = authenticate(auth_repo, str(payload.email), payload.password)
     except AuthError as exc:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials") from exc
-    return AuthResponse(user_id=user.user_id, access_token=token)
-
+    return AuthResponse(user_id=user.user_id, access_token=create_session(auth_repo, user.user_id))
 @app.get("/api/v1/me", response_model=MeResponse)
-def api_me(user=Depends(_get_user)):
-    membership = _membership(user.user_id)
-    return MeResponse(user_id=user.user_id, email=str(user.email), display_name=user.display_name,
-                      role=user.role, status=user.status, active_products=membership.active_products)
-
+def api_me(user=Depends(current_user)):
+    return MeResponse(user_id=user.user_id, email=str(user.email), display_name=user.display_name, role=user.role, status=user.status)
 @app.post("/api/v1/analysis/free")
-def api_free_analysis(payload: BirthChartRequest, user=Depends(_get_user)):
+def api_free_analysis(payload: BirthChartRequest, user=Depends(current_user)):
     return analyze_free(payload).model_dump(mode="json")
-
 @app.get("/api/v1/entitlements/{feature}", response_model=EntitlementResponse)
-def api_entitlement(feature: str, user=Depends(_get_user)):
-    state = _membership(user.user_id)
-    decision = check_access({"active_products": state.active_products}, feature)
-    return EntitlementResponse(allowed=decision.allowed, product_id=decision.product_id, feature=decision.feature,
-                               reason=decision.reason, ai_remaining=decision.ai_remaining)
+def api_entitlement(feature: str, user=Depends(current_user)):
+    decision = check_access(_membership_for(user.user_id).model_copy(), feature)
+    return EntitlementResponse(allowed=decision.allowed, product_id=decision.product_id, feature=feature, reason=decision.reason, ai_remaining=decision.ai_remaining)
