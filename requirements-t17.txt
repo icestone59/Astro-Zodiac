@@ -1,0 +1,2 @@
+# Add to the deployment environment when PostgreSQL runtime is enabled.
+psycopg[binary]>=3.2,<4
