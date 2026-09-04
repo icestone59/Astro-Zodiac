@@ -1,0 +1,5 @@
+py_compile PASS: api_app.py
+py_compile PASS: api_security.py
+py_compile PASS: index.py
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m                                                                     [100%][0m
+[32m[32m[1m4 passed[0m[32m in 0.04s[0m[0m
