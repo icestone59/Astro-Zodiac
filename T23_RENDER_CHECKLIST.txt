@@ -1,0 +1,13 @@
+T23 CHECKLIST
+
+[ ] Render Postgres exists
+[ ] Web Service + Postgres are in the same region
+[ ] Copy External Database URL from Render -> Connect for local test
+[ ] Run run_render_smoke_test.ps1
+[ ] All PASS lines appear
+[ ] Cleanup PASS appears
+[ ] Set Web Service DATABASE_URL to Internal Database URL
+[ ] Set ASTRO_ZODIAC_ENV=production
+[ ] Set ASTRO_ZODIAC_PERSISTENCE=postgres
+[ ] Save + Deploy
+[ ] Check /health
