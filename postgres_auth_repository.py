@@ -1,70 +1,62 @@
-"""T19 PostgreSQL adapter implementing the T13 AuthRepository contract."""
 from __future__ import annotations
-
-from datetime import datetime, timezone
 from uuid import UUID
-
-from user_schema import UserAccount
+from user_schema import User
+from auth_security import hash_password, verify_password
+from pydantic import EmailStr
 
 
 class PostgresAuthRepository:
-    def __init__(self, connection):
-        self.connection = connection
+    def __init__(self, conn):
+        self.conn = conn
 
-    def get_user_by_email(self, email: str) -> UserAccount | None:
-        with self.connection.cursor() as cur:
+    def ping(self) -> None:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT 1")
+            cur.fetchone()
+
+    def create_user(self, email: str, password: str, display_name: str = "") -> User:
+        password_hash = hash_password(password)
+        user_id = UUID(str(__import__('uuid').uuid4()))
+        with self.conn.cursor() as cur:
             cur.execute(
-                "SELECT user_id, email, display_name, role, status, email_verified, created_at, last_login_at FROM users WHERE email = %s",
-                (email.strip().lower(),),
+                """INSERT INTO users (id, email, password_hash, display_name, role, status)
+                   VALUES (%s, %s, %s, 'user', 'active')
+                   RETURNING id, email, display_name, role, status""",
+                (user_id, email, password_hash, display_name),
             )
             row = cur.fetchone()
-        if row is None:
+        return User(user_id=row[0], email=EmailStr(row[1]), display_name=row[2] or "", role=row[3], status=row[4])
+
+    def get_user_by_email(self, email: str) -> User | None:
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT id, email, display_name, role, status, password_hash FROM users WHERE lower(email)=lower(%s)", (email,))
+            row = cur.fetchone()
+        if not row:
             return None
-        return UserAccount(
-            user_id=UUID(str(row[0])), email=row[1], display_name=row[2], role=row[3],
-            status=row[4], email_verified=row[5], created_at=row[6], last_login_at=row[7]
-        )
+        return User(user_id=row[0], email=EmailStr(row[1]), display_name=row[2] or "", role=row[3], status=row[4], password_hash=row[5])
 
-    def get_user(self, user_id: UUID) -> UserAccount | None:
-        with self.connection.cursor() as cur:
-            cur.execute(
-                "SELECT user_id, email, display_name, role, status, email_verified, created_at, last_login_at FROM users WHERE user_id = %s",
-                (str(user_id),),
-            )
-            row = cur.fetchone()
-        if row is None:
+    def verify_user(self, email: str, password: str) -> User | None:
+        user = self.get_user_by_email(email)
+        if not user or not verify_password(password, user.password_hash):
             return None
-        return UserAccount(
-            user_id=UUID(str(row[0])), email=row[1], display_name=row[2], role=row[3],
-            status=row[4], email_verified=row[5], created_at=row[6], last_login_at=row[7]
-        )
+        return user
 
-    def create_user(self, user: UserAccount, password_hash: str) -> None:
-        with self.connection.cursor() as cur:
+    def create_session(self, user_id: UUID, token_hash: str, expires_at):
+        with self.conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO users (user_id,email,display_name,role,status,email_verified,created_at,password_hash) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-                (str(user.user_id), str(user.email), user.display_name, user.role, user.status,
-                 user.email_verified, user.created_at, password_hash),
+                "INSERT INTO user_sessions (id, user_id, token_hash, expires_at) VALUES (%s, %s, %s, %s)",
+                (__import__('uuid').uuid4(), user_id, token_hash, expires_at),
             )
 
-    def get_password_hash(self, user_id: UUID) -> str | None:
-        with self.connection.cursor() as cur:
-            cur.execute("SELECT password_hash FROM users WHERE user_id = %s", (str(user_id),))
-            row = cur.fetchone()
-        return row[0] if row else None
-
-    def save_session(self, token_hash: str, user_id: UUID, expires_at: datetime) -> None:
-        with self.connection.cursor() as cur:
+    def resolve_session(self, token_hash: str):
+        with self.conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO user_sessions (token_hash,user_id,expires_at,created_at) VALUES (%s,%s,%s,%s)",
-                (token_hash, str(user_id), expires_at, datetime.now(timezone.utc)),
-            )
-
-    def get_session_user(self, token_hash: str, now: datetime) -> UUID | None:
-        with self.connection.cursor() as cur:
-            cur.execute(
-                "SELECT user_id FROM user_sessions WHERE token_hash = %s AND expires_at > %s AND revoked_at IS NULL",
-                (token_hash, now),
+                """SELECT u.id, u.email, u.display_name, u.role, u.status
+                   FROM user_sessions s JOIN users u ON u.id=s.user_id
+                   WHERE s.token_hash=%s AND s.expires_at > NOW()""",
+                (token_hash,),
             )
             row = cur.fetchone()
-        return UUID(str(row[0])) if row else None
+        if not row:
+            return None
+        return User(user_id=row[0], email=EmailStr(row[1]), display_name=row[2] or "", role=row[3], status=row[4])

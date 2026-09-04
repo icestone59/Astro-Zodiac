@@ -8,7 +8,8 @@ from application_service import analyze_free, pipeline_version
 from auth_service import AuthError, authenticate, create_session, register, resolve_session
 from entitlement_engine import check_access
 from membership_schema import MembershipState
-from persistence_factory import auth_repository, membership_repository, persistence_mode
+from persistence_factory import auth_repository, membership_repository
+from runtime_config import persistence_mode, validate_runtime_config
 
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -40,7 +41,15 @@ class EntitlementResponse(BaseModel):
     reason: str
     ai_remaining: int | None = None
 
-app = FastAPI(title="Astro-Zodiac API", version="0.2.0")
+app = FastAPI(title="Astro-Zodiac API", version="0.3.0")
+
+
+def _startup_validate() -> None:
+    validate_runtime_config()
+
+
+# Validate config during import so an incorrectly configured runtime fails fast.
+_startup_validate()
 
 
 def _get_user(authorization: Annotated[str | None, Header()] = None):
@@ -56,12 +65,15 @@ def _get_user(authorization: Annotated[str | None, Header()] = None):
 
 def _membership(user_id: UUID) -> MembershipState:
     with membership_repository() as repo:
-        if repo is None:
-            return MembershipState(user_id=user_id)
         return repo.get_state(user_id)
 
 @app.get("/health")
 def health():
+    validate_runtime_config()
+    # connection() itself will raise if the DB is unavailable.
+    with auth_repository() as repo:
+        # A harmless query through the repository boundary verifies connectivity.
+        repo.ping()
     return {"status": "ok", "pipeline_version": pipeline_version(), "persistence": persistence_mode()}
 
 @app.post("/api/v1/auth/register", response_model=MeResponse, status_code=status.HTTP_201_CREATED)
