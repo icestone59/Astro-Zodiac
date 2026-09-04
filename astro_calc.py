@@ -18,6 +18,16 @@ ZODIAC_SIGNS = [
     "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
 
+
+# เพิ่มฟังก์ชันนี้ใน astro_calc.py
+def get_coordinates(location_name: str) -> tuple:
+    """แปลงชื่อจังหวัดเป็นพิกัด (latitude, longitude)"""
+    coords = LOCATION_COORDS.get(location_name)
+    if coords:
+        return coords
+    # Default พิกัดกรุงเทพมหานคร หากไม่พบชื่อจังหวัด
+    return (13.7563, 100.5018)
+    
 def deg_to_dms(deg_float: float) -> dict:
     deg_float = deg_float % 360
     d = int(deg_float)
