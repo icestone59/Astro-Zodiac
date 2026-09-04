@@ -1,0 +1,4 @@
+T22.1 static validation
+20260904000000_initial_postgres.sql: BEGIN=1, COMMIT=1, size=7270
+20260904000001_auth_runtime.sql: BEGIN=1, COMMIT=1, size=606
+PASS: restored migrations are structurally consistent and contain no placeholder.
