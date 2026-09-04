@@ -1,7 +1,7 @@
 import swisseph as swe
 from datetime import datetime, timezone
 
-# พิกัดภูมิศาสตร์จังหวัดหลักในไทย
+# 1. พิกัดภูมิศาสตร์จังหวัดหลักในไทย (Latitude, Longitude)
 LOCATION_COORDS = {
     "กรุงเทพมหานคร": (13.7563, 100.5018),
     "เชียงใหม่": (18.7883, 98.9853),
@@ -9,7 +9,10 @@ LOCATION_COORDS = {
     "ชลบุรี": (13.3611, 100.9847),
     "สงขลา": (7.1988, 100.5951),
     "นครราชสีมา": (14.9799, 102.0978),
-    "ภูเก็ต": (7.8804, 98.3923)
+    "ภูเก็ต": (7.8804, 98.3923),
+    "นนทบุรี": (13.8591, 100.5217),
+    "ปทุมธานี": (14.0208, 100.5250),
+    "สมุทรปราการ": (13.5991, 100.5998)
 }
 
 ZODIAC_SIGNS = [
@@ -18,17 +21,12 @@ ZODIAC_SIGNS = [
     "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ]
 
-
-# เพิ่มฟังก์ชันนี้ใน astro_calc.py
 def get_coordinates(location_name: str) -> tuple:
-    """แปลงชื่อจังหวัดเป็นพิกัด (latitude, longitude)"""
-    coords = LOCATION_COORDS.get(location_name)
-    if coords:
-        return coords
-    # Default พิกัดกรุงเทพมหานคร หากไม่พบชื่อจังหวัด
-    return (13.7563, 100.5018)
-    
+    """แปลงชื่อจังหวัดเป็นพิกัด (latitude, longitude) สำหรับ main.py"""
+    return LOCATION_COORDS.get(location_name, (13.7563, 100.5018))
+
 def deg_to_dms(deg_float: float) -> dict:
+    """แปลงองศา Decimal เป็น ราศี องศา ลิปดา (DMS)"""
     deg_float = deg_float % 360
     d = int(deg_float)
     m = int((deg_float - d) * 60)
@@ -45,7 +43,7 @@ def deg_to_dms(deg_float: float) -> dict:
     }
 
 def get_realtime_transits() -> dict:
-    """คำนวณตำแหน่งดาวจร Real-time ทั้ง 10 ดาวหลัก และ 8 ดาวทิพย์ยูเรเนียน"""
+    """ข้อ 1: คำนวณตำแหน่งดาวจร Real-time ปัจจุบัน (UTC) ทั้ง 10 ดาวหลัก และ 8 ดาวทิพย์ยูเรเนียน"""
     now = datetime.now(timezone.utc)
     jul_day = swe.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0 + now.second / 3600.0)
     
@@ -71,9 +69,9 @@ def get_realtime_transits() -> dict:
     return transits
 
 def calculate_natal_chart(day: int, month: int, year_buddhist: int, hour: int, minute: int, location_name: str = "กรุงเทพมหานคร") -> dict:
-    """คำนวณองศาดาวกำเนิด, ลัคนา (ASC), MC, และเรือนชะตา Placidus"""
+    """ข้อ 2: รับ วัน/เดือน/ปีเกิด(พ.ศ.)/เวลา/สถานที่ เพื่อคำนวณองศาดาวกำเนิด ลัคนา MC และเรือนชะตา"""
     year_gregorian = year_buddhist - 543
-    lat, lon = LOCATION_COORDS.get(location_name, (13.7563, 100.5018))
+    lat, lon = get_coordinates(location_name)
     
     # แปลงเวลาไทย (UTC+7) เป็น UTC
     hour_utc = hour - 7
@@ -100,7 +98,7 @@ def calculate_natal_chart(day: int, month: int, year_buddhist: int, hour: int, m
             "dms": dms["dms_str"]
         }
     
-    # คำนวณเรือนชะตา Placidus และมุมลัคนา/MC
+    # คำนวณเรือนชะตา Placidus, ASC และ MC
     cusps, ascmc = swe.houses(jul_day, lat, lon, b'P')
     asc_deg = float(ascmc[0])
     mc_deg = float(ascmc[1])
