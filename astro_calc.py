@@ -43,7 +43,7 @@ def deg_to_dms(deg_float: float) -> dict:
     }
 
 def get_realtime_transits() -> dict:
-    """ข้อ 1: คำนวณตำแหน่งดาวจร Real-time ปัจจุบัน (UTC) ทั้ง 10 ดาวหลัก และ 8 ดาวทิพย์ยูเรเนียน"""
+    """คำนวณตำแหน่งดาวจร Real-time ปัจจุบัน (UTC) ทั้ง 10 ดาวหลัก และ 8 ดาวทิพย์ยูเรเนียน"""
     now = datetime.now(timezone.utc)
     jul_day = swe.julday(now.year, now.month, now.day, now.hour + now.minute / 60.0 + now.second / 3600.0)
     
@@ -69,12 +69,11 @@ def get_realtime_transits() -> dict:
     return transits
 
 def calculate_natal_chart(day: int, month: int, year_buddhist: int, hour: int, minute: int, location_name: str = "กรุงเทพมหานคร") -> dict:
-    """ข้อ 2: รับ วัน/เดือน/ปีเกิด(พ.ศ.)/เวลา/สถานที่ เพื่อคำนวณองศาดาวกำเนิด ลัคนา MC และเรือนชะตา"""
+    """รับ วัน/เดือน/ปีเกิด(พ.ศ.)/เวลา/สถานที่ เพื่อคำนวณองศาดาวกำเนิด ลัคนา MC และเรือนชะตา"""
     year_gregorian = year_buddhist - 543
     lat, lon = get_coordinates(location_name)
     
-    # แปลงเวลาไทย (UTC+7) เป็น UTC
-    hour_utc = hour - 7
+    hour_utc = hour - 7  # แปลงเวลาไทย (UTC+7) เป็น UTC
     jul_day = swe.julday(year_gregorian, month, day, hour_utc + minute / 60.0)
     
     planets = {
@@ -127,3 +126,6 @@ def calculate_natal_chart(day: int, month: int, year_buddhist: int, hour: int, m
         "angles": angles,
         "houses": house_cusps
     }
+
+# ALIAS FUNCTION: เพื่อป้องกัน ImportError หาก main.py เรียกใช้ calculate_chart
+calculate_chart = calculate_natal_chart
