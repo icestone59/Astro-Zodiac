@@ -3,13 +3,10 @@ uvicorn==0.28.0
 pyswisseph==2.10.03.1
 openai==1.14.1
 pydantic==2.6.4
-flask
+email-validator>=2.2,<3
+psycopg[binary]>=3.2,<4
 pytz
 geopy
 timezonefinder
-pydantic
 requests
-geopy
-openai
 python-dotenv
-gunicorn
