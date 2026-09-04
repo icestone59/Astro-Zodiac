@@ -1,104 +1,95 @@
-# ai_service.py - Robust OpenAI Integration with Timeout Handler
-
 import os
 import json
-import re
-from openai import OpenAI, APITimeoutError, APIError
+from openai import OpenAI
+from astro_calc import get_realtime_transits
 from prompts import (
     SYSTEM_PROMPT_NATAL_7,
     SYSTEM_PROMPT_TRANSIT_QA,
     SYSTEM_PROMPT_DEEP_REPORT
 )
 
-if payload.report_type == "deep_report":
-    # สั่งให้ OpenAI ใช้ response_format JSON
-    response = client.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
-            {"role": "user", "content": f"User: {payload.user_name}, Chart Data: {json.dumps(payload.chart_data)}"}
-        ],
-        response_format={"type": "json_object"}
-    )
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+def analyze_ai_service(payload_data: dict) -> dict:
+    user_name = payload_data.get("user_name", "คุณผู้ใช้งาน")
+    report_type = payload_data.get("report_type", "natal_7")
+    chart_data = payload_data.get("chart_data", {})
+    question = payload_data.get("question", "")
+    package_level = payload_data.get("package_level", "pkg1")
+    mode = payload_data.get("mode", "client")
     
-    result_json = json.loads(response.choices[0].message.content)
-    return {
-        "status": "success",
-        "report": result_json.get("report", ""),
-        "radar_data": result_json.get("radar_data", []),
-        "bar_data": result_json.get("bar_data", [])
-    }
-# 1. ขยาย Timeout เป็น 60 วินาที และเปิด Auto Retry 2 ครั้ง
-client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-    timeout=60.0,
-    max_retries=2
-)
-
-# ai_service.py - Strict Dual-Mode Directives
-
-CLIENT_MODE_DIRECTIVE = """
-[MODE: CLIENT VERSION - ภาษาจิตวิทยา 100%]
-1. เขียนด้วยภาษาจิตวิทยาพัฒนาตนเองที่สละสลวย อ่านง่าย นำไปปฏิบัติได้จริง
-2. ห้ามใช้คำว่า "ดาว", "ราศี", "เรือนชะตา", "ลัคนา", "มุม" หรือชื่อดาวภาษาอังกฤษ/ไทย (เช่น Sun, Moon, ราศีสิงห์, เรือนที่ 1) ในเนื้อหาบรรยายเด็ดขาด
-3. อธิบายเฉพาะ "พฤติกรรม สภาวะ อารมณ์ และทางออก" ของผู้รับคำทำนายเท่านั้น
-4. ตัดบรรทัด "ที่มา:" ท้ายย่อหน้าทิ้งทั้งหมด
-"""
-
-ASTROLOGER_MODE_DIRECTIVE = """
-[MODE: ASTROLOGER TECHNICAL VERSION - โหราศาสตร์วิชาการ]
-1. เขียนด้วยภาษาโหราศาสตร์สากลวิชาการ สำหรับนักโหราศาสตร์วิเคราะห์ดวงชะตา
-2. ต้องระบุตำแหน่งดาวกำเนิด, ราศี, เรือนชะตา, องศา DMS, มุมสัมพันธ์ (เช่น Conjunction, Opposition, Square) และ House Ruler Chain ในเนื้อหาอย่างละเอียด
-3. ต้องระบุบรรทัด "ที่มา:" ท้ายทุกหัวข้อ โดยแสดงข้อมูลองศาและเรือนชะตาเต็มรูปแบบ
-"""
-
-def get_mode_prompt(mode):
-    return ASTROLOGER_MODE_DIRECTIVE if mode == 'astrologer' else CLIENT_MODE_DIRECTIVE
-
-# ฟังก์ชันดึง completions พร้อมระบบป้องกัน Timeout
-def call_openai_safe(messages, temperature=0.4, max_tokens=2500):
-    try:
-        res = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens
-        )
-        return res.choices[0].message.content.strip()
-    except APITimeoutError:
-        raise RuntimeError("OpenAI API ตอบสนองช้าเกินกำหนด (Timeout 60s) กรุณากดลองแมตช์อีกครั้ง")
-    except APIError as e:
-        raise RuntimeError(f"OpenAI API Error: {str(e)}")
-
-def analyze_natal_7_categories(user_name, chart_data, mode='client'):
-    directive = get_mode_prompt(mode)
-    prompt = f"{SYSTEM_PROMPT_NATAL_7}\n\n{directive}\n\nผู้รับคำทำนาย: {user_name}\nข้อมูลดวงชะตา: {json.dumps(chart_data, ensure_ascii=False)}"
-    return call_openai_safe([{"role": "system", "content": prompt}], temperature=0.4)
-
-def analyze_transit_qa(user_name, question, chart_data, mode='client'):
-    directive = get_mode_prompt(mode)
-    prompt = f"{SYSTEM_PROMPT_TRANSIT_QA}\n\n{directive}\n\nผู้รับคำทำนาย: {user_name}\nคำถาม: {question}\nข้อมูลดวงชะตา: {json.dumps(chart_data, ensure_ascii=False)}"
-    return call_openai_safe([{"role": "system", "content": prompt}], temperature=0.4)
-
-def analyze_deep_report(user_name, chart_data, mode='client'):
-    directive = get_mode_prompt(mode)
-    prompt = f"{SYSTEM_PROMPT_DEEP_REPORT}\n\n{directive}\n\nผู้รับคำทำนาย: {user_name}\nข้อมูลดวงชะตา: {json.dumps(chart_data, ensure_ascii=False)}"
-    full_text = call_openai_safe([{"role": "system", "content": prompt}], temperature=0.5, max_tokens=3000)
+    # 1. ดึงพิกัดดาวจร Real-time ล่าสุด
+    transits_data = get_realtime_transits()
     
-    # สกัด JSON วาดกราฟ
-    radar_data, clean_text = extract_and_clean_json(full_text, "RADAR_DATA")
-    bar_data, clean_text = extract_and_clean_json(clean_text, "POTENTIAL_BAR_DATA")
+    user_prompt_content = f"""
+    [USER INFORMATION]
+    Name: {user_name}
+    Package Level: {package_level}
+    Mode: {mode}
+    Question: {question if question else 'ไม่มีคำถามเฉพาะเจาะจง'}
     
-    return {"report": clean_text, "radar_data": radar_data, "bar_data": bar_data}
-
-def extract_and_clean_json(text, key_name):
-    pattern = rf"{key_name}:\s*(\[.*?\])"
-    match = re.search(pattern, text, re.DOTALL)
-    data = []
-    if match:
+    [NATAL CHART DATA]
+    {json.dumps(chart_data, ensure_ascii=False, indent=2)}
+    
+    [REALTIME TRANSITS DATA]
+    {json.dumps(transits_data, ensure_ascii=False, indent=2)}
+    """
+    
+    # 2. ประมวลผลตามประเภทรายงาน
+    if report_type == "deep_report":
         try:
-            data = json.loads(match.group(1))
-            text = text.replace(match.group(0), "").strip()
-        except Exception:
-            data = []
-    return data, text
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": SYSTEM_PROMPT_DEEP_REPORT},
+                    {"role": "user", "content": user_prompt_content}
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.7
+            )
+            
+            raw_content = response.choices[0].message.content
+            parsed = json.loads(raw_content)
+            
+            return {
+                "status": "success",
+                "type": "deep_report",
+                "report": parsed.get("report", ""),
+                "radar_data": parsed.get("radar_data", []),
+                "bar_data": parsed.get("bar_data", [])
+            }
+        except Exception as e:
+            return {
+                "status": "error",
+                "message": f"AI Parsing Error: {str(e)}"
+            }
+
+    elif report_type == "transit_qa" or (question and package_level != "pkg1"):
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT_TRANSIT_QA},
+                {"role": "user", "content": user_prompt_content}
+            ],
+            temperature=0.5
+        )
+        return {
+            "status": "success",
+            "type": "transit_qa",
+            "answer": response.choices[0].message.content
+        }
+
+    else:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT_NATAL_7},
+                {"role": "user", "content": user_prompt_content}
+            ],
+            temperature=0.6
+        )
+        return {
+            "status": "success",
+            "type": "natal_7",
+            "report": response.choices[0].message.content
+        }
