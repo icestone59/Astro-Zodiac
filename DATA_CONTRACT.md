@@ -143,3 +143,70 @@ AI cache key must include:
 - evidence/schema version when output semantics depend on it.
 
 A stale cache must never masquerade as a fresh calculation after an intentional rule/schema change.
+
+## 9. Product Contract
+
+### Package Contract
+```json
+{
+  "package_id": "free|standard|deep_action|vip",
+  "stage": "discovery|validation|action|transformation",
+  "price_thb": 0,
+  "features": [],
+  "upgrade_target": "standard|deep_action|vip|null"
+}
+```
+
+### Pattern Contract
+```json
+{
+  "pattern_id": "string",
+  "label": "Pattern to Explore",
+  "signals": [],
+  "category": "career",
+  "status": "unvalidated|validated",
+  "confidence": "low|moderate|strong"
+}
+```
+
+### Validation Contract
+```json
+{
+  "pattern_id": "string",
+  "assessment_items": [],
+  "behavioral_evidence": [],
+  "confidence": "low|moderate|strong",
+  "validated": true
+}
+```
+
+### Intervention Contract
+```json
+{
+  "intervention_id": "string",
+  "pattern_ids": [],
+  "method": "CBT|ACT|behavioral_activation|goal_setting|other",
+  "exercise_ids": [],
+  "duration_days": 7,
+  "evidence_sources": [],
+  "safety_notes": []
+}
+```
+
+### Life Plan Contract
+```json
+{
+  "plan_id": "string",
+  "pattern_id": "string",
+  "goal": "string",
+  "duration_days": 7,
+  "actions": [],
+  "worksheet_ids": [],
+  "tracking": {
+    "metric": "string",
+    "target": 0
+  }
+}
+```
+
+The product layer must never upgrade an unvalidated pattern into a clinical diagnosis.

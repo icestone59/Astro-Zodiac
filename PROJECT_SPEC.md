@@ -24,6 +24,28 @@ Planned product ladder:
 
 These product labels are directional. Pricing and final commercial packaging may change without changing the calculation/evidence architecture.
 
+
+
+## 2A. Product Ladder / Commercial Direction
+The product is intentionally structured as an upgrade journey:
+
+```text
+FREE = Discovery
+  ↓
+99 BAHT = Validation
+  ↓
+599 BAHT = Action
+  ↓
+1,999 BAHT = Transformation
+```
+
+Each paid level must deliver a materially new outcome. The commercial north-star target is 80%+ upgrade from meaningful FREE completion; this is a target to optimize and validate with actual product data, not an assumed conversion rate.
+
+The expanded product loop is:
+`Astrology/Uranian → Pattern/Blind Spot → Validation → Psychology/Intervention → Action Plan → Worksheet → Tracking → Progress`.
+
+Astrology output is exploratory pattern discovery, not clinical diagnosis.
+
 ## 3. Non-Negotiable Principles
 1. Astrology facts come from the calculation engine, not from the LLM.
 2. The LLM must not invent planet positions, signs, houses, rulers, aspects, dates, or orbs.
@@ -84,6 +106,17 @@ Question-driven analysis. Only relevant natal and transit evidence should be sen
 ### Deep Report
 Premium analysis. May include deeper patterns and Uranian/midpoint logic after those engines are deterministic and tested.
 
+## 7A. Transformation Modules (Planned)
+- Pattern Engine
+- Validation Engine
+- Psychology / Intervention Library
+- Action Plan Engine
+- Worksheet Engine
+- Tracking Engine
+- Progress Engine
+
+The Free package is acquisition/discovery. Paid packages successively provide validation, action, and transformation.
+
 ## 8. Current Repository Reality
 The current public repository contains the main modules: `main.py`, `astro_calc.py`, `evidence_engine.py`, `ai_service.py`, `prompts.py`, `database.py`, `index.html`, `deepreport.html`, `logic.js`, `quotes.js`, `init_db.py`, `requirements.txt`, and `ephe/`.
 
@@ -98,6 +131,11 @@ Examples observed in the current main branch:
 
 These are baseline observations for this version of the repository and must be re-verified from the repository before changing code.
 
+## 8A. Product Metrics & Safety
+The application must support measurement of Free completion, Free→Paid conversion, package-to-package conversion, assessment completion, plan acceptance, action completion, 7-day/30-day retention, and user-reported progress.
+
+The product must not claim clinical diagnosis or treatment based on astrology. Use Pattern to Explore / Potential Pattern language and provide appropriate safety escalation for situations outside the product's scope.
+
 ## 9. Definition of Done
 A feature is not done when it merely stops one error.
 
@@ -110,3 +148,26 @@ Done means:
 - Cache behavior is verified.
 - Performance impact is understood.
 - CHANGELOG is updated.
+
+# Product Pattern Access Principle — v4
+
+Free, 99 และ 599 ใช้ **Pattern Library กลางชุดเดียวกัน** และใช้ Pattern Engine กลางตัวเดียวกัน
+
+```text
+ONE PATTERN LIBRARY
+        ↓
+Pattern Engine
+        ↓
+FREE   → Discover / Top 3
+99     → Understand / Validate selected Pattern
+599    → Change / Pattern Cluster → Intervention → Action
+```
+
+Package ต่างกันที่ **ระดับความลึกและสิทธิ์การเข้าถึง** ไม่ใช่การสร้าง Pattern คนละชุด
+
+Product meaning:
+- Free = Discover
+- 99 = Understand
+- 599 = Change
+
+Pattern IDs ต้องคงเดิมตลอด User Journey

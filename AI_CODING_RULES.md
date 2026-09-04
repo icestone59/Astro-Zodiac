@@ -87,3 +87,14 @@ Fix the root cause at the correct layer.
 If the current repository differs from these documents, inspect the current code first and update the documents only when the new behavior is intentionally adopted.
 
 Never claim a test passed if it was not actually run.
+
+## 10. Product / Psychology Rules
+- Do not label an astrology-derived pattern as a clinical diagnosis.
+- Use exploratory language such as `Pattern to Explore`, `Potential Pattern`, or `Possible Blind Spot` until validation evidence exists.
+- Do not invent psychological methods, study findings, intervention efficacy, or citations.
+- Intervention content must come from a curated library with source metadata.
+- Do not expose the full transformation solution in the FREE package when the intended UX requires an upgrade step.
+- Package boundaries must be enforced server-side, not only by frontend UI.
+- Track conversion and product-completion events explicitly.
+- Do not claim an 80% conversion rate unless measurement data actually supports it; 80% is the optimization target.
+- User-reported progress must be treated as self-report, not clinical outcome proof.

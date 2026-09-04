@@ -23,7 +23,22 @@
         [Evidence Engine]
               |
               v
-        [AI Interpretation]
+        [Pattern Engine]
+              |
+              v
+       [Validation Engine]
+              |
+              v
+     [Intervention Engine]
+              |
+              v
+       [Life Plan Engine]
+              |
+              v
+        [AI Personalization]
+              |
+              v
+        [Tracking / Progress]
               |
               v
           [Report JSON]
@@ -31,6 +46,35 @@
               v
           [Frontend]
 ```
+
+
+## 1A. Product / Transformation Architecture
+```text
+FREE DISCOVERY
+    ↓
+PATTERN TO EXPLORE
+    ↓
+VALIDATION
+    ↓
+INTERVENTION SELECTION
+    ↓
+ACTION PLAN
+    ↓
+WORKSHEET
+    ↓
+TRACKING
+    ↓
+PROGRESS
+```
+
+Package responsibilities:
+- Free: discovery and Aha Moment.
+- 99: validation of relevant patterns.
+- 599: personalized action plan.
+- 1,999: structured transformation and tracking.
+
+## 1B. Performance / UX Rule
+Free must feel immediate. Avoid blocking the user on a monolithic report. Use progressive results, targeted evidence, streaming where useful, and cache deterministic work.
 
 ## 2. Module Responsibilities
 
@@ -74,6 +118,21 @@ Owns natal/transit aspect calculations.
 - Orb rules.
 - Exact angular difference.
 - Optional applying/separating logic where mathematically available.
+
+### `pattern_engine.py` (planned)
+Owns conversion of deterministic astrology evidence into exploratory life-pattern hypotheses. It must not make clinical diagnoses.
+
+### `validation_engine.py` (planned)
+Owns self-assessment, behavioral evidence, confidence scoring, and validation state.
+
+### `intervention_engine.py` (planned)
+Owns selection and execution of structured interventions from the Psychology / Intervention Library.
+
+### `life_plan_engine.py` (planned)
+Owns action plans, milestones, worksheets, and next actions.
+
+### `tracking_engine.py` (planned)
+Owns action completion, check-ins, weekly reviews, progress scoring, and plan adjustments.
 
 ### `evidence_engine.py`
 Owns selection and organization of deterministic facts for each analysis category.
