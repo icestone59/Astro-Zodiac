@@ -8,6 +8,7 @@ from application_service import analyze_free, pipeline_version
 from auth_service import AuthError, authenticate, create_session, register, resolve_session
 from entitlement_engine import check_access
 from membership_schema import MembershipState
+from product_schema import UserProductState
 from persistence_factory import auth_repository, membership_repository
 from runtime_config import persistence_mode, validate_runtime_config
 
@@ -157,6 +158,7 @@ def api_free_analysis(payload: BirthChartRequest, user=Depends(_get_user)):
 @app.get("/api/v1/entitlements/{feature}", response_model=EntitlementResponse)
 def api_entitlement(feature: str, user=Depends(_get_user)):
     state = _membership(user.user_id)
-    decision = check_access({"active_products": state.active_products}, feature)
+    product_state = UserProductState(active_products=state.active_products)
+    decision = check_access(product_state, feature)
     return EntitlementResponse(allowed=decision.allowed, product_id=decision.product_id, feature=decision.feature,
                                reason=decision.reason, ai_remaining=decision.ai_remaining)
