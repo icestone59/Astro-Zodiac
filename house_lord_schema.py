@@ -12,4 +12,5 @@ class HouseLordItem(BaseModel):
 class HouseLordSearchResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     total: int = Field(ge=0)
+    query: str = ""
     items: list[HouseLordItem]
