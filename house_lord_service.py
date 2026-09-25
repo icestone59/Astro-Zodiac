@@ -1,5 +1,4 @@
 from __future__ import annotations
-import json
 from typing import Any
 from house_lord_schema import HouseLordItem, HouseLordSearchResponse
 from postgres_connection import connection
