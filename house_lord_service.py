@@ -13,7 +13,7 @@ def _row_to_item(row: Any) -> HouseLordItem:
 def search_house_lord(query: str, limit: int = 12) -> HouseLordSearchResponse:
     q = query.strip()
     if not q:
-        return HouseLordSearchResponse(total=0, items=[])
+        return HouseLordSearchResponse(total=0, query=q, items=[])
     pair = None
     import re
     m = re.fullmatch(r"(\d{1,2})in(\d{1,2})", q.lower())
@@ -41,4 +41,4 @@ def search_house_lord(query: str, limit: int = 12) -> HouseLordSearchResponse:
                        ORDER BY item_key
                        LIMIT %s""", (term, term, limit))
             rows = cur.fetchall()
-    return HouseLordSearchResponse(total=len(rows), items=[_row_to_item(r) for r in rows])
+    return HouseLordSearchResponse(total=len(rows), query=q, items=[_row_to_item(r) for r in rows])
