@@ -1,7 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
 from uuid import UUID
-from fastapi import Depends, FastAPI, FileResponse, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import FileResponse
 from api_security import extract_bearer_token
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from application_schema import BirthChartRequest
