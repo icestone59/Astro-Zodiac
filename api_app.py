@@ -1,6 +1,7 @@
 from __future__ import annotations
+from pathlib import Path
 from uuid import UUID
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, FileResponse, HTTPException, status
 from api_security import extract_bearer_token
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from application_schema import BirthChartRequest
@@ -116,6 +117,15 @@ def _get_user(token: str = Depends(extract_bearer_token)):
 def _membership(user_id: UUID) -> MembershipState:
     with membership_repository() as repo:
         return repo.get_state(user_id)
+
+
+HOUSE_LORD_PAGE = Path(__file__).resolve().parent / "house-lord" / "index.html"
+
+
+@app.get("/house-lord", include_in_schema=False)
+@app.get("/house-lord/", include_in_schema=False)
+def house_lord_page():
+    return FileResponse(HOUSE_LORD_PAGE, media_type="text/html")
 
 @app.get("/api/v1/house-lord/search", response_model=HouseLordSearchResponse)
 def api_house_lord_search(q: str):
