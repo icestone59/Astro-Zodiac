@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Astro Aui — House Lord Search</title>
+<style>
+:root{--bg:#07101f;--panel:#0c172b;--line:#263957;--text:#edf4ff;--muted:#8fa3c0;--accent:#63a4ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+.wrap{width:100%;max-width:none;margin:0;padding:22px 28px}h1{margin:0 0 6px;font-size:24px}.sub{color:var(--muted);margin-bottom:16px}
+.searchbar{position:sticky;top:0;z-index:5;background:rgba(7,16,31,.96);padding:10px 0 14px}
+input{width:100%;padding:14px 16px;border-radius:12px;border:1px solid var(--line);background:#091426;color:white;font-size:17px}
+.workspace{display:grid;grid-template-columns:minmax(0,58%) minmax(0,42%);gap:18px;align-items:start}.matrix-wrap{overflow:hidden;border:1px solid var(--line);border-radius:14px;padding:10px;background:#091426;position:sticky;top:82px}
+.matrix{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:7px}.cell{height:40px;border:1px solid #496587;border-radius:10px;background:#0d1b31;color:#f1f6ff;cursor:pointer;font-size:14px}.cell:hover,.cell.active{border-color:#75b3ff;background:#163458}.results{min-width:0}.status{color:var(--muted);font-size:14px;margin-bottom:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}.card h2{font-size:20px;margin:0 0 12px}.card li{margin:7px 0;line-height:1.55}.empty{padding:20px;border:1px dashed var(--line);border-radius:12px;color:var(--muted)}
+.note{font-size:13px;color:var(--muted);margin-top:14px}
+@media(max-width:900px){body{overflow-x:hidden}.wrap{padding:14px 12px 18px}h1{font-size:22px}.sub{font-size:13px}.workspace{display:flex;flex-direction:column}.matrix-wrap{display:none}.results{width:100%}.card{padding:15px}.card h2{font-size:19px}.card li{font-size:15px}.mobile-picker{display:block;position:sticky;bottom:0;z-index:10;margin:0 -12px -18px;padding:9px 12px 12px;background:rgba(7,16,31,.98);border-top:1px solid #203753}.picker-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;max-height:150px;overflow:auto}.picker-btn{border:1px solid #314f73;border-radius:999px;background:#0b1a2e;color:#eef5ff;padding:8px 4px;font-size:12px}.picker-btn.active{border-color:#75b3ff;background:#163458}.mobile-picker{display:block}}
+@media(min-width:901px){.mobile-picker{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Astro Aui — House Lord Search</h1>
+<div class="sub">ค้น “ดาวเจ้าเรือน X ไปอยู่เรือน Y” จากเอกสารต้นฉบับ</div>
+<div class="searchbar"><input id="q" autocomplete="off" placeholder="เช่น 1in12, 3in3, 7in10 หรือ การเงิน"></div>
+<div class="workspace"><div class="matrix-wrap"><div class="matrix" id="matrix"></div></div><div class="results"><div class="status" id="status"></div><div id="results"></div></div></div>
+<div class="mobile-picker"><div style="font-size:13px;color:#8fa3c0;margin-bottom:7px">เลือก House Lord</div><div class="picker-grid" id="pickerGrid"></div></div>
+</div>
+<script>
+const q=document.getElementById('q'),results=document.getElementById('results'),status=document.getElementById('status');
+const matrix=document.getElementById('matrix'),pickerGrid=document.getElementById('pickerGrid');
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function keyHtml(k){const m=k.match(/^(\d+)in(\d+)$/);if(!m)return esc(k);return esc(m[1])+'in'+esc(m[2])}
+function selectKey(k){q.value=k;search(k)}
+function buildPicker(){for(let a=1;a<=12;a++)for(let b=1;b<=12;b++){const k=a+'in'+b;const d=document.createElement('button');d.className='picker-btn';d.textContent=k;d.onclick=()=>selectKey(k);pickerGrid.appendChild(d)}}
+function buildMatrix(){for(let a=1;a<=12;a++)for(let b=1;b<=12;b++){const k=a+'in'+b;const d=document.createElement('button');d.className='cell';d.dataset.key=k;d.textContent=k;d.onclick=()=>selectKey(k);matrix.appendChild(d)}}
+function render(data){document.querySelectorAll('[data-key]').forEach(x=>x.classList.toggle('active',x.dataset.key===data.key));if(!data.items?.length){results.innerHTML='<div class="empty">ไม่พบข้อมูลใน Knowledge Base</div>';return}results.innerHTML=data.items.map(x=>'<article class="card"><h2>'+esc(x.title)+'</h2><ul>'+x.bullets.map(b=>'<li>'+esc(b)+'</li>').join('')+'</ul><div class="note">Source: House Lord Knowledge Base</div></article>').join('')}
+async function search(term){const value=term.trim();if(!value){status.textContent='';results.innerHTML='<div class="empty">เลือก House Lord หรือพิมพ์คำค้นเพื่อเริ่มค้นหา</div>';return}status.textContent='กำลังค้นหา…';try{const r=await fetch('/api/v1/house-lord/search?q='+encodeURIComponent(value));const data=await r.json();if(!r.ok)throw new Error(data.detail||'Search failed');status.textContent=data.total+' รายการ';render(data)}catch(e){status.textContent='';results.innerHTML='<div class="empty">ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่</div>'}}
+let timer; q.addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(()=>search(q.value),250)});
+buildMatrix();buildPicker();
+const initial=new URLSearchParams(location.search).get('q'); if(initial){q.value=initial;search(initial)} else results.innerHTML='<div class="empty">เลือก House Lord หรือพิมพ์คำค้นเพื่อเริ่มค้นหา</div>';
+</script>
+</body></html>
