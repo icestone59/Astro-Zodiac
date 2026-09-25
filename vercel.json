@@ -4,5 +4,15 @@
     "api/*.py": {
       "maxDuration": 60
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/house-lord",
+      "destination": "/house-lord/index.html"
+    },
+    {
+      "source": "/house-lord/",
+      "destination": "/house-lord/index.html"
+    }
+  ]
 }
