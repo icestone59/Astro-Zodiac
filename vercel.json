@@ -3,7 +3,7 @@
   "functions": {
     "api/*.py": {
       "maxDuration": 60,
-      "includeFiles": ["house-lord/index.html"]
+      "includeFiles": "house-lord/index.html"
     }
   }
 }
