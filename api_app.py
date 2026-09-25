@@ -1,6 +1,8 @@
 from __future__ import annotations
+from pathlib import Path
 from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import FileResponse
 from api_security import extract_bearer_token
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from application_schema import BirthChartRequest
@@ -11,6 +13,8 @@ from membership_schema import MembershipState
 from product_schema import UserProductState
 from persistence_factory import auth_repository, membership_repository
 from runtime_config import persistence_mode, validate_runtime_config
+from house_lord_schema import HouseLordSearchResponse
+from house_lord_service import search_house_lord
 
 class RegisterRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -114,6 +118,20 @@ def _get_user(token: str = Depends(extract_bearer_token)):
 def _membership(user_id: UUID) -> MembershipState:
     with membership_repository() as repo:
         return repo.get_state(user_id)
+
+
+HOUSE_LORD_PAGE = Path(__file__).resolve().parent / "house-lord" / "index.html"
+
+
+@app.get("/house-lord", include_in_schema=False)
+@app.get("/house-lord/", include_in_schema=False)
+def house_lord_page():
+    return FileResponse(HOUSE_LORD_PAGE, media_type="text/html")
+
+@app.get("/api/v1/house-lord/search", response_model=HouseLordSearchResponse)
+def api_house_lord_search(q: str):
+    """Search the server-side House Lord knowledge base without shipping it to the browser."""
+    return search_house_lord(q)
 
 @app.get("/health")
 def health():
